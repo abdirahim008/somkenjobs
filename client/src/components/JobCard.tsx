@@ -71,18 +71,18 @@ export default function JobCard({ job }: JobCardProps) {
           <h3 className="text-lg font-semibold text-foreground hover:text-primary cursor-pointer mb-2">
             {job.title}
           </h3>
-          <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
-            <span className="flex items-center">
-              <Building2 className="mr-1 h-4 w-4" />
-              <span>{job.organization}</span>
+          <div className="flex items-center flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground mb-3">
+            <span className="flex items-center flex-shrink-0">
+              <Building2 className="mr-1 h-4 w-4 flex-shrink-0" />
+              <span className="truncate">{job.organization}</span>
             </span>
-            <span className="flex items-center">
-              <MapPin className="mr-1 h-4 w-4" />
-              <span>{job.location}</span>
+            <span className="flex items-center flex-shrink-0">
+              <MapPin className="mr-1 h-4 w-4 flex-shrink-0" />
+              <span className="whitespace-nowrap">{job.location}</span>
             </span>
-            <span className="flex items-center">
-              <Calendar className="mr-1 h-4 w-4" />
-              <span>{formatDate(job.datePosted)}</span>
+            <span className="flex items-center flex-shrink-0">
+              <Calendar className="mr-1 h-4 w-4 flex-shrink-0" />
+              <span className="whitespace-nowrap">{formatDate(job.datePosted)}</span>
             </span>
           </div>
           <p className="text-muted-foreground text-sm leading-relaxed mb-4">
