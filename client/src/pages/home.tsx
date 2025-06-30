@@ -66,6 +66,20 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <Header />
       
+      {/* Demo Notice */}
+      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex">
+            <div className="ml-3">
+              <p className="text-sm text-yellow-700">
+                <strong>Demo Mode:</strong> Currently showing sample jobs while external APIs are being configured. 
+                Apply buttons lead to organization career pages for real opportunities.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
