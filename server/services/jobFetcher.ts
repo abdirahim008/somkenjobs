@@ -28,6 +28,8 @@ interface ReliefWebJob {
     }>;
     country?: Array<{
       name: string;
+      iso3?: string;
+      shortname?: string;
     }>;
     url?: string;
     url_alias?: string;
@@ -111,7 +113,8 @@ export class JobFetcher {
         });
         
         if (!response.ok) {
-          throw new Error(`ReliefWeb API error: ${response.status} ${response.statusText}`);
+          console.error(`ReliefWeb API error for ${country}: ${response.status} ${response.statusText}`);
+          continue; // Skip this country and try the next one
         }
 
         const data: ReliefWebResponse = await response.json();
@@ -154,7 +157,8 @@ export class JobFetcher {
             location: location,
             country: country,
             description: description,
-            url: rwJob.fields.url_alias ? `https://reliefweb.int${rwJob.fields.url_alias}` : `https://reliefweb.int/job/${rwJob.id}`,
+            url: rwJob.fields.url || 
+                 (rwJob.fields.url_alias ? `https://reliefweb.int${rwJob.fields.url_alias}` : `https://reliefweb.int/job/${rwJob.id}`),
             datePosted: new Date(rwJob.fields.date.created),
             deadline: rwJob.fields.date.closing ? new Date(rwJob.fields.date.closing) : null,
             sector: rwJob.fields.theme?.[0]?.name || sector,
