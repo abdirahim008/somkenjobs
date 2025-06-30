@@ -1,4 +1,6 @@
 import { jobs, type Job, type InsertJob, users, type User, type InsertUser } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc, and, or, gte, ilike } from "drizzle-orm";
 
 export interface IStorage {
   // User methods (keep for future use)
@@ -241,4 +243,130 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async getAllJobs(): Promise<Job[]> {
+    return await db.select().from(jobs).orderBy(desc(jobs.datePosted));
+  }
+
+  async getJobById(id: number): Promise<Job | undefined> {
+    const [job] = await db.select().from(jobs).where(eq(jobs.id, id));
+    return job || undefined;
+  }
+
+  async getJobByExternalId(externalId: string): Promise<Job | undefined> {
+    const [job] = await db.select().from(jobs).where(eq(jobs.externalId, externalId));
+    return job || undefined;
+  }
+
+  async createJob(insertJob: InsertJob): Promise<Job> {
+    const [job] = await db
+      .insert(jobs)
+      .values(insertJob)
+      .returning();
+    return job;
+  }
+
+  async updateJob(id: number, updateData: Partial<InsertJob>): Promise<Job | undefined> {
+    const [job] = await db
+      .update(jobs)
+      .set(updateData)
+      .where(eq(jobs.id, id))
+      .returning();
+    return job || undefined;
+  }
+
+  async deleteJob(id: number): Promise<boolean> {
+    const result = await db.delete(jobs).where(eq(jobs.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async searchJobs(query: string): Promise<Job[]> {
+    const searchTerm = `%${query.toLowerCase()}%`;
+    return await db
+      .select()
+      .from(jobs)
+      .where(
+        or(
+          ilike(jobs.title, searchTerm),
+          ilike(jobs.organization, searchTerm),
+          ilike(jobs.description, searchTerm),
+          ilike(jobs.sector, searchTerm)
+        )
+      )
+      .orderBy(desc(jobs.datePosted));
+  }
+
+  async filterJobs(filters: {
+    country?: string[];
+    organization?: string[];
+    sector?: string[];
+    datePosted?: string;
+  }): Promise<Job[]> {
+    let whereConditions = [];
+
+    if (filters.country && filters.country.length > 0) {
+      whereConditions.push(
+        or(...filters.country.map(country => eq(jobs.country, country)))
+      );
+    }
+
+    if (filters.organization && filters.organization.length > 0) {
+      whereConditions.push(
+        or(...filters.organization.map(org => ilike(jobs.organization, `%${org}%`)))
+      );
+    }
+
+    if (filters.sector && filters.sector.length > 0) {
+      whereConditions.push(
+        or(...filters.sector.map(sector => eq(jobs.sector, sector)))
+      );
+    }
+
+    if (filters.datePosted) {
+      const now = new Date();
+      let cutoffDate: Date;
+      
+      switch (filters.datePosted) {
+        case 'last24hours':
+          cutoffDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          break;
+        case 'last7days':
+          cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case 'last30days':
+          cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          cutoffDate = new Date(0);
+      }
+      
+      whereConditions.push(gte(jobs.datePosted, cutoffDate));
+    }
+
+    return await db
+      .select()
+      .from(jobs)
+      .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
+      .orderBy(desc(jobs.datePosted));
+  }
+}
+
+export const storage = new DatabaseStorage();

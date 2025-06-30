@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { jobFetcher } from "./services/jobFetcher";
+import { seedDatabase } from "./seed";
 import { z } from "zod";
 
 const jobFiltersSchema = z.object({
@@ -13,6 +14,9 @@ const jobFiltersSchema = z.object({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Seed database with sample data on startup
+  await seedDatabase();
+  
   // Start the job scheduler
   jobFetcher.startScheduler();
 
