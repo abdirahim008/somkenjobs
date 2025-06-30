@@ -127,6 +127,11 @@ The application follows a modern full-stack architecture with clear separation b
 - June 30, 2025: Added PostgreSQL database with Drizzle ORM integration
 - June 30, 2025: Implemented database seeding with sample humanitarian jobs
 - June 30, 2025: Fixed mobile responsive layout for job card metadata
+- June 30, 2025: Enhanced job data fetching to include comprehensive ReliefWeb information
+- June 30, 2025: Fixed HTML encoding issues in application instructions and email addresses
+- June 30, 2025: Improved text formatting to convert asterisks to proper bold formatting
+- June 30, 2025: Fixed back navigation button functionality using proper routing
+- June 30, 2025: Added informational notices for jobs with limited details vs comprehensive ReliefWeb jobs
 
 ## User Preferences
 
