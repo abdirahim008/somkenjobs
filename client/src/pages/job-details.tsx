@@ -232,7 +232,7 @@ export default function JobDetails() {
           <CardContent>
             <div className="prose prose-gray max-w-none">
               {job && job.description ? (
-                <div className="space-y-4">
+                <div className="space-y-4 break-words overflow-wrap-anywhere">
                   {(typeof job.description === 'string' ? job.description : String(job.description))
                     .split('\n')
                     .filter(paragraph => paragraph.trim().length > 0)
@@ -272,7 +272,7 @@ export default function JobDetails() {
                       
                       // Regular paragraph
                       return (
-                        <p key={index} className="mb-4 text-foreground leading-relaxed">
+                        <p key={index} className="mb-4 text-foreground leading-relaxed break-words">
                           <span dangerouslySetInnerHTML={{
                             __html: trimmedParagraph
                               .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -311,7 +311,7 @@ export default function JobDetails() {
             </CardHeader>
             <CardContent>
               <div className="prose prose-gray max-w-none">
-                <div className="text-foreground leading-relaxed space-y-4">
+                <div className="text-foreground leading-relaxed space-y-4 break-words overflow-wrap-anywhere">
                   {cleanText(job.howToApply)
                     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove scripts
                     .replace(/<br\s*\/?>/gi, '\n') // Convert <br> to line breaks
@@ -341,7 +341,7 @@ export default function JobDetails() {
                       const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
                       if (trimmed.match(emailRegex)) {
                         return (
-                          <p key={index} className="mb-3 text-foreground leading-relaxed">
+                          <p key={index} className="mb-3 text-foreground leading-relaxed break-words">
                             {trimmed
                               .replace(/___STRONG_START___(.*?)___STRONG_END___/g, '<strong>$1</strong>')
                               .replace(/___EM_START___(.*?)___EM_END___/g, '<em>$1</em>')
@@ -350,7 +350,7 @@ export default function JobDetails() {
                               .split(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
                               .map((part, i) => 
                               /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/.test(part) ? (
-                                <span key={i} className="font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                <span key={i} className="font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded break-all inline-block max-w-full">
                                   {part}
                                 </span>
                               ) : (
@@ -363,7 +363,7 @@ export default function JobDetails() {
                       
                       // Regular paragraph - convert asterisks to bold
                       return (
-                        <p key={index} className="mb-3 text-foreground leading-relaxed">
+                        <p key={index} className="mb-3 text-foreground leading-relaxed break-words">
                           <span dangerouslySetInnerHTML={{
                             __html: trimmed
                               .replace(/___STRONG_START___(.*?)___STRONG_END___/g, '<strong>$1</strong>')
