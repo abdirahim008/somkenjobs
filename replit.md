@@ -135,6 +135,7 @@ The application follows a modern full-stack architecture with clear separation b
 - June 30, 2025: Added comprehensive escape sequence cleaning to remove all backslashes and escaped characters from job text
 - June 30, 2025: Removed demo warning banner since real comprehensive job data is now displayed
 - June 30, 2025: Fixed organization names to display actual organizations from ReliefWeb API (International Labour Organization, Agency for Technical Cooperation and Development, etc.) with "ReliefWeb Organization" fallback only when source data is missing
+- June 30, 2025: Optimized ReliefWeb integration with enhanced data fields, better organization name extraction using longname/name priority, improved sector categorization, and robust error handling
 
 ## User Preferences
 
