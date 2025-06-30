@@ -14,7 +14,7 @@ export default function JobDetails() {
   const jobId = params?.id;
 
   const { data: job, isLoading, error } = useQuery<Job>({
-    queryKey: ['/api/jobs', jobId],
+    queryKey: [`/api/jobs/${jobId}`],
     enabled: !!jobId,
   });
 
@@ -191,19 +191,49 @@ export default function JobDetails() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <Users className="mr-2 h-5 w-5" />
-              Job Description
+              Job Description & Requirements
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="prose prose-gray max-w-none">
               {job && job.description ? (
-                (typeof job.description === 'string' ? job.description : String(job.description))
-                  .split('\n')
-                  .map((paragraph, index) => (
-                    <p key={index} className="mb-4 text-foreground leading-relaxed">
-                      {paragraph}
-                    </p>
-                  ))
+                <div className="space-y-4">
+                  {(typeof job.description === 'string' ? job.description : String(job.description))
+                    .split('\n')
+                    .filter(paragraph => paragraph.trim().length > 0)
+                    .map((paragraph, index) => {
+                      // Format paragraphs with proper styling
+                      const trimmedParagraph = paragraph.trim();
+                      
+                      // Check if it's a header/title (usually short and in caps or ends with colon)
+                      if (trimmedParagraph.length < 100 && 
+                          (trimmedParagraph.toUpperCase() === trimmedParagraph || 
+                           trimmedParagraph.endsWith(':') ||
+                           trimmedParagraph.match(/^\d+\.\s/))) {
+                        return (
+                          <h3 key={index} className="text-lg font-semibold text-foreground mt-6 mb-3">
+                            {trimmedParagraph}
+                          </h3>
+                        );
+                      }
+                      
+                      // Check if it's a bullet point
+                      if (trimmedParagraph.startsWith('•') || trimmedParagraph.startsWith('-') || trimmedParagraph.startsWith('*')) {
+                        return (
+                          <li key={index} className="ml-4 mb-2 text-foreground leading-relaxed">
+                            {trimmedParagraph.replace(/^[•\-*]\s*/, '')}
+                          </li>
+                        );
+                      }
+                      
+                      // Regular paragraph
+                      return (
+                        <p key={index} className="mb-4 text-foreground leading-relaxed">
+                          {trimmedParagraph}
+                        </p>
+                      );
+                    })}
+                </div>
               ) : (
                 <p className="mb-4 text-foreground leading-relaxed">
                   No detailed description available for this position.
