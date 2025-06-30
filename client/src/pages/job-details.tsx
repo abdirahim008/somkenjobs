@@ -118,9 +118,7 @@ export default function JobDetails() {
     );
   }
 
-  const handleApply = () => {
-    window.open(job.url, "_blank", "noopener,noreferrer");
-  };
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -179,10 +177,6 @@ export default function JobDetails() {
                   </Badge>
                 </div>
               </div>
-              <Button onClick={handleApply} size="lg" className="ml-6">
-                Apply Now
-                <ExternalLink className="ml-2 h-4 w-4" />
-              </Button>
             </div>
           </CardHeader>
         </Card>
@@ -432,21 +426,7 @@ export default function JobDetails() {
           </Card>
         </div>
 
-        {/* Apply Section */}
-        <Card>
-          <CardContent className="py-6">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold mb-2">Ready to Apply?</h3>
-              <p className="text-muted-foreground mb-4">
-                Click the button below to apply for this position through the organization's official website.
-              </p>
-              <Button onClick={handleApply} size="lg">
-                Apply for this Position
-                <ExternalLink className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+
       </main>
 
       <Footer />
