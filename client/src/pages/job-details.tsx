@@ -96,13 +96,17 @@ export default function JobDetails() {
   }
 
   if (error || !job) {
+    console.error("Job details error:", error);
+    console.log("Job ID:", jobId, "Job data:", job);
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
             <h2 className="text-2xl font-bold text-foreground mb-4">Job Not Found</h2>
-            <p className="text-muted-foreground mb-6">The job you're looking for doesn't exist or has been removed.</p>
+            <p className="text-muted-foreground mb-6">
+              {error ? "Error loading job details" : "The job you're looking for doesn't exist or has been removed."}
+            </p>
             <Button onClick={() => window.history.back()}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Go Back
@@ -192,11 +196,17 @@ export default function JobDetails() {
           </CardHeader>
           <CardContent>
             <div className="prose prose-gray max-w-none">
-              {job.description.split('\n').map((paragraph, index) => (
-                <p key={index} className="mb-4 text-foreground leading-relaxed">
-                  {paragraph}
+              {job.description ? (
+                job.description.split('\n').map((paragraph, index) => (
+                  <p key={index} className="mb-4 text-foreground leading-relaxed">
+                    {paragraph}
+                  </p>
+                ))
+              ) : (
+                <p className="mb-4 text-foreground leading-relaxed">
+                  No detailed description available for this position.
                 </p>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -214,7 +224,7 @@ export default function JobDetails() {
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Location</label>
-                <p className="text-foreground">{job.location}, {job.country}</p>
+                <p className="text-foreground">{job.location || job.country || "Location not specified"}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Sector</label>
