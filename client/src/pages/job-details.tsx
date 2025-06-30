@@ -263,12 +263,62 @@ export default function JobDetails() {
             </CardHeader>
             <CardContent>
               <div className="prose prose-gray max-w-none">
-                <div 
-                  className="text-foreground leading-relaxed"
-                  dangerouslySetInnerHTML={{ 
-                    __html: job.howToApply.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-                  }}
-                />
+                <div className="text-foreground leading-relaxed space-y-4">
+                  {job.howToApply
+                    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove scripts
+                    .replace(/\\_/g, '_') // Fix escaped underscores
+                    .replace(/\\@/g, '@') // Fix escaped @ symbols
+                    .replace(/\\\//g, '/') // Fix escaped forward slashes
+                    .replace(/<br\s*\/?>/gi, '\n') // Convert <br> to line breaks
+                    .replace(/<p>/gi, '\n\n') // Convert <p> to paragraphs
+                    .replace(/<\/p>/gi, '') // Remove closing p tags
+                    .replace(/<strong>(.*?)<\/strong>/gi, '**$1**') // Convert bold to markdown
+                    .replace(/<b>(.*?)<\/b>/gi, '**$1**') // Convert bold to markdown
+                    .replace(/<em>(.*?)<\/em>/gi, '*$1*') // Convert italic to markdown
+                    .replace(/<i>(.*?)<\/i>/gi, '*$1*') // Convert italic to markdown
+                    .replace(/<[^>]*>/g, '') // Remove remaining HTML tags
+                    .split('\n')
+                    .filter(line => line.trim().length > 0)
+                    .map((paragraph, index) => {
+                      const trimmed = paragraph.trim();
+                      
+                      // Check if it's a bold/header line
+                      if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
+                        return (
+                          <h4 key={index} className="font-semibold text-foreground mt-4 mb-2">
+                            {trimmed.replace(/\*\*/g, '')}
+                          </h4>
+                        );
+                      }
+                      
+                      // Check if it contains email addresses
+                      const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+                      if (trimmed.match(emailRegex)) {
+                        return (
+                          <p key={index} className="mb-3 text-foreground leading-relaxed">
+                            {trimmed.split(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/).map((part, i) => 
+                              /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/.test(part) ? (
+                                <span key={i} className="font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                  {part}
+                                </span>
+                              ) : part
+                            )}
+                          </p>
+                        );
+                      }
+                      
+                      // Regular paragraph
+                      return (
+                        <p key={index} className="mb-3 text-foreground leading-relaxed">
+                          <span dangerouslySetInnerHTML={{
+                            __html: trimmed
+                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                              .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                          }} />
+                        </p>
+                      );
+                    })}
+                </div>
               </div>
             </CardContent>
           </Card>
