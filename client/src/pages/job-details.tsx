@@ -41,6 +41,44 @@ export default function JobDetails() {
     return formatDate(date);
   };
 
+  const cleanText = (text: string) => {
+    return text
+      .replace(/\\-/g, '-')           // Fix escaped hyphens
+      .replace(/\\\\/g, '')           // Remove double backslashes
+      .replace(/\\'/g, "'")           // Fix escaped apostrophes
+      .replace(/\\"/g, '"')           // Fix escaped quotes
+      .replace(/\\n/g, '\n')          // Fix escaped newlines
+      .replace(/\\t/g, ' ')           // Replace escaped tabs with spaces
+      .replace(/\\_/g, '_')           // Fix escaped underscores
+      .replace(/\\@/g, '@')           // Fix escaped @ symbols
+      .replace(/\\\//g, '/')          // Fix escaped forward slashes
+      .replace(/\\&/g, '&')           // Fix escaped ampersands
+      .replace(/\\:/g, ':')           // Fix escaped colons
+      .replace(/\\;/g, ';')           // Fix escaped semicolons
+      .replace(/\\,/g, ',')           // Fix escaped commas
+      .replace(/\\\./g, '.')          // Fix escaped periods
+      .replace(/\\\?/g, '?')          // Fix escaped question marks
+      .replace(/\\!/g, '!')           // Fix escaped exclamation marks
+      .replace(/\\\(/g, '(')          // Fix escaped opening parentheses
+      .replace(/\\\)/g, ')')          // Fix escaped closing parentheses
+      .replace(/\\\[/g, '[')          // Fix escaped opening brackets
+      .replace(/\\\]/g, ']')          // Fix escaped closing brackets
+      .replace(/\\\{/g, '{')          // Fix escaped opening braces
+      .replace(/\\\}/g, '}')          // Fix escaped closing braces
+      .replace(/\\%/g, '%')           // Fix escaped percent signs
+      .replace(/\\\$/g, '$')          // Fix escaped dollar signs
+      .replace(/\\#/g, '#')           // Fix escaped hash symbols
+      .replace(/\\\^/g, '^')          // Fix escaped caret symbols
+      .replace(/\\\*/g, '*')          // Fix escaped asterisks (but handle ** bold separately)
+      .replace(/\\\+/g, '+')          // Fix escaped plus signs
+      .replace(/\\=/g, '=')           // Fix escaped equals signs
+      .replace(/\\</g, '<')           // Fix escaped less than
+      .replace(/\\>/g, '>')           // Fix escaped greater than
+      .replace(/\\\|/g, '|')          // Fix escaped pipes
+      .replace(/\\`/g, '`')           // Fix escaped backticks
+      .replace(/\\~/g, '~');          // Fix escaped tildes
+  };
+
   const getSectorBadgeColor = (sector: string | null) => {
     if (!sector) return "badge-gray";
     
@@ -200,7 +238,7 @@ export default function JobDetails() {
                     .filter(paragraph => paragraph.trim().length > 0)
                     .map((paragraph, index) => {
                       // Format paragraphs with proper styling
-                      const trimmedParagraph = paragraph.trim();
+                      const trimmedParagraph = cleanText(paragraph.trim());
                       
                       // Check if it's a header/title (usually short and in caps or ends with colon)
                       if (trimmedParagraph.length < 100 && 
@@ -274,11 +312,8 @@ export default function JobDetails() {
             <CardContent>
               <div className="prose prose-gray max-w-none">
                 <div className="text-foreground leading-relaxed space-y-4">
-                  {job.howToApply
+                  {cleanText(job.howToApply)
                     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove scripts
-                    .replace(/\\_/g, '_') // Fix escaped underscores
-                    .replace(/\\@/g, '@') // Fix escaped @ symbols
-                    .replace(/\\\//g, '/') // Fix escaped forward slashes
                     .replace(/<br\s*\/?>/gi, '\n') // Convert <br> to line breaks
                     .replace(/<p>/gi, '\n\n') // Convert <p> to paragraphs
                     .replace(/<\/p>/gi, '') // Remove closing p tags
