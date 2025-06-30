@@ -272,21 +272,22 @@ export default function JobDetails() {
                     .replace(/<br\s*\/?>/gi, '\n') // Convert <br> to line breaks
                     .replace(/<p>/gi, '\n\n') // Convert <p> to paragraphs
                     .replace(/<\/p>/gi, '') // Remove closing p tags
-                    .replace(/<strong>(.*?)<\/strong>/gi, '**$1**') // Convert bold to markdown
-                    .replace(/<b>(.*?)<\/b>/gi, '**$1**') // Convert bold to markdown
-                    .replace(/<em>(.*?)<\/em>/gi, '*$1*') // Convert italic to markdown
-                    .replace(/<i>(.*?)<\/i>/gi, '*$1*') // Convert italic to markdown
+                    .replace(/<strong>(.*?)<\/strong>/gi, '___STRONG_START___$1___STRONG_END___') // Preserve HTML bold
+                    .replace(/<b>(.*?)<\/b>/gi, '___STRONG_START___$1___STRONG_END___') // Preserve HTML bold
+                    .replace(/<em>(.*?)<\/em>/gi, '___EM_START___$1___EM_END___') // Preserve HTML italic
+                    .replace(/<i>(.*?)<\/i>/gi, '___EM_START___$1___EM_END___') // Preserve HTML italic
                     .replace(/<[^>]*>/g, '') // Remove remaining HTML tags
                     .split('\n')
                     .filter(line => line.trim().length > 0)
                     .map((paragraph, index) => {
                       const trimmed = paragraph.trim();
                       
-                      // Check if it's a bold/header line
-                      if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
+                      // Check if it's a header line (only preserved HTML bold, not asterisks)
+                      if (trimmed.startsWith('___STRONG_START___') && trimmed.includes('___STRONG_END___')) {
+                        const headerText = trimmed.replace(/___STRONG_START___(.*?)___STRONG_END___/g, '$1');
                         return (
                           <h4 key={index} className="font-semibold text-foreground mt-4 mb-2">
-                            {trimmed.replace(/\*\*/g, '')}
+                            {headerText}
                           </h4>
                         );
                       }
@@ -296,24 +297,30 @@ export default function JobDetails() {
                       if (trimmed.match(emailRegex)) {
                         return (
                           <p key={index} className="mb-3 text-foreground leading-relaxed">
-                            {trimmed.split(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/).map((part, i) => 
+                            {trimmed
+                              .replace(/___STRONG_START___(.*?)___STRONG_END___/g, '<strong>$1</strong>')
+                              .replace(/___EM_START___(.*?)___EM_END___/g, '<em>$1</em>')
+                              .split(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
+                              .map((part, i) => 
                               /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/.test(part) ? (
                                 <span key={i} className="font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
                                   {part}
                                 </span>
-                              ) : part
+                              ) : (
+                                <span key={i} dangerouslySetInnerHTML={{ __html: part }} />
+                              )
                             )}
                           </p>
                         );
                       }
                       
-                      // Regular paragraph
+                      // Regular paragraph - preserve asterisks as literal characters
                       return (
                         <p key={index} className="mb-3 text-foreground leading-relaxed">
                           <span dangerouslySetInnerHTML={{
                             __html: trimmed
-                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                              .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                              .replace(/___STRONG_START___(.*?)___STRONG_END___/g, '<strong>$1</strong>')
+                              .replace(/___EM_START___(.*?)___EM_END___/g, '<em>$1</em>')
                           }} />
                         </p>
                       );
