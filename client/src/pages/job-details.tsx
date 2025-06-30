@@ -300,6 +300,8 @@ export default function JobDetails() {
                             {trimmed
                               .replace(/___STRONG_START___(.*?)___STRONG_END___/g, '<strong>$1</strong>')
                               .replace(/___EM_START___(.*?)___EM_END___/g, '<em>$1</em>')
+                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Convert **text** to bold
+                              .replace(/\*(.*?)\*/g, '<em>$1</em>') // Convert *text* to italic
                               .split(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
                               .map((part, i) => 
                               /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/.test(part) ? (
@@ -314,13 +316,15 @@ export default function JobDetails() {
                         );
                       }
                       
-                      // Regular paragraph - preserve asterisks as literal characters
+                      // Regular paragraph - convert asterisks to bold
                       return (
                         <p key={index} className="mb-3 text-foreground leading-relaxed">
                           <span dangerouslySetInnerHTML={{
                             __html: trimmed
                               .replace(/___STRONG_START___(.*?)___STRONG_END___/g, '<strong>$1</strong>')
                               .replace(/___EM_START___(.*?)___EM_END___/g, '<em>$1</em>')
+                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Convert **text** to bold
+                              .replace(/\*(.*?)\*/g, '<em>$1</em>') // Convert *text* to italic
                           }} />
                         </p>
                       );
