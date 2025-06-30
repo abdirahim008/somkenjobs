@@ -19,6 +19,12 @@ interface ReliefWebJob {
     source?: Array<{
       name: string;
       shortname?: string;
+      longname?: string;
+      homepage?: string;
+      type?: {
+        id: number;
+        name: string;
+      };
     }>;
     country?: Array<{
       name: string;
@@ -69,18 +75,24 @@ export class JobFetcher {
             include: [
               "title",
               "body",
-              "body-html",
+              "body-html", 
               "date.created",
               "date.closing",
+              "date.changed",
               "source.name",
               "source.shortname",
-              "country.name", 
+              "source.longname",
+              "source.homepage",
+              "source.type",
+              "country.name",
+              "country.iso3",
+              "url",
               "url_alias",
               "theme.name",
               "career_categories.name",
               "how_to_apply",
               "how_to_apply-html",
-              "experience",
+              "experience.name",
               "type.name"
             ]
           },
@@ -108,14 +120,21 @@ export class JobFetcher {
           const existingJob = await storage.getJobByExternalId(`reliefweb-${rwJob.id}`);
           if (existingJob) continue; // Skip if already exists
 
-          // Extract location - use first country or default to country name
+          // Extract location with better fallbacks
           const location = rwJob.fields.country?.[0]?.name || country;
           
-          // Extract sector from career categories
-          const sector = rwJob.fields.career_categories?.[0]?.name || "General";
+          // Extract sector from theme first, then career categories 
+          const sector = rwJob.fields.theme?.[0]?.name || 
+                        rwJob.fields.career_categories?.[0]?.name || 
+                        "General";
           
-          // Clean up description (remove HTML tags)
-          const description = rwJob.fields.body?.replace(/<[^>]*>/g, "").substring(0, 500) || "";
+          // Clean up description (remove HTML tags and improve length)
+          const rawDescription = rwJob.fields.body || "";
+          const description = rawDescription
+            .replace(/<[^>]*>/g, "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .substring(0, 800) || ""; // Increased from 500 to 800 chars
 
 
 
@@ -124,9 +143,14 @@ export class JobFetcher {
           const experience = rwJob.fields.experience?.map(exp => exp.name).join(", ") || null;
           const bodyHtml = rwJob.fields["body-html"] || null;
 
+          // Use the best available organization name
+          const organization = rwJob.fields.source?.[0]?.longname || 
+                             rwJob.fields.source?.[0]?.name || 
+                             "ReliefWeb Organization";
+
           const job: InsertJob = {
             title: rwJob.fields.title,
-            organization: rwJob.fields.source?.[0]?.name || "ReliefWeb Organization",
+            organization: organization,
             location: location,
             country: country,
             description: description,
