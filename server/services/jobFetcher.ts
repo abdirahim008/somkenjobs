@@ -131,13 +131,16 @@ export class JobFetcher {
                         rwJob.fields.career_categories?.[0]?.name || 
                         "General";
           
-          // Clean up description (remove HTML tags and improve length)
+          // Store both truncated description and full HTML content
           const rawDescription = rwJob.fields.body || "";
+          const fullHtmlDescription = rwJob.fields["body-html"] || rawDescription;
+          
+          // Create truncated plain text version for preview
           const description = rawDescription
             .replace(/<[^>]*>/g, "")
             .replace(/\s+/g, " ")
             .trim()
-            .substring(0, 800) || ""; // Increased from 500 to 800 chars
+            .substring(0, 800) || ""; // Truncated for card display
 
 
 
@@ -168,7 +171,7 @@ export class JobFetcher {
             experience: experience,
             qualifications: null, // Will be extracted from description
             responsibilities: null, // Will be extracted from description
-            bodyHtml: bodyHtml
+            bodyHtml: fullHtmlDescription
           };
 
           await storage.createJob(job);

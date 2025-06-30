@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { ArrowLeft, Calendar, MapPin, Building2, ExternalLink, Clock, Users } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Building2, ExternalLink, Clock, Users, ChevronDown, ChevronUp } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,7 @@ import { type Job } from "@shared/schema";
 export default function JobDetails() {
   const [match, params] = useRoute("/jobs/:id");
   const [, setLocation] = useLocation();
+  const [showFullDescription, setShowFullDescription] = useState(false);
   const jobId = params?.id;
 
   const { data: job, isLoading, error } = useQuery<Job>({
