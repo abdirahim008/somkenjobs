@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { ArrowLeft, Calendar, MapPin, Building2, ExternalLink, Clock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { type Job } from "@shared/schema";
 
 export default function JobDetails() {
   const [match, params] = useRoute("/jobs/:id");
+  const [, setLocation] = useLocation();
   const jobId = params?.id;
 
   const { data: job, isLoading, error } = useQuery<Job>({
@@ -107,7 +108,7 @@ export default function JobDetails() {
             <p className="text-muted-foreground mb-6">
               {error ? "Error loading job details" : "The job you're looking for doesn't exist or has been removed."}
             </p>
-            <Button onClick={() => window.history.back()}>
+            <Button onClick={() => setLocation("/")}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Go Back
             </Button>
@@ -129,7 +130,7 @@ export default function JobDetails() {
         {/* Back Button */}
         <Button 
           variant="ghost" 
-          onClick={() => window.history.back()}
+          onClick={() => setLocation("/")}
           className="mb-6"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
