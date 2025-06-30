@@ -4,24 +4,29 @@ import * as cron from "node-cron";
 
 const RELIEFWEB_API_URL = "https://api.reliefweb.int/v1/jobs";
 const UNJOBS_RSS_URL = "https://jobs.un.org/rss";
+const UNJOBS_API_URL = "https://jobs.un.org/api/v1/jobs";
 
 interface ReliefWebJob {
   id: string;
   fields: {
     title: string;
-    body: string;
+    body?: string;
     date: {
       created: string;
       closing?: string;
     };
-    source: {
+    source?: {
       name: string;
     };
-    country: Array<{
+    country?: Array<{
       name: string;
     }>;
-    url: string;
+    url?: string;
+    url_alias?: string;
     career_categories?: Array<{
+      name: string;
+    }>;
+    theme?: Array<{
       name: string;
     }>;
   };
@@ -43,30 +48,38 @@ export class JobFetcher {
       const countries = ["Kenya", "Somalia"];
       
       for (const country of countries) {
-        const params = new URLSearchParams({
+        // Use proper ReliefWeb API v1 format
+        const requestBody = {
           appname: "jobconnect-eastafrica",
-          filter: JSON.stringify({
-            field: "country.name",
-            value: [country]
-          }),
-          fields: JSON.stringify({
+          query: {
+            value: country,
+            fields: ["country"]
+          },
+          fields: {
             include: [
               "title",
               "body",
               "date.created",
-              "date.closing", 
+              "date.closing",
               "source.name",
               "country.name",
-              "url",
-              "career_categories.name"
+              "url_alias",
+              "theme.name"
             ]
-          }),
-          limit: "100",
-          offset: "0",
-          sort: JSON.stringify(["date.created:desc"])
-        });
+          },
+          limit: 50,
+          sort: ["date.created:desc"]
+        };
 
-        const response = await fetch(`${RELIEFWEB_API_URL}?${params}`);
+        const response = await fetch(RELIEFWEB_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'JobConnect-EastAfrica/1.0',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
         
         if (!response.ok) {
           throw new Error(`ReliefWeb API error: ${response.status} ${response.statusText}`);
@@ -89,14 +102,14 @@ export class JobFetcher {
 
           const job: InsertJob = {
             title: rwJob.fields.title,
-            organization: rwJob.fields.source.name,
+            organization: rwJob.fields.source?.name || "ReliefWeb Organization",
             location: location,
             country: country,
             description: description,
-            url: rwJob.fields.url,
+            url: rwJob.fields.url_alias ? `https://reliefweb.int${rwJob.fields.url_alias}` : `https://reliefweb.int/job/${rwJob.id}`,
             datePosted: new Date(rwJob.fields.date.created),
             deadline: rwJob.fields.date.closing ? new Date(rwJob.fields.date.closing) : null,
-            sector: sector,
+            sector: rwJob.fields.theme?.[0]?.name || sector,
             source: "reliefweb",
             externalId: `reliefweb-${rwJob.id}`
           };
