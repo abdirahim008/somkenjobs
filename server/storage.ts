@@ -155,7 +155,12 @@ export class MemStorage implements IStorage {
       ...insertJob, 
       id,
       sector: insertJob.sector || null,
-      deadline: insertJob.deadline || null
+      deadline: insertJob.deadline || null,
+      howToApply: insertJob.howToApply || null,
+      experience: insertJob.experience || null,
+      qualifications: insertJob.qualifications || null,
+      responsibilities: insertJob.responsibilities || null,
+      bodyHtml: insertJob.bodyHtml || null
     };
     this.jobs.set(id, job);
     return job;
