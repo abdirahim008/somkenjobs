@@ -81,6 +81,96 @@ export default function JobDetails() {
       .replace(/\\~/g, '~');          // Fix escaped tildes
   };
 
+  const renderDescription = (job: Job) => {
+    if (!job) return null;
+    
+    // Use the full HTML description if available, otherwise use the regular description
+    const fullDescription = job.bodyHtml || job.description;
+    const shortDescription = job.description;
+    
+    // Check if we need to show "Show More" button (if there's more content in bodyHtml or description is truncated)
+    const needsShowMore = fullDescription && fullDescription.length > shortDescription.length;
+    
+    const displayDescription = showFullDescription ? fullDescription : shortDescription;
+    
+    return (
+      <div className="space-y-4">
+        <div className="prose prose-gray max-w-none">
+          <div className="space-y-4 break-words overflow-wrap-anywhere">
+            {displayDescription
+              .split('\n')
+              .filter(paragraph => paragraph.trim().length > 0)
+              .map((paragraph, index) => {
+                const trimmedParagraph = cleanText(paragraph.trim());
+                
+                // Check if it's a header/title (usually short and in caps or ends with colon)
+                if (trimmedParagraph.length < 100 && 
+                    (trimmedParagraph.toUpperCase() === trimmedParagraph || 
+                     trimmedParagraph.endsWith(':') ||
+                     trimmedParagraph.match(/^\d+\.\s/))) {
+                  return (
+                    <h3 key={index} className="text-lg font-semibold text-foreground mt-6 mb-3">
+                      <span dangerouslySetInnerHTML={{
+                        __html: trimmedParagraph
+                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                          .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                      }} />
+                    </h3>
+                  );
+                }
+                
+                // Check if it's a bullet point
+                if (trimmedParagraph.startsWith('•') || trimmedParagraph.startsWith('-') || trimmedParagraph.match(/^\*[^*]/)) {
+                  return (
+                    <li key={index} className="ml-4 mb-2 text-foreground leading-relaxed">
+                      <span dangerouslySetInnerHTML={{
+                        __html: trimmedParagraph
+                          .replace(/^[•\-*]\s*/, '')
+                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                          .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                      }} />
+                    </li>
+                  );
+                }
+                
+                // Regular paragraph
+                return (
+                  <p key={index} className="mb-4 text-foreground leading-relaxed break-words">
+                    <span dangerouslySetInnerHTML={{
+                      __html: trimmedParagraph
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    }} />
+                  </p>
+                );
+              })}
+          </div>
+        </div>
+        
+        {needsShowMore && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFullDescription(!showFullDescription)}
+            className="mt-4 flex items-center gap-2"
+          >
+            {showFullDescription ? (
+              <>
+                <ChevronUp className="h-4 w-4" />
+                Show Less
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-4 w-4" />
+                Show More
+              </>
+            )}
+          </Button>
+        )}
+      </div>
+    );
+  };
+
   const getSectorBadgeColor = (sector: string | null) => {
     if (!sector) return "badge-gray";
     
@@ -232,64 +322,7 @@ export default function JobDetails() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="prose prose-gray max-w-none">
-              {job && job.description ? (
-                <div className="space-y-4 break-words overflow-wrap-anywhere">
-                  {(typeof job.description === 'string' ? job.description : String(job.description))
-                    .split('\n')
-                    .filter(paragraph => paragraph.trim().length > 0)
-                    .map((paragraph, index) => {
-                      // Format paragraphs with proper styling
-                      const trimmedParagraph = cleanText(paragraph.trim());
-                      
-                      // Check if it's a header/title (usually short and in caps or ends with colon)
-                      if (trimmedParagraph.length < 100 && 
-                          (trimmedParagraph.toUpperCase() === trimmedParagraph || 
-                           trimmedParagraph.endsWith(':') ||
-                           trimmedParagraph.match(/^\d+\.\s/))) {
-                        return (
-                          <h3 key={index} className="text-lg font-semibold text-foreground mt-6 mb-3">
-                            <span dangerouslySetInnerHTML={{
-                              __html: trimmedParagraph
-                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                            }} />
-                          </h3>
-                        );
-                      }
-                      
-                      // Check if it's a bullet point
-                      if (trimmedParagraph.startsWith('•') || trimmedParagraph.startsWith('-') || trimmedParagraph.match(/^\*[^*]/)) {
-                        return (
-                          <li key={index} className="ml-4 mb-2 text-foreground leading-relaxed">
-                            <span dangerouslySetInnerHTML={{
-                              __html: trimmedParagraph
-                                .replace(/^[•\-*]\s*/, '')
-                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                            }} />
-                          </li>
-                        );
-                      }
-                      
-                      // Regular paragraph
-                      return (
-                        <p key={index} className="mb-4 text-foreground leading-relaxed break-words">
-                          <span dangerouslySetInnerHTML={{
-                            __html: trimmedParagraph
-                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                              .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                          }} />
-                        </p>
-                      );
-                    })}
-                </div>
-              ) : (
-                <p className="mb-4 text-foreground leading-relaxed">
-                  No detailed description available for this position.
-                </p>
-              )}
-            </div>
+            {renderDescription(job)}
           </CardContent>
         </Card>
 
