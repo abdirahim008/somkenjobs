@@ -207,7 +207,7 @@ export default function JobDetails() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="main-container max-w-4xl card-content-responsive">
           <div className="space-y-6">
             <Skeleton className="h-8 w-32" />
             <Card>
@@ -232,7 +232,7 @@ export default function JobDetails() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="main-container max-w-4xl card-content-responsive">
           <div className="text-center py-12">
             <h2 className="text-2xl font-bold text-foreground mb-4">Job Not Found</h2>
             <p className="text-muted-foreground mb-6">
@@ -254,7 +254,7 @@ export default function JobDetails() {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="main-container max-w-4xl card-content-responsive">
         {/* Back Button */}
         <Button 
           variant="ghost" 
