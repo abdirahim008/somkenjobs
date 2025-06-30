@@ -76,9 +76,7 @@ export default function JobCard({ job }: JobCardProps) {
     setLocation(`/jobs/${job.id}`);
   };
 
-  const handleApplyClick = () => {
-    window.open(job.url, "_blank", "noopener,noreferrer");
-  };
+
 
   const toggleBookmark = () => {
     setIsBookmarked(!isBookmarked);
@@ -151,12 +149,8 @@ export default function JobCard({ job }: JobCardProps) {
           )}
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline" onClick={handleViewDetails}>
+          <Button variant="outline" onClick={handleViewDetails} className="w-full">
             View Details
-          </Button>
-          <Button onClick={handleApplyClick} className="btn-primary">
-            Apply Now
-            <ExternalLink className="ml-2 h-4 w-4" />
           </Button>
         </div>
       </div>
