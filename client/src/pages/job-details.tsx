@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
 import { ArrowLeft, Calendar, MapPin, Building2, ExternalLink, Clock, Users, ChevronDown, ChevronUp } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,11 @@ export default function JobDetails() {
   const [, setLocation] = useLocation();
   const [showFullDescription, setShowFullDescription] = useState(false);
   const jobId = params?.id;
+
+  // Scroll to top when component mounts or job ID changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [jobId]);
 
   const { data: job, isLoading, error } = useQuery<Job>({
     queryKey: [`/api/jobs/${jobId}`],
@@ -238,7 +243,10 @@ export default function JobDetails() {
             <p className="text-muted-foreground mb-6">
               {error ? "Error loading job details" : "The job you're looking for doesn't exist or has been removed."}
             </p>
-            <Button onClick={() => setLocation("/")}>
+            <Button onClick={() => {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              setLocation("/");
+            }}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Go Back
             </Button>
@@ -258,7 +266,10 @@ export default function JobDetails() {
         {/* Back Button */}
         <Button 
           variant="ghost" 
-          onClick={() => setLocation("/")}
+          onClick={() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setLocation("/");
+          }}
           className="mb-6"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />

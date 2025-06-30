@@ -73,6 +73,8 @@ export default function JobCard({ job }: JobCardProps) {
   };
 
   const handleViewDetails = () => {
+    // Scroll to top before navigation
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     setLocation(`/jobs/${job.id}`);
   };
 
