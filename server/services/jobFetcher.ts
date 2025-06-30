@@ -124,16 +124,9 @@ export class JobFetcher {
           const experience = rwJob.fields.experience?.map(exp => exp.name).join(", ") || null;
           const bodyHtml = rwJob.fields["body-html"] || null;
 
-          // Debug: Log source data structure
-          console.log(`Job: "${rwJob.fields.title}"`);
-          console.log(`Source data:`, JSON.stringify(rwJob.fields.source, null, 2));
-          
-          const organizationName = rwJob.fields.source?.[0]?.name || "ReliefWeb Organization";
-          console.log(`Extracted organization: "${organizationName}"`);
-
           const job: InsertJob = {
             title: rwJob.fields.title,
-            organization: organizationName,
+            organization: rwJob.fields.source?.[0]?.name || "ReliefWeb Organization",
             location: location,
             country: country,
             description: description,
