@@ -31,9 +31,10 @@ The application follows a modern full-stack architecture with clear separation b
 
 **Data Layer (`server/storage.ts`)**
 - Abstract storage interface (`IStorage`) for database operations
-- In-memory storage implementation (`MemStorage`) for development/testing
+- PostgreSQL database implementation (`DatabaseStorage`) using Drizzle ORM
+- In-memory storage implementation (`MemStorage`) for fallback/testing
 - Methods for CRUD operations on jobs and users
-- Advanced filtering and search capabilities
+- Advanced filtering and search capabilities with SQL optimization
 
 **Job Fetching Service (`server/services/jobFetcher.ts`)**
 - Automated job scraping from ReliefWeb API
@@ -114,13 +115,18 @@ The application follows a modern full-stack architecture with clear separation b
 - Environment variable configuration for database connections
 
 **Database Management**
+- PostgreSQL database with Drizzle ORM for type-safe operations
 - Drizzle Kit for schema migrations and database push operations
-- PostgreSQL connection via DATABASE_URL environment variable
-- Neon Database serverless PostgreSQL for cloud deployment
+- Database connection via DATABASE_URL environment variable
+- Automatic database seeding with sample humanitarian jobs
+- Full CRUD operations with optimized SQL queries
 
 ## Changelog
 
-- June 30, 2025. Initial setup
+- June 30, 2025: Initial setup with complete job board functionality
+- June 30, 2025: Added PostgreSQL database with Drizzle ORM integration
+- June 30, 2025: Implemented database seeding with sample humanitarian jobs
+- June 30, 2025: Fixed mobile responsive layout for job card metadata
 
 ## User Preferences
 

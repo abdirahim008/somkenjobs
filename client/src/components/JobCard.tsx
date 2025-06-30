@@ -11,15 +11,30 @@ interface JobCardProps {
 export default function JobCard({ job }: JobCardProps) {
   const [isBookmarked, setIsBookmarked] = useState(false);
 
-  const formatDate = (date: Date | string) => {
+  const formatPostingDate = (date: Date | string) => {
     const d = new Date(date);
     const now = new Date();
-    const diffTime = Math.abs(now.getTime() - d.getTime());
+    const diffTime = now.getTime() - d.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
+    if (diffDays === 0) return "Today";
     if (diffDays === 1) return "1 day ago";
     if (diffDays < 7) return `${diffDays} days ago`;
     if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
+    return d.toLocaleDateString();
+  };
+
+  const formatDeadline = (date: Date | string) => {
+    const d = new Date(date);
+    const now = new Date();
+    const diffTime = d.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return "Expired";
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "1 day left";
+    if (diffDays < 7) return `${diffDays} days left`;
+    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks left`;
     return d.toLocaleDateString();
   };
 
@@ -82,7 +97,7 @@ export default function JobCard({ job }: JobCardProps) {
             </span>
             <span className="flex items-center flex-shrink-0">
               <Calendar className="mr-1 h-4 w-4 flex-shrink-0" />
-              <span className="whitespace-nowrap">{formatDate(job.datePosted)}</span>
+              <span className="whitespace-nowrap">{formatPostingDate(job.datePosted)}</span>
             </span>
           </div>
           <p className="text-muted-foreground text-sm leading-relaxed mb-4">
@@ -124,7 +139,7 @@ export default function JobCard({ job }: JobCardProps) {
         <div className="text-sm text-muted-foreground">
           {job.deadline && (
             <>
-              Deadline: <span className="font-medium text-foreground">{formatDate(job.deadline)}</span>
+              Deadline: <span className="font-medium text-foreground">{formatDeadline(job.deadline)}</span>
             </>
           )}
         </div>
