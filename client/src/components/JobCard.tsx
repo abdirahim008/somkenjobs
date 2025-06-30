@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Building2, MapPin, Calendar, ExternalLink, Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,7 @@ interface JobCardProps {
 
 export default function JobCard({ job }: JobCardProps) {
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [, setLocation] = useLocation();
 
   const formatPostingDate = (date: Date | string) => {
     const d = new Date(date);
@@ -70,6 +72,10 @@ export default function JobCard({ job }: JobCardProps) {
     }
   };
 
+  const handleViewDetails = () => {
+    setLocation(`/jobs/${job.id}`);
+  };
+
   const handleApplyClick = () => {
     window.open(job.url, "_blank", "noopener,noreferrer");
   };
@@ -83,7 +89,10 @@ export default function JobCard({ job }: JobCardProps) {
     <div className="job-card">
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-foreground hover:text-primary cursor-pointer mb-2">
+          <h3 
+            className="text-lg font-semibold text-foreground hover:text-primary cursor-pointer mb-2"
+            onClick={handleViewDetails}
+          >
             {job.title}
           </h3>
           <div className="flex items-center flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground mb-3">
@@ -143,10 +152,15 @@ export default function JobCard({ job }: JobCardProps) {
             </>
           )}
         </div>
-        <Button onClick={handleApplyClick} className="btn-primary">
-          Apply Now
-          <ExternalLink className="ml-2 h-4 w-4" />
-        </Button>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={handleViewDetails}>
+            View Details
+          </Button>
+          <Button onClick={handleApplyClick} className="btn-primary">
+            Apply Now
+            <ExternalLink className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

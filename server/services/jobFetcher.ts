@@ -44,7 +44,7 @@ export class JobFetcher {
       
       for (const country of countries) {
         const params = new URLSearchParams({
-          appname: "jobconnect",
+          appname: "jobconnect-eastafrica",
           filter: JSON.stringify({
             field: "country.name",
             value: [country]
@@ -61,8 +61,9 @@ export class JobFetcher {
               "career_categories.name"
             ]
           }),
-          limit: "50",
-          offset: "0"
+          limit: "100",
+          offset: "0",
+          sort: JSON.stringify(["date.created:desc"])
         });
 
         const response = await fetch(`${RELIEFWEB_API_URL}?${params}`);
