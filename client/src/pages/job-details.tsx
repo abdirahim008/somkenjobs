@@ -212,16 +212,25 @@ export default function JobDetails() {
                            trimmedParagraph.match(/^\d+\.\s/))) {
                         return (
                           <h3 key={index} className="text-lg font-semibold text-foreground mt-6 mb-3">
-                            {trimmedParagraph}
+                            <span dangerouslySetInnerHTML={{
+                              __html: trimmedParagraph
+                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                            }} />
                           </h3>
                         );
                       }
                       
                       // Check if it's a bullet point
-                      if (trimmedParagraph.startsWith('•') || trimmedParagraph.startsWith('-') || trimmedParagraph.startsWith('*')) {
+                      if (trimmedParagraph.startsWith('•') || trimmedParagraph.startsWith('-') || trimmedParagraph.match(/^\*[^*]/)) {
                         return (
                           <li key={index} className="ml-4 mb-2 text-foreground leading-relaxed">
-                            {trimmedParagraph.replace(/^[•\-*]\s*/, '')}
+                            <span dangerouslySetInnerHTML={{
+                              __html: trimmedParagraph
+                                .replace(/^[•\-*]\s*/, '')
+                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                            }} />
                           </li>
                         );
                       }
@@ -229,7 +238,11 @@ export default function JobDetails() {
                       // Regular paragraph
                       return (
                         <p key={index} className="mb-4 text-foreground leading-relaxed">
-                          {trimmedParagraph}
+                          <span dangerouslySetInnerHTML={{
+                            __html: trimmedParagraph
+                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                              .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                          }} />
                         </p>
                       );
                     })}
