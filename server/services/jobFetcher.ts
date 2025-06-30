@@ -115,6 +115,35 @@ export class JobFetcher {
           // Clean up description (remove HTML tags)
           const description = rwJob.fields.body?.replace(/<[^>]*>/g, "").substring(0, 500) || "";
 
+          // Extract organization name from title or use source name as fallback
+          const extractOrganizationFromTitle = (title: string): string => {
+            // Common patterns for organization names in job titles
+            const patterns = [
+              /^([A-Z]+)\s+/, // All caps organization at start (e.g., "REACH GIS Officer")
+              /^([A-Za-z&\s]+)\s*[-–]\s*/, // Organization name followed by dash (e.g., "ACTED - Field Coordinator")
+              /^([A-Za-z&\s]{2,15})\s+[A-Z]/, // Short organization name followed by job title (e.g., "UNHCR Protection Officer")
+            ];
+            
+            for (const pattern of patterns) {
+              const match = title.match(pattern);
+              if (match && match[1].trim().length > 1) {
+                const orgName = match[1].trim();
+                // Validate it's likely an organization name (not just a word like "Senior")
+                if (!['Senior', 'Junior', 'Lead', 'Chief', 'Head', 'Deputy', 'Assistant', 'Project', 'Field', 'Program'].includes(orgName)) {
+                  return orgName;
+                }
+              }
+            }
+            
+            // If no pattern matches, try to extract from description or use source
+            return rwJob.fields.source?.name || "Humanitarian Organization";
+          };
+
+          const organizationName = extractOrganizationFromTitle(rwJob.fields.title);
+          
+          // Debug: Log organization extraction
+          console.log(`Job: "${rwJob.fields.title}" → Organization: "${organizationName}"`);
+
           // Extract comprehensive job information
           const howToApply = rwJob.fields.how_to_apply || rwJob.fields["how_to_apply-html"] || null;
           const experience = rwJob.fields.experience?.map(exp => exp.name).join(", ") || null;
@@ -122,7 +151,7 @@ export class JobFetcher {
 
           const job: InsertJob = {
             title: rwJob.fields.title,
-            organization: rwJob.fields.source?.name || "ReliefWeb Organization",
+            organization: organizationName,
             location: location,
             country: country,
             description: description,
