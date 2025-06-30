@@ -140,9 +140,6 @@ export class JobFetcher {
           };
 
           const organizationName = extractOrganizationFromTitle(rwJob.fields.title);
-          
-          // Debug: Log organization extraction
-          console.log(`Job: "${rwJob.fields.title}" → Organization: "${organizationName}"`);
 
           // Extract comprehensive job information
           const howToApply = rwJob.fields.how_to_apply || rwJob.fields["how_to_apply-html"] || null;

@@ -132,6 +132,9 @@ The application follows a modern full-stack architecture with clear separation b
 - June 30, 2025: Improved text formatting to convert asterisks to proper bold formatting
 - June 30, 2025: Fixed back navigation button functionality using proper routing
 - June 30, 2025: Disabled UN Jobs fetching to ensure only comprehensive ReliefWeb jobs with complete details are displayed
+- June 30, 2025: Fixed organization name extraction from job titles (REACH, ACTED, etc.) instead of showing generic "ReliefWeb Organization"
+- June 30, 2025: Added comprehensive escape sequence cleaning to remove all backslashes and escaped characters from job text
+- June 30, 2025: Removed demo warning banner since real comprehensive job data is now displayed
 
 ## User Preferences
 
