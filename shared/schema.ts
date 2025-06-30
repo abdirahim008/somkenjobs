@@ -15,6 +15,12 @@ export const jobs = pgTable("jobs", {
   sector: text("sector"),
   source: text("source").notNull(), // 'reliefweb' or 'unjobs'
   externalId: text("external_id").notNull().unique(),
+  // Additional detailed fields
+  howToApply: text("how_to_apply"),
+  experience: text("experience"),
+  qualifications: text("qualifications"),
+  responsibilities: text("responsibilities"),
+  bodyHtml: text("body_html"),
 });
 
 export const insertJobSchema = createInsertSchema(jobs).omit({

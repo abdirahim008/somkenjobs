@@ -243,6 +243,37 @@ export default function JobDetails() {
           </CardContent>
         </Card>
 
+        {/* Experience Requirements */}
+        {job.experience && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Experience Required</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-foreground leading-relaxed">{job.experience}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* How to Apply */}
+        {job.howToApply && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>How to Apply</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="prose prose-gray max-w-none">
+                <div 
+                  className="text-foreground leading-relaxed"
+                  dangerouslySetInnerHTML={{ 
+                    __html: job.howToApply.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Job Requirements & Details */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <Card>

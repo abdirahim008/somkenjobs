@@ -11,6 +11,7 @@ interface ReliefWebJob {
   fields: {
     title: string;
     body?: string;
+    "body-html"?: string;
     date: {
       created: string;
       closing?: string;
@@ -27,6 +28,14 @@ interface ReliefWebJob {
       name: string;
     }>;
     theme?: Array<{
+      name: string;
+    }>;
+    how_to_apply?: string;
+    "how_to_apply-html"?: string;
+    experience?: Array<{
+      name: string;
+    }>;
+    type?: Array<{
       name: string;
     }>;
   };
@@ -59,12 +68,18 @@ export class JobFetcher {
             include: [
               "title",
               "body",
+              "body-html",
               "date.created",
               "date.closing",
               "source.name",
-              "country.name",
+              "country.name", 
               "url_alias",
-              "theme.name"
+              "theme.name",
+              "career_categories.name",
+              "how_to_apply",
+              "how_to_apply-html",
+              "experience",
+              "type.name"
             ]
           },
           limit: 50,
@@ -100,6 +115,11 @@ export class JobFetcher {
           // Clean up description (remove HTML tags)
           const description = rwJob.fields.body?.replace(/<[^>]*>/g, "").substring(0, 500) || "";
 
+          // Extract comprehensive job information
+          const howToApply = rwJob.fields.how_to_apply || rwJob.fields["how_to_apply-html"] || null;
+          const experience = rwJob.fields.experience?.map(exp => exp.name).join(", ") || null;
+          const bodyHtml = rwJob.fields["body-html"] || null;
+
           const job: InsertJob = {
             title: rwJob.fields.title,
             organization: rwJob.fields.source?.name || "ReliefWeb Organization",
@@ -111,7 +131,12 @@ export class JobFetcher {
             deadline: rwJob.fields.date.closing ? new Date(rwJob.fields.date.closing) : null,
             sector: rwJob.fields.theme?.[0]?.name || sector,
             source: "reliefweb",
-            externalId: `reliefweb-${rwJob.id}`
+            externalId: `reliefweb-${rwJob.id}`,
+            howToApply: howToApply,
+            experience: experience,
+            qualifications: null, // Will be extracted from description
+            responsibilities: null, // Will be extracted from description
+            bodyHtml: bodyHtml
           };
 
           await storage.createJob(job);
