@@ -45,10 +45,6 @@ export class JobFetcher {
       for (const country of countries) {
         const params = new URLSearchParams({
           appname: "jobconnect",
-          query: JSON.stringify({
-            value: country,
-            operator: "AND"
-          }),
           filter: JSON.stringify({
             field: "country.name",
             value: [country]
@@ -65,7 +61,7 @@ export class JobFetcher {
               "career_categories.name"
             ]
           }),
-          limit: "100",
+          limit: "50",
           offset: "0"
         });
 
@@ -126,9 +122,9 @@ export class JobFetcher {
       const xmlText = await response.text();
       
       // Simple XML parsing for RSS (in production, you'd use a proper XML parser)
-      const items = xmlText.match(/<item>(.*?)<\/item>/gs) || [];
+      const itemMatches = xmlText.match(/<item>[\s\S]*?<\/item>/g) || [];
       
-      for (const item of items) {
+      for (const item of itemMatches) {
         const titleMatch = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/);
         const linkMatch = item.match(/<link>(.*?)<\/link>/);
         const descMatch = item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/);
