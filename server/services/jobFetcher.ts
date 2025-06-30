@@ -225,11 +225,9 @@ export class JobFetcher {
     }
 
     this.isRunning = true;
+    console.log("Fetching comprehensive jobs from ReliefWeb...");
     try {
-      await Promise.all([
-        this.fetchReliefWebJobs(),
-        this.fetchUNJobs()
-      ]);
+      await this.fetchReliefWebJobs();
       console.log("Job fetch completed successfully");
     } catch (error) {
       console.error("Error in job fetch:", error);

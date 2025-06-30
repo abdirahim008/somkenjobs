@@ -131,7 +131,7 @@ The application follows a modern full-stack architecture with clear separation b
 - June 30, 2025: Fixed HTML encoding issues in application instructions and email addresses
 - June 30, 2025: Improved text formatting to convert asterisks to proper bold formatting
 - June 30, 2025: Fixed back navigation button functionality using proper routing
-- June 30, 2025: Added informational notices for jobs with limited details vs comprehensive ReliefWeb jobs
+- June 30, 2025: Disabled UN Jobs fetching to ensure only comprehensive ReliefWeb jobs with complete details are displayed
 
 ## User Preferences
 

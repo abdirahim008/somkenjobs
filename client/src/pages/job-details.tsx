@@ -187,28 +187,7 @@ export default function JobDetails() {
           </CardHeader>
         </Card>
 
-        {/* Limited Information Notice for Sample Jobs */}
-        {job.source !== 'reliefweb' && (
-          <Card className="mb-6 border-amber-200 bg-amber-50">
-            <CardContent className="pt-6">
-              <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0">
-                  <div className="w-5 h-5 bg-amber-400 rounded-full flex items-center justify-center">
-                    <span className="text-xs font-semibold text-amber-800">!</span>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-amber-800 mb-1">Limited Information Available</h4>
-                  <p className="text-sm text-amber-700">
-                    This job has basic information only. For comprehensive details including full job descriptions, 
-                    requirements, and application instructions, look for jobs marked with "ReliefWeb" source 
-                    on the main page.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+
 
         {/* Job Description */}
         <Card className="mb-6">

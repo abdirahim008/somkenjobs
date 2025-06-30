@@ -68,19 +68,7 @@ export class MemStorage implements IStorage {
         source: "reliefweb",
         externalId: "sample-msf-1"
       },
-      {
-        title: "Education Specialist",
-        organization: "UNICEF",
-        location: "Kisumu",
-        country: "Kenya",
-        description: "Develop and implement education programs for children in crisis-affected areas. Focus on ensuring access to quality education and child protection services.",
-        url: "https://unicef.org/careers/education-specialist-kenya",
-        datePosted: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-        deadline: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000), // 25 days from now
-        sector: "Education",
-        source: "unjobs",
-        externalId: "sample-unicef-1"
-      },
+
       {
         title: "WASH Program Manager",
         organization: "Oxfam International",
@@ -94,19 +82,7 @@ export class MemStorage implements IStorage {
         source: "reliefweb",
         externalId: "sample-oxfam-1"
       },
-      {
-        title: "Protection Officer",
-        organization: "UNHCR",
-        location: "Dadaab",
-        country: "Kenya",
-        description: "Provide protection services to refugees and asylum seekers. Conduct protection assessments, case management, and community-based protection activities.",
-        url: "https://unhcr.org/jobs/protection-officer-dadaab",
-        datePosted: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), // 4 days ago
-        deadline: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000), // 28 days from now
-        sector: "Protection",
-        source: "unjobs",
-        externalId: "sample-unhcr-1"
-      }
+
     ];
 
     for (const jobData of sampleJobs) {
