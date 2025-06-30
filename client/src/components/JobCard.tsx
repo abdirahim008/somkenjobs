@@ -109,9 +109,7 @@ export default function JobCard({ job }: JobCardProps) {
               <span className="whitespace-nowrap">{formatPostingDate(job.datePosted)}</span>
             </span>
           </div>
-          <p className="text-muted-foreground text-sm leading-relaxed mb-4">
-            {job.description}
-          </p>
+
           <div className="flex items-center space-x-2">
             {job.sector && (
               <Badge className={`badge ${getSectorBadgeColor(job.sector)}`}>
