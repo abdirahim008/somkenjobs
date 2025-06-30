@@ -117,51 +117,53 @@ export default function Home() {
           {/* Job Listings */}
           <div className="flex-1 min-w-0">
             {/* Results Header */}
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-semibold">Latest Job Opportunities</h2>
-                <p className="text-muted-foreground text-sm mt-1">
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold mb-4">Latest Job Opportunities</h2>
+              
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <p className="text-muted-foreground text-sm">
                   Showing {displayedJobs.length} of {data?.jobs.length || 0} jobs
                   {isLoading && " • Loading..."}
                 </p>
-              </div>
-              <div className="flex items-center space-x-4">
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mostRecent">Sort by: Most Recent</SelectItem>
-                    <SelectItem value="organization">Sort by: Organization</SelectItem>
-                    <SelectItem value="location">Sort by: Location</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="flex border border-border rounded-lg">
+                
+                <div className="flex items-center space-x-4">
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mostRecent">Sort by: Most Recent</SelectItem>
+                      <SelectItem value="organization">Sort by: Organization</SelectItem>
+                      <SelectItem value="location">Sort by: Location</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="flex border border-border rounded-lg">
+                    <Button
+                      variant={viewMode === "grid" ? "secondary" : "ghost"}
+                      size="sm"
+                      onClick={() => setViewMode("grid")}
+                      className="rounded-r-none"
+                    >
+                      <Grid className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant={viewMode === "list" ? "secondary" : "ghost"}
+                      size="sm"
+                      onClick={() => setViewMode("list")}
+                      className="rounded-l-none"
+                    >
+                      <List className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <Button
-                    variant={viewMode === "grid" ? "secondary" : "ghost"}
+                    variant="outline"
                     size="sm"
-                    onClick={() => setViewMode("grid")}
-                    className="rounded-r-none"
+                    onClick={() => refetch()}
+                    disabled={isLoading}
                   >
-                    <Grid className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant={viewMode === "list" ? "secondary" : "ghost"}
-                    size="sm"
-                    onClick={() => setViewMode("list")}
-                    className="rounded-l-none"
-                  >
-                    <List className="h-4 w-4" />
+                    <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                   </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => refetch()}
-                  disabled={isLoading}
-                >
-                  <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                </Button>
               </div>
             </div>
 

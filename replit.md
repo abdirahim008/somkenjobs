@@ -139,6 +139,7 @@ The application follows a modern full-stack architecture with clear separation b
 - June 30, 2025: Added "Show More" functionality for job descriptions to display full untrimmed content from ReliefWeb API, storing both truncated preview (800 chars) and complete HTML description (15,000+ chars) with expandable interface
 - June 30, 2025: Optimized responsive design for all devices with mobile-first CSS, preventing text overflow in job cards, improved organization name truncation, responsive typography scaling, and enhanced container layouts for tablets and phones
 - June 30, 2025: Fixed navigation scroll behavior to automatically scroll to top when viewing job details or returning to home page, ensuring users always see the beginning of content after navigation
+- June 30, 2025: Improved job listings header layout by separating title from controls, placing "Latest Job Opportunities" on its own line with sorting and view controls positioned below for better visual hierarchy and mobile responsiveness
 
 ## User Preferences
 
