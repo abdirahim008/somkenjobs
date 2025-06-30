@@ -122,3 +122,90 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Enhanced job card responsive styles */
+.job-card {
+  @apply bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:shadow-md transition-shadow;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Ensure text never overflows container bounds */
+.job-card * {
+  max-width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Mobile-first responsive typography */
+@media (max-width: 640px) {
+  .job-card {
+    @apply p-4;
+  }
+  
+  .job-card h3 {
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+  
+  .job-card .text-sm {
+    font-size: 0.75rem;
+  }
+}
+
+/* Improved text truncation for organization names */
+.truncate-org {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .truncate-org {
+    max-width: 150px;
+  }
+}
+
+/* Responsive container improvements */
+.main-container {
+  @apply mx-auto px-4 py-6;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+@media (min-width: 640px) {
+  .main-container {
+    @apply px-6 py-8;
+  }
+}
+
+@media (min-width: 1024px) {
+  .main-container {
+    @apply px-8;
+  }
+}
+
+/* Card content responsive improvements */
+.card-content-responsive {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  max-width: 100%;
+}
+
+/* Badge responsive sizing */
+@media (max-width: 640px) {
+  .badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+  }
+}
+
+/* Button responsive improvements */
+@media (max-width: 640px) {
+  .btn-responsive {
+    @apply text-sm px-3 py-2;
+  }
+}

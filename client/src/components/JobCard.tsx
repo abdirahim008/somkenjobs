@@ -85,18 +85,18 @@ export default function JobCard({ job }: JobCardProps) {
 
   return (
     <div className="job-card">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
+      <div className="flex items-start justify-between mb-4 gap-4">
+        <div className="flex-1 min-w-0">
           <h3 
-            className="text-lg font-semibold text-foreground hover:text-primary cursor-pointer mb-2"
+            className="text-lg font-semibold text-foreground hover:text-primary cursor-pointer mb-2 break-words leading-tight"
             onClick={handleViewDetails}
           >
             {job.title}
           </h3>
-          <div className="flex items-center flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground mb-3">
-            <span className="flex items-center flex-shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:flex-wrap gap-2 text-sm text-muted-foreground mb-3">
+            <span className="flex items-center min-w-0">
               <Building2 className="mr-1 h-4 w-4 flex-shrink-0" />
-              <span className="truncate">{job.organization}</span>
+              <span className="truncate-org">{job.organization}</span>
             </span>
             <span className="flex items-center flex-shrink-0">
               <MapPin className="mr-1 h-4 w-4 flex-shrink-0" />
@@ -108,21 +108,21 @@ export default function JobCard({ job }: JobCardProps) {
             </span>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center flex-wrap gap-2">
             {job.sector && (
-              <Badge className={`badge ${getSectorBadgeColor(job.sector)}`}>
+              <Badge className={`badge ${getSectorBadgeColor(job.sector)} text-xs`}>
                 {job.sector}
               </Badge>
             )}
-            <Badge className={`badge ${getSourceBadgeColor(job.source)}`}>
+            <Badge className={`badge ${getSourceBadgeColor(job.source)} text-xs`}>
               {job.source === "reliefweb" ? "ReliefWeb" : "UN Jobs"}
             </Badge>
-            <Badge className="badge badge-green">
+            <Badge className="badge badge-green text-xs">
               Full-time
             </Badge>
           </div>
         </div>
-        <div className="ml-6 flex flex-col items-end space-y-2">
+        <div className="flex-shrink-0">
           <Button
             variant="ghost"
             size="sm"
@@ -140,7 +140,7 @@ export default function JobCard({ job }: JobCardProps) {
           </Button>
         </div>
       </div>
-      <div className="flex items-center justify-between pt-4 border-t border-border">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-border">
         <div className="text-sm text-muted-foreground">
           {job.deadline && (
             <>
@@ -149,7 +149,7 @@ export default function JobCard({ job }: JobCardProps) {
           )}
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline" onClick={handleViewDetails} className="w-full">
+          <Button variant="outline" onClick={handleViewDetails} className="flex-1 sm:flex-initial">
             View Details
           </Button>
         </div>

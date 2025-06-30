@@ -101,19 +101,21 @@ export default function Home() {
       </section>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
+      <main className="main-container max-w-7xl">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
           
           {/* Sidebar */}
-          <Sidebar 
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            availableFilters={data?.filters}
-            isLoading={isLoading}
-          />
+          <div className="lg:w-80 flex-shrink-0">
+            <Sidebar 
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              availableFilters={data?.filters}
+              isLoading={isLoading}
+            />
+          </div>
 
           {/* Job Listings */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             {/* Results Header */}
             <div className="flex items-center justify-between mb-6">
               <div>
