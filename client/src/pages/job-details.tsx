@@ -187,6 +187,29 @@ export default function JobDetails() {
           </CardHeader>
         </Card>
 
+        {/* Limited Information Notice for Sample Jobs */}
+        {job.source !== 'reliefweb' && (
+          <Card className="mb-6 border-amber-200 bg-amber-50">
+            <CardContent className="pt-6">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0">
+                  <div className="w-5 h-5 bg-amber-400 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-semibold text-amber-800">!</span>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-amber-800 mb-1">Limited Information Available</h4>
+                  <p className="text-sm text-amber-700">
+                    This job has basic information only. For comprehensive details including full job descriptions, 
+                    requirements, and application instructions, look for jobs marked with "ReliefWeb" source 
+                    on the main page.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Job Description */}
         <Card className="mb-6">
           <CardHeader>
@@ -270,7 +293,7 @@ export default function JobDetails() {
         )}
 
         {/* How to Apply */}
-        {job.howToApply && (
+        {job.howToApply ? (
           <Card className="mb-6">
             <CardHeader>
               <CardTitle>How to Apply</CardTitle>
@@ -343,6 +366,37 @@ export default function JobDetails() {
                         </p>
                       );
                     })}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>How to Apply</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-start space-x-3 p-4 bg-gray-50 rounded-lg">
+                <div className="flex-shrink-0">
+                  <div className="w-5 h-5 bg-gray-400 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-semibold text-gray-700">i</span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-700">
+                    Application instructions are not available for this position. 
+                    {job.url && (
+                      <span>
+                        {" "}Visit the <Button 
+                          variant="link" 
+                          className="p-0 h-auto text-sm underline"
+                          onClick={() => window.open(job.url, "_blank", "noopener,noreferrer")}
+                        >
+                          original job posting
+                        </Button> for more details.
+                      </span>
+                    )}
+                  </p>
                 </div>
               </div>
             </CardContent>
