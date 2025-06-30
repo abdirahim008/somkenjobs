@@ -196,12 +196,14 @@ export default function JobDetails() {
           </CardHeader>
           <CardContent>
             <div className="prose prose-gray max-w-none">
-              {job.description ? (
-                job.description.split('\n').map((paragraph, index) => (
-                  <p key={index} className="mb-4 text-foreground leading-relaxed">
-                    {paragraph}
-                  </p>
-                ))
+              {job && job.description ? (
+                (typeof job.description === 'string' ? job.description : String(job.description))
+                  .split('\n')
+                  .map((paragraph, index) => (
+                    <p key={index} className="mb-4 text-foreground leading-relaxed">
+                      {paragraph}
+                    </p>
+                  ))
               ) : (
                 <p className="mb-4 text-foreground leading-relaxed">
                   No detailed description available for this position.
