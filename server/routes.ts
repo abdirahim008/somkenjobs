@@ -4,6 +4,46 @@ import { storage } from "./storage";
 import { jobFetcher } from "./services/jobFetcher";
 import { seedDatabase } from "./seed";
 import { z } from "zod";
+import { insertUserSchema, loginUserSchema, type User } from "@shared/schema";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { Request, Response, NextFunction } from "express";
+
+const JWT_SECRET = process.env.JWT_SECRET || "jobconnect-secret-key-change-in-production";
+
+interface AuthRequest extends Request {
+  user?: User;
+}
+
+// Authentication middleware
+const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: number };
+    const user = await storage.getUser(decoded.userId);
+    
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    res.status(401).json({ message: "Invalid token" });
+  }
+};
+
+// Admin middleware
+const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (!req.user?.isAdmin) {
+    return res.status(403).json({ message: "Admin access required" });
+  }
+  next();
+};
 
 // Helper function to transform string or string[] to string[]
 const arrayTransform = z.union([z.string(), z.array(z.string())]).transform((val) => 

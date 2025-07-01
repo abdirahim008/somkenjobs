@@ -98,17 +98,60 @@ export class MemStorage implements IStorage {
     return this.users.get(id);
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
+  async getUserByEmail(email: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
-      (user) => user.username === username,
+      (user) => user.email === email,
     );
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id,
+      isApproved: false,
+      isAdmin: false,
+      approvedAt: null,
+      approvedBy: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
     this.users.set(id, user);
     return user;
+  }
+
+  async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
+    const existingUser = this.users.get(id);
+    if (!existingUser) return undefined;
+    
+    const updatedUser: User = { 
+      ...existingUser, 
+      ...updates, 
+      updatedAt: new Date() 
+    };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+
+  async getAllPendingUsers(): Promise<User[]> {
+    return Array.from(this.users.values())
+      .filter(user => !user.isApproved)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async approveUser(id: number, approvedBy: string): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const approvedUser: User = {
+      ...user,
+      isApproved: true,
+      approvedAt: new Date(),
+      approvedBy,
+      updatedAt: new Date(),
+    };
+    this.users.set(id, approvedUser);
+    return approvedUser;
   }
 
   // Job methods
