@@ -23,12 +23,14 @@ export default function Organizations() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  const { data: jobs, isLoading } = useQuery<Job[]>({
+  const { data: jobsResponse, isLoading } = useQuery<{jobs: Job[]}>({
     queryKey: ['/api/jobs'],
   });
 
+  const jobs = jobsResponse?.jobs;
+
   // Process jobs data to extract organization statistics
-  const organizationStats: OrganizationStats[] = jobs ? 
+  const organizationStats: OrganizationStats[] = (jobs && Array.isArray(jobs)) ? 
     Object.values(
       jobs.reduce((acc: Record<string, OrganizationStats>, job) => {
         const orgName = job.organization || 'Unknown Organization';
