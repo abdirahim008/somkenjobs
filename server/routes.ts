@@ -352,6 +352,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create job (authenticated users only)
+  app.post("/api/jobs", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const jobData = insertJobSchema.parse(req.body);
+      const job = await storage.createJob(jobData);
+      res.status(201).json(job);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid job data", errors: error.errors });
+      }
+      console.error("Error creating job:", error);
+      res.status(500).json({ message: "Failed to create job" });
+    }
+  });
+
+  // Get all pending users (admin only)
+  app.get("/api/admin/pending-users", authenticate, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const pendingUsers = await storage.getAllPendingUsers();
+      res.json(pendingUsers);
+    } catch (error) {
+      console.error("Error fetching pending users:", error);
+      res.status(500).json({ message: "Failed to fetch pending users" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
