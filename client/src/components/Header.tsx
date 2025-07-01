@@ -17,15 +17,8 @@ export default function Header() {
 
   const handleNavigation = (href: string, label: string) => {
     console.log(`Navigation clicked: ${label} -> ${href}`);
-    
-    if (href === "/") {
-      setLocation("/");
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      // For other pages, show an alert and scroll to top
-      alert(`${label} page - Coming soon! This will be implemented in the future.`);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    setLocation(href);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     setIsOpen(false); // Close mobile menu after navigation
   };
 
