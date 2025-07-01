@@ -57,7 +57,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
           </div>
           <Button 
             type="submit" 
-            className="btn-primary"
+            className="bg-[#0077B5] hover:bg-[#005A87] text-white"
             onClick={handleSubmit}
           >
             Search Jobs
