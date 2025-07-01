@@ -260,7 +260,16 @@ export default function Dashboard() {
       `.trim()
     };
 
-    createJobMutation.mutate(jobData);
+    if (editingJob) {
+      // Update existing job
+      updateJobMutation.mutate({
+        jobId: editingJob.id,
+        jobData
+      });
+    } else {
+      // Create new job
+      createJobMutation.mutate(jobData);
+    }
   };
 
   const handleApproveUser = (userId: number) => {
@@ -328,9 +337,35 @@ export default function Dashboard() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Create New Job Posting
+                  {editingJob ? <Edit className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
+                  {editingJob ? 'Edit Job Posting' : 'Create New Job Posting'}
                 </CardTitle>
+                {editingJob && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setEditingJob(null);
+                      setJobForm({
+                        title: "",
+                        organization: (user as any)?.companyName || "",
+                        location: "",
+                        country: "",
+                        sector: "",
+                        description: "",
+                        howToApply: "",
+                        experience: "",
+                        qualifications: "",
+                        responsibilities: "",
+                        deadline: "",
+                        url: ""
+                      });
+                    }}
+                    className="mt-2"
+                  >
+                    Cancel Edit
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleJobSubmit} className="space-y-6">
@@ -536,9 +571,12 @@ export default function Dashboard() {
                   <Button 
                     type="submit" 
                     className="w-full"
-                    disabled={createJobMutation.isPending}
+                    disabled={createJobMutation.isPending || updateJobMutation.isPending}
                   >
-                    {createJobMutation.isPending ? "Creating..." : "Create Job Posting"}
+                    {editingJob 
+                      ? updateJobMutation.isPending ? "Updating..." : "Update Job Posting"
+                      : createJobMutation.isPending ? "Creating..." : "Create Job Posting"
+                    }
                   </Button>
                 </form>
               </CardContent>
@@ -621,6 +659,9 @@ export default function Dashboard() {
                                   deadline: job.deadline ? new Date(job.deadline).toISOString().split('T')[0] : '',
                                   url: job.url || ''
                                 });
+                                // Switch to create-job tab
+                                const createJobTab = document.querySelector('[value="create-job"]') as HTMLElement;
+                                if (createJobTab) createJobTab.click();
                               }}
                               className="text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white"
                             >
