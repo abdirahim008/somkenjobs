@@ -52,6 +52,7 @@ export default function Home() {
   };
 
   const handleSearch = (searchTerm: string) => {
+    console.log("handleSearch called with:", searchTerm);
     setFilters(prev => ({ ...prev, search: searchTerm }));
   };
 

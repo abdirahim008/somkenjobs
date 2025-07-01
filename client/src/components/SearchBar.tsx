@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,21 +9,37 @@ interface SearchBarProps {
 
 export default function SearchBar({ onSearch }: SearchBarProps) {
   const [searchTerm, setSearchTerm] = useState("");
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Search form submitted with term:", searchTerm);
     onSearch(searchTerm);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    // Debounced search - trigger search after user stops typing
-    const timeoutId = setTimeout(() => {
-      onSearch(e.target.value);
-    }, 500);
+    const value = e.target.value;
+    setSearchTerm(value);
     
-    return () => clearTimeout(timeoutId);
+    // Clear existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    // Set new timeout for debounced search
+    timeoutRef.current = setTimeout(() => {
+      onSearch(value);
+    }, 500);
   };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -39,7 +55,11 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
               className="search-input border-0 shadow-none focus-visible:ring-0"
             />
           </div>
-          <Button type="submit" className="btn-primary">
+          <Button 
+            type="submit" 
+            className="btn-primary"
+            onClick={handleSubmit}
+          >
             Search Jobs
           </Button>
         </div>
