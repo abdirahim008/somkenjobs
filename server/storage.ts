@@ -109,6 +109,7 @@ export class MemStorage implements IStorage {
     const user: User = { 
       ...insertUser, 
       id,
+      phoneNumber: insertUser.phoneNumber || null,
       isApproved: false,
       isAdmin: false,
       approvedAt: null,

@@ -65,6 +65,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Start the job scheduler
   jobFetcher.startScheduler();
 
+  // Authentication routes
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(userData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(userData.password, 10);
+      
+      // Create user (approval required)
+      const user = await storage.createUser({
+        ...userData,
+        password: hashedPassword,
+        phoneNumber: userData.phoneNumber || null,
+      });
+
+      res.status(201).json({ 
+        message: "Registration successful! Your account is pending admin approval.",
+        userId: user.id 
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(400).json({ message: "Registration failed" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = loginUserSchema.parse(req.body);
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      if (!user.isApproved) {
+        return res.status(403).json({ message: "Account pending approval" });
+      }
+
+      // Generate JWT token
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "7d" });
+      
+      // Return user data without password
+      const { password: _, ...userWithoutPassword } = user;
+      
+      res.json({ 
+        token, 
+        user: userWithoutPassword,
+        message: "Login successful" 
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(401).json({ message: "Login failed" });
+    }
+  });
+
+  // Protected route to get current user
+  app.get("/api/auth/user", authenticate, (req: AuthRequest, res) => {
+    const { password: _, ...userWithoutPassword } = req.user!;
+    res.json(userWithoutPassword);
+  });
+
+  // Admin routes for user approval
+  app.get("/api/admin/pending-users", authenticate, requireAdmin, async (req, res) => {
+    try {
+      const pendingUsers = await storage.getAllPendingUsers();
+      // Remove passwords from response
+      const sanitizedUsers = pendingUsers.map(({ password, ...user }) => user);
+      res.json(sanitizedUsers);
+    } catch (error) {
+      console.error("Error fetching pending users:", error);
+      res.status(500).json({ message: "Failed to fetch pending users" });
+    }
+  });
+
+  app.post("/api/admin/approve-user/:id", authenticate, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const approvedUser = await storage.approveUser(userId, req.user!.email);
+      
+      if (!approvedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { password: _, ...userWithoutPassword } = approvedUser;
+      res.json({ 
+        message: "User approved successfully", 
+        user: userWithoutPassword 
+      });
+    } catch (error) {
+      console.error("Error approving user:", error);
+      res.status(500).json({ message: "Failed to approve user" });
+    }
+  });
+
   // Get all jobs with optional filtering and searching
   app.get("/api/jobs", async (req, res) => {
     try {
