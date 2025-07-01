@@ -102,11 +102,12 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="main-container max-w-7xl">
+        {/* Left sidebar layout for desktop - Updated July 1, 2025 */}
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           
           {/* Left Sidebar - Desktop */}
           <div className="lg:w-80 xl:w-96 flex-shrink-0 order-2 lg:order-1">
-            <div className="lg:sticky lg:top-24">
+            <div className="desktop-left-sidebar">
               <Sidebar 
                 filters={filters}
                 onFilterChange={handleFilterChange}

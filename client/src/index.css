@@ -189,6 +189,16 @@
   max-width: 100%;
 }
 
+/* Desktop layout - force left sidebar positioning */
+@media (min-width: 1024px) {
+  .desktop-left-sidebar {
+    position: sticky;
+    top: 6rem;
+    max-height: calc(100vh - 8rem);
+    overflow-y: auto;
+  }
+}
+
 /* Badge responsive sizing */
 @media (max-width: 640px) {
   .badge {
