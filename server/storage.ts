@@ -173,6 +173,10 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getJobsByUserId(userId: number): Promise<Job[]> {
+    return Array.from(this.jobs.values()).filter(job => job.createdBy === userId);
+  }
+
   async createJob(insertJob: InsertJob): Promise<Job> {
     const id = this.currentJobId++;
     const job: Job = { 
@@ -184,7 +188,8 @@ export class MemStorage implements IStorage {
       experience: insertJob.experience || null,
       qualifications: insertJob.qualifications || null,
       responsibilities: insertJob.responsibilities || null,
-      bodyHtml: insertJob.bodyHtml || null
+      bodyHtml: insertJob.bodyHtml || null,
+      createdBy: insertJob.createdBy ?? null
     };
     this.jobs.set(id, job);
     return job;
@@ -334,6 +339,10 @@ export class DatabaseStorage implements IStorage {
   async getJobByExternalId(externalId: string): Promise<Job | undefined> {
     const [job] = await db.select().from(jobs).where(eq(jobs.externalId, externalId));
     return job || undefined;
+  }
+
+  async getJobsByUserId(userId: number): Promise<Job[]> {
+    return await db.select().from(jobs).where(eq(jobs.createdBy, userId)).orderBy(desc(jobs.datePosted));
   }
 
   async createJob(insertJob: InsertJob): Promise<Job> {

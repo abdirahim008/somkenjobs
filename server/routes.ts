@@ -421,7 +421,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create job (authenticated users only)
   app.post("/api/jobs", authenticate, async (req: AuthRequest, res) => {
     try {
-      const jobData = insertJobSchema.parse(req.body);
+      const userId = req.user!.id;
+      const jobData = insertJobSchema.parse({
+        ...req.body,
+        createdBy: userId
+      });
       const job = await storage.createJob(jobData);
       res.status(201).json(job);
     } catch (error) {
