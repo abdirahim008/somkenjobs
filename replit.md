@@ -140,6 +140,7 @@ The application follows a modern full-stack architecture with clear separation b
 - June 30, 2025: Optimized responsive design for all devices with mobile-first CSS, preventing text overflow in job cards, improved organization name truncation, responsive typography scaling, and enhanced container layouts for tablets and phones
 - June 30, 2025: Fixed navigation scroll behavior to automatically scroll to top when viewing job details or returning to home page, ensuring users always see the beginning of content after navigation
 - June 30, 2025: Improved job listings header layout by separating title from controls, placing "Latest Job Opportunities" on its own line with sorting and view controls positioned below for better visual hierarchy and mobile responsiveness
+- July 1, 2025: Enhanced job card typography for mobile readability by increasing font sizes from text-sm to text-base for metadata, enlarging icons from h-4 to h-5, and upgrading badge text sizes for better accessibility
 
 ## User Preferences
 

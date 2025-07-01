@@ -95,31 +95,31 @@ export default function JobCard({ job }: JobCardProps) {
           >
             {job.title}
           </h3>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:flex-wrap gap-2 text-sm text-muted-foreground mb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:flex-wrap gap-2 text-base text-muted-foreground mb-3">
             <span className="flex items-center min-w-0">
-              <Building2 className="mr-1 h-4 w-4 flex-shrink-0" />
+              <Building2 className="mr-2 h-5 w-5 flex-shrink-0" />
               <span className="truncate-org">{job.organization}</span>
             </span>
             <span className="flex items-center flex-shrink-0">
-              <MapPin className="mr-1 h-4 w-4 flex-shrink-0" />
+              <MapPin className="mr-2 h-5 w-5 flex-shrink-0" />
               <span className="whitespace-nowrap">{job.location}</span>
             </span>
             <span className="flex items-center flex-shrink-0">
-              <Calendar className="mr-1 h-4 w-4 flex-shrink-0" />
+              <Calendar className="mr-2 h-5 w-5 flex-shrink-0" />
               <span className="whitespace-nowrap">{formatPostingDate(job.datePosted)}</span>
             </span>
           </div>
 
           <div className="flex items-center flex-wrap gap-2">
             {job.sector && (
-              <Badge className={`badge ${getSectorBadgeColor(job.sector)} text-xs`}>
+              <Badge className={`badge ${getSectorBadgeColor(job.sector)} text-sm`}>
                 {job.sector}
               </Badge>
             )}
-            <Badge className={`badge ${getSourceBadgeColor(job.source)} text-xs`}>
+            <Badge className={`badge ${getSourceBadgeColor(job.source)} text-sm`}>
               {job.source === "reliefweb" ? "ReliefWeb" : "UN Jobs"}
             </Badge>
-            <Badge className="badge badge-green text-xs">
+            <Badge className="badge badge-green text-sm">
               Full-time
             </Badge>
           </div>
@@ -143,7 +143,7 @@ export default function JobCard({ job }: JobCardProps) {
         </div>
       </div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-border">
-        <div className="text-sm text-muted-foreground">
+        <div className="text-base text-muted-foreground">
           {job.deadline && (
             <>
               Deadline: <span className="font-medium text-foreground">{formatDeadline(job.deadline)}</span>
