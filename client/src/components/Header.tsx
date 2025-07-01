@@ -1,13 +1,18 @@
-import { Briefcase, Menu } from "lucide-react";
+import { Briefcase, Menu, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useLocation } from "wouter";
 import { useState } from "react";
 import UserMenu from "./UserMenu";
+import AuthModal from "./AuthModal";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Header() {
   const [, setLocation] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authTab, setAuthTab] = useState<"login" | "register">("login");
+  const { isAuthenticated } = useAuth();
   
   const navItems = [
     { label: "Jobs", href: "/", active: true },
@@ -86,11 +91,47 @@ export default function Header() {
                     {item.label}
                   </button>
                 ))}
+                
+                {/* Mobile Authentication Options */}
+                {!isAuthenticated && (
+                  <>
+                    <hr className="border-t border-border" />
+                    <button
+                      onClick={() => {
+                        setAuthTab("login");
+                        setAuthModalOpen(true);
+                        setIsOpen(false);
+                      }}
+                      className="font-medium transition-colors text-left text-muted-foreground hover:text-foreground flex items-center"
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      Login
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAuthTab("register");
+                        setAuthModalOpen(true);
+                        setIsOpen(false);
+                      }}
+                      className="font-medium transition-colors text-left text-muted-foreground hover:text-foreground flex items-center"
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      Register
+                    </button>
+                  </>
+                )}
               </nav>
             </SheetContent>
           </Sheet>
         </div>
       </div>
+      
+      {/* Mobile Authentication Modal */}
+      <AuthModal 
+        open={authModalOpen} 
+        onOpenChange={setAuthModalOpen}
+        defaultTab={authTab}
+      />
     </header>
   );
 }
