@@ -15,13 +15,16 @@ export default function Header() {
     { label: "Contact", href: "/contact" },
   ];
 
-  const handleNavigation = (href: string) => {
+  const handleNavigation = (href: string, label: string) => {
+    console.log(`Navigation clicked: ${label} -> ${href}`);
+    
     if (href === "/") {
       setLocation("/");
-    } else {
-      // For now, just scroll to top and show a message for other pages
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      // These could be implemented as actual pages later
+    } else {
+      // For other pages, show an alert and scroll to top
+      alert(`${label} page - Coming soon! This will be implemented in the future.`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     setIsOpen(false); // Close mobile menu after navigation
   };
@@ -46,7 +49,7 @@ export default function Header() {
             {navItems.map((item) => (
               <button
                 key={item.label}
-                onClick={() => handleNavigation(item.href)}
+                onClick={() => handleNavigation(item.href, item.label)}
                 className={`font-medium transition-colors ${
                   item.active
                     ? "text-foreground"
@@ -74,7 +77,7 @@ export default function Header() {
                 {navItems.map((item) => (
                   <button
                     key={item.label}
-                    onClick={() => handleNavigation(item.href)}
+                    onClick={() => handleNavigation(item.href, item.label)}
                     className={`font-medium transition-colors text-left ${
                       item.active
                         ? "text-foreground"
