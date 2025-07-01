@@ -12,9 +12,11 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import AuthModal from "./AuthModal";
 import { User, LogOut, Shield, Building } from "lucide-react";
+import type { User as UserType } from "@shared/schema";
 
 export default function UserMenu() {
   const { user, isAuthenticated, logout } = useAuth();
+  const typedUser = user as UserType | undefined;
 
   if (!isAuthenticated) {
     return (
@@ -35,8 +37,8 @@ export default function UserMenu() {
   };
 
   const getUserInitials = () => {
-    if (!user) return "U";
-    return `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase();
+    if (!typedUser) return "U";
+    return `${typedUser.firstName?.[0] || ""}${typedUser.lastName?.[0] || ""}`.toUpperCase();
   };
 
   return (
@@ -54,23 +56,23 @@ export default function UserMenu() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
-              {user?.firstName} {user?.lastName}
+              {typedUser?.firstName} {typedUser?.lastName}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user?.email}
+              {typedUser?.email}
             </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem disabled>
           <Building className="mr-2 h-4 w-4" />
-          <span>{user?.companyName}</span>
+          <span>{typedUser?.companyName}</span>
         </DropdownMenuItem>
         <DropdownMenuItem disabled>
           <User className="mr-2 h-4 w-4" />
-          <span>{user?.jobTitle}</span>
+          <span>{typedUser?.jobTitle}</span>
         </DropdownMenuItem>
-        {user?.isAdmin && (
+        {typedUser?.isAdmin && (
           <DropdownMenuItem disabled>
             <Shield className="mr-2 h-4 w-4" />
             <span className="text-blue-600">Admin</span>
