@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# Priority pages
+Allow: /jobs/*
+Allow: /about
+Allow: /contact
+Allow: /organizations
+
+# Sitemap location
+Sitemap: https://jobconnect-eastafrica.replit.app/sitemap.xml
+
+# Crawl delay (be respectful to search engines)
+Crawl-delay: 1

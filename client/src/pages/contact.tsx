@@ -15,6 +15,12 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead 
+        title="Contact JobConnect East Africa - Get Help & Support"
+        description="Contact JobConnect East Africa for support, partnerships, or general inquiries. Our team is here to help humanitarian professionals navigate career opportunities in Kenya and Somalia."
+        keywords="contact JobConnect East Africa, humanitarian job support, partnership inquiries, NGO platform contact, East Africa job platform support"
+        canonicalUrl="https://jobconnect-eastafrica.replit.app/contact"
+      />
       <Header />
       
       {/* Hero Section */}
