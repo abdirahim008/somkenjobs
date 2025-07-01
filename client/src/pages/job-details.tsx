@@ -92,8 +92,13 @@ export default function JobDetails() {
 
   // Helper function to convert URLs to clickable links
   const convertUrlsToLinks = (text: string) => {
-    // Enhanced URL regex to catch various URL formats
-    const urlRegex = /(https?:\/\/[^\s\)]+|www\.[^\s\)]+|\b[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}\/[^\s\)]*)/gi;
+    // Don't process text that already contains HTML links
+    if (text.includes('<a ') || text.includes('</a>')) {
+      return text;
+    }
+    
+    // Enhanced URL regex to catch various URL formats, but exclude those in parentheses following text
+    const urlRegex = /((?:https?:\/\/|www\.)[^\s\)]+)/gi;
     
     return text.replace(urlRegex, (url) => {
       let href = url;
@@ -105,11 +110,11 @@ export default function JobDetails() {
       }
       
       // Truncate display text if URL is very long
-      if (displayText.length > 50) {
-        displayText = displayText.substring(0, 47) + '...';
+      if (displayText.length > 60) {
+        displayText = displayText.substring(0, 57) + '...';
       }
       
-      return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline break-all">${displayText}</a>`;
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline break-all font-medium">${displayText}</a>`;
     });
   };
 
