@@ -105,8 +105,8 @@ export default function Home() {
         {/* Left sidebar layout for desktop - Updated July 1, 2025 */}
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           
-          {/* Left Sidebar - Desktop */}
-          <div className="lg:w-80 xl:w-96 flex-shrink-0 order-2 lg:order-1">
+          {/* Left Sidebar - Desktop, Top on Mobile */}
+          <div className="lg:w-80 xl:w-96 flex-shrink-0 order-1">
             <div className="desktop-left-sidebar">
               <Sidebar 
                 filters={filters}
@@ -118,7 +118,7 @@ export default function Home() {
           </div>
 
           {/* Job Listings */}
-          <div className="flex-1 min-w-0 order-1 lg:order-2">
+          <div className="flex-1 min-w-0 order-2">
             {/* Results Header */}
             <div className="mb-6">
               <h2 className="text-xl font-semibold mb-4">Latest Job Opportunities</h2>

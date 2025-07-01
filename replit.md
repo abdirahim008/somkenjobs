@@ -145,6 +145,7 @@ The application follows a modern full-stack architecture with clear separation b
 - July 1, 2025: Added related jobs section below Important Dates card with smart matching algorithm based on sector, organization, and location relevance scoring
 - July 1, 2025: Reorganized desktop layout with dedicated left sidebar for filters, improved sticky positioning, enhanced visual separation with primary accent border, and optimized responsive ordering
 - July 1, 2025: Standardized deadline format to always display "X days left" instead of mixing weeks and days for consistent user experience
+- July 1, 2025: Fixed mobile filter positioning to display at the top instead of bottom for better user experience
 
 ## User Preferences
 
