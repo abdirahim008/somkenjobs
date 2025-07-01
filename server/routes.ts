@@ -24,18 +24,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/jobs", async (req, res) => {
     try {
       const filters = jobFiltersSchema.parse(req.query);
+      console.log("API received filters:", filters);
       
       let jobs;
       
-      if (filters.search) {
-        jobs = await storage.searchJobs(filters.search);
+      // Check if any filters are applied
+      const hasFilters = filters.country?.length || filters.organization?.length || 
+                        filters.sector?.length || filters.datePosted || filters.search;
+      
+      if (hasFilters) {
+        if (filters.search) {
+          // Search jobs and then apply additional filters if any
+          jobs = await storage.searchJobs(filters.search);
+          
+          // Apply additional filters to search results if specified
+          if (filters.country?.length || filters.organization?.length || 
+              filters.sector?.length || filters.datePosted) {
+            jobs = jobs.filter(job => {
+              // Country filter
+              if (filters.country?.length && !filters.country.includes(job.country)) {
+                return false;
+              }
+              // Organization filter  
+              if (filters.organization?.length && !filters.organization.includes(job.organization)) {
+                return false;
+              }
+              // Sector filter
+              if (filters.sector?.length && (!job.sector || !filters.sector.includes(job.sector))) {
+                return false;
+              }
+              // Date filter
+              if (filters.datePosted) {
+                const jobDate = new Date(job.datePosted);
+                const now = new Date();
+                let cutoffDate: Date;
+                
+                switch (filters.datePosted) {
+                  case "today":
+                    cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    break;
+                  case "week":
+                    cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                  case "month":
+                    cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                    break;
+                  default:
+                    return true;
+                }
+                
+                if (jobDate < cutoffDate) {
+                  return false;
+                }
+              }
+              
+              return true;
+            });
+          }
+        } else {
+          // Apply only non-search filters
+          jobs = await storage.filterJobs({
+            country: filters.country,
+            organization: filters.organization,
+            sector: filters.sector,
+            datePosted: filters.datePosted,
+          });
+        }
       } else {
-        jobs = await storage.filterJobs({
-          country: filters.country,
-          organization: filters.organization,
-          sector: filters.sector,
-          datePosted: filters.datePosted,
-        });
+        // No filters applied, return all jobs
+        jobs = await storage.getAllJobs();
       }
 
       // Get job statistics

@@ -49,7 +49,12 @@ export default function Home() {
   });
 
   const handleFilterChange = (newFilters: Partial<Filters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
+    console.log("Filter change:", newFilters);
+    setFilters(prev => {
+      const updated = { ...prev, ...newFilters };
+      console.log("Updated filters:", updated);
+      return updated;
+    });
   };
 
   const handleSearch = (searchTerm: string) => {
