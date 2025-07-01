@@ -272,9 +272,14 @@ export class JobFetcher {
   }
 
   startScheduler(): void {
-    // Run every day at 6 AM
-    cron.schedule("0 6 * * *", () => {
-      console.log("Starting scheduled job fetch...");
+    // Run twice daily at 8 AM and 7 PM
+    cron.schedule("0 8 * * *", () => {
+      console.log("Starting morning scheduled job fetch (8 AM)...");
+      this.fetchAllJobs();
+    });
+    
+    cron.schedule("0 19 * * *", () => {
+      console.log("Starting evening scheduled job fetch (7 PM)...");
       this.fetchAllJobs();
     });
 
