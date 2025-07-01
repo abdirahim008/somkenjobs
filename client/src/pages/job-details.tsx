@@ -26,6 +26,12 @@ export default function JobDetails() {
     enabled: !!jobId,
   });
 
+  // Query for related jobs
+  const { data: relatedJobs, isLoading: isLoadingRelated } = useQuery<Job[]>({
+    queryKey: [`/api/jobs/${jobId}/related`],
+    enabled: !!jobId && !!job,
+  });
+
   const formatDate = (date: Date | string) => {
     return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -507,6 +513,73 @@ export default function JobDetails() {
           </Card>
         </div>
 
+        {/* Related Jobs Section */}
+        {relatedJobs && relatedJobs.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Related Jobs</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingRelated ? (
+                <div className="space-y-4">
+                  {[...Array(2)].map((_, i) => (
+                    <div key={i} className="border border-border rounded-lg p-4">
+                      <Skeleton className="h-6 w-3/4 mb-2" />
+                      <Skeleton className="h-4 w-1/2 mb-2" />
+                      <Skeleton className="h-4 w-1/3" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {relatedJobs.map((relatedJob) => (
+                    <div 
+                      key={relatedJob.id} 
+                      className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={() => {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        setLocation(`/jobs/${relatedJob.id}`);
+                      }}
+                    >
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-foreground hover:text-primary mb-2 line-clamp-2">
+                            {relatedJob.title}
+                          </h4>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-muted-foreground mb-2">
+                            <span className="flex items-center">
+                              <Building2 className="mr-1 h-4 w-4 flex-shrink-0" />
+                              <span className="truncate max-w-[200px]">{relatedJob.organization}</span>
+                            </span>
+                            <span className="flex items-center">
+                              <MapPin className="mr-1 h-4 w-4 flex-shrink-0" />
+                              <span>{relatedJob.location}</span>
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {relatedJob.sector && (
+                              <Badge className={`badge ${getSectorBadgeColor(relatedJob.sector)} text-xs`}>
+                                {relatedJob.sector}
+                              </Badge>
+                            )}
+                            <Badge className={`badge ${getSourceBadgeColor(relatedJob.source)} text-xs`}>
+                              {relatedJob.source === "reliefweb" ? "ReliefWeb" : "UN Jobs"}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0">
+                          <Button variant="outline" size="sm">
+                            View Details
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
       </main>
 

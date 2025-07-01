@@ -87,6 +87,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get related jobs for a specific job
+  app.get("/api/jobs/:id/related", async (req, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const currentJob = await storage.getJobById(jobId);
+      
+      if (!currentJob) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      // Get all jobs to find related ones
+      const allJobs = await storage.getAllJobs();
+      
+      // Find related jobs based on:
+      // 1. Same sector (highest priority)
+      // 2. Same organization 
+      // 3. Same location/country
+      // Exclude the current job from results
+      const relatedJobs = allJobs
+        .filter(job => job.id !== jobId)
+        .map(job => {
+          let score = 0;
+          // Same sector gets highest score
+          if (job.sector && currentJob.sector && job.sector.toLowerCase() === currentJob.sector.toLowerCase()) {
+            score += 3;
+          }
+          // Same organization gets medium score
+          if (job.organization && currentJob.organization && job.organization.toLowerCase() === currentJob.organization.toLowerCase()) {
+            score += 2;
+          }
+          // Same location gets lower score
+          if (job.location && currentJob.location && job.location.toLowerCase() === currentJob.location.toLowerCase()) {
+            score += 1;
+          }
+          return { job, score };
+        })
+        .filter(item => item.score > 0) // Only jobs with some relation
+        .sort((a, b) => b.score - a.score) // Sort by relevance score
+        .slice(0, 2) // Take top 2 most related jobs
+        .map(item => item.job);
+
+      res.json(relatedJobs);
+    } catch (error) {
+      console.error("Error fetching related jobs:", error);
+      res.status(500).json({ message: "Failed to fetch related jobs" });
+    }
+  });
+
   // Force refresh jobs (for testing)
   app.post("/api/jobs/refresh", async (req, res) => {
     try {
