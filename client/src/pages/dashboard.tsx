@@ -347,10 +347,10 @@ export default function Dashboard() {
                           <SelectValue placeholder="Select level" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Entry level">Entry level</SelectItem>
-                          <SelectItem value="Mid level">Mid level</SelectItem>
-                          <SelectItem value="Senior level">Senior level</SelectItem>
-                          <SelectItem value="Executive level">Executive level</SelectItem>
+                          <SelectItem value="0-2 years">0-2 years</SelectItem>
+                          <SelectItem value="3-5 years">3-5 years</SelectItem>
+                          <SelectItem value="6-9 years">6-9 years</SelectItem>
+                          <SelectItem value="10+ years">10+ years</SelectItem>
                           <SelectItem value="Internship">Internship</SelectItem>
                           <SelectItem value="Volunteer">Volunteer</SelectItem>
                         </SelectContent>

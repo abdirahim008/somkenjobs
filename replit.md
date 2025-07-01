@@ -157,6 +157,7 @@ The application follows a modern full-stack architecture with clear separation b
 - July 1, 2025: Implemented complete user authentication system for employers/recruiters with admin approval workflow, including JWT-based authentication, login/registration forms integrated into dropdown menu, protected routes, and default admin account (admin@jobconnect.com / admin123)
 - July 1, 2025: Created comprehensive dashboard system with role-based access - recruiters can create and post new job listings while super admins can both create jobs and approve pending user registrations, featuring full CRUD operations, form validation, and proper navigation with back button functionality
 - July 1, 2025: Fixed authentication token handling in dashboard API calls, resolving "Invalid token" errors for user approval functionality - dashboard now successfully authenticates with backend using correct 'auth_token' key from localStorage
+- July 1, 2025: Enhanced job posting form to match ReliefWeb format with hierarchical country → city selection, ReliefWeb-style experience levels (0-2 years, 3-5 years, etc.), comprehensive field sections, and organization auto-population for recruiters
 
 ## User Preferences
 
