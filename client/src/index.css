@@ -154,18 +154,12 @@
   }
 }
 
-/* Improved text truncation for organization names */
+/* Allow organization names to wrap naturally */
 .truncate-org {
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-@media (max-width: 640px) {
-  .truncate-org {
-    max-width: 150px;
-  }
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  line-height: 1.4;
 }
 
 /* Responsive container improvements */
