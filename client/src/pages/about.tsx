@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Users, Target, Globe, Heart, TrendingUp, Shield } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEOHead from "@/components/SEOHead";
 
 export default function About() {
   // Scroll to top when component mounts
@@ -13,6 +14,12 @@ export default function About() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead 
+        title="About JobConnect East Africa - Our Mission & Impact"
+        description="Learn about JobConnect East Africa's mission to connect humanitarian professionals with meaningful career opportunities in Kenya and Somalia. Discover our comprehensive job aggregation platform and commitment to the humanitarian sector."
+        keywords="about JobConnect East Africa, humanitarian job platform, NGO career platform, East Africa humanitarian jobs, our mission humanitarian sector"
+        canonicalUrl="https://jobconnect-eastafrica.replit.app/about"
+      />
       <Header />
       
       {/* Hero Section */}

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Mail, MessageCircle, HelpCircle, Users, Clock, MapPin } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEOHead from "@/components/SEOHead";
 
 export default function Contact() {
   // Scroll to top when component mounts

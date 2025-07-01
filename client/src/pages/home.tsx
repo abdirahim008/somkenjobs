@@ -5,6 +5,7 @@ import SearchBar from "@/components/SearchBar";
 import Sidebar from "@/components/Sidebar";
 import JobCard from "@/components/JobCard";
 import Footer from "@/components/Footer";
+import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Grid, List, RefreshCw } from "lucide-react";
@@ -65,6 +66,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead 
+        title="Humanitarian Jobs in Kenya & Somalia | JobConnect East Africa"
+        description={`Find ${data?.stats.totalJobs || '80+'} humanitarian job opportunities in Kenya and Somalia. Browse positions from ${data?.stats.organizations || '50+'} leading NGOs, UN agencies, and development organizations. Updated daily.`}
+        keywords="humanitarian jobs Kenya, humanitarian jobs Somalia, NGO careers East Africa, UN jobs Kenya, development jobs Somalia, aid worker positions, international development careers"
+        canonicalUrl="https://jobconnect-eastafrica.replit.app/"
+      />
       <Header />
       
 
