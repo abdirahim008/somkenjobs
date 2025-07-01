@@ -1,8 +1,41 @@
 import { storage } from "./storage";
-import { type InsertJob } from "@shared/schema";
+import { type InsertJob, type InsertUser } from "@shared/schema";
+import bcrypt from "bcryptjs";
 
 export async function seedDatabase(): Promise<void> {
   console.log("Seeding database with sample jobs...");
+  
+  // Create default admin user if not exists
+  try {
+    const adminEmail = "admin@jobconnect.com";
+    const existingAdmin = await storage.getUserByEmail(adminEmail);
+    
+    if (!existingAdmin) {
+      const hashedPassword = await bcrypt.hash("admin123", 10);
+      const adminUser: InsertUser = {
+        email: adminEmail,
+        password: hashedPassword,
+        firstName: "Admin",
+        lastName: "User",
+        companyName: "JobConnect East Africa",
+        jobTitle: "Platform Administrator",
+        phoneNumber: "+254700000000",
+      };
+      
+      const createdAdmin = await storage.createUser(adminUser);
+      // Approve and make admin
+      await storage.updateUser(createdAdmin.id, {
+        isApproved: true,
+        isAdmin: true,
+        approvedAt: new Date(),
+        approvedBy: "System",
+      });
+      
+      console.log("Default admin user created: admin@jobconnect.com / admin123");
+    }
+  } catch (error) {
+    console.log("Admin user setup skipped (may already exist)")
+  }
   
   const sampleJobs: InsertJob[] = [
     {

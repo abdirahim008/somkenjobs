@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useLocation } from "wouter";
 import { useState } from "react";
+import UserMenu from "./UserMenu";
 
 export default function Header() {
   const [, setLocation] = useLocation();
@@ -37,22 +38,27 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => (
-              <button
-                key={item.label}
-                onClick={() => handleNavigation(item.href, item.label)}
-                className={`font-medium transition-colors ${
-                  item.active
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </nav>
+          <div className="flex items-center space-x-4">
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center space-x-8">
+              {navItems.map((item) => (
+                <button
+                  key={item.label}
+                  onClick={() => handleNavigation(item.href, item.label)}
+                  className={`font-medium transition-colors ${
+                    item.active
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+
+            {/* User Menu */}
+            <UserMenu />
+          </div>
 
           {/* Mobile Menu */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>

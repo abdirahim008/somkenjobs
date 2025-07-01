@@ -66,8 +66,17 @@ export const getQueryFn: <T>(options: {
       }
     }
     
+    const headers: Record<string, string> = {};
+    
+    // Add auth token if available
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
     const res = await fetch(url, {
       credentials: "include",
+      headers,
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
