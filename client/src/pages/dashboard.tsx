@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, FileText, CheckCircle, ArrowLeft } from "lucide-react";
+import { Plus, Users, FileText, CheckCircle, ArrowLeft, Edit, Trash2, Eye } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -66,6 +66,12 @@ export default function Dashboard() {
   const { data: pendingUsers = [] } = useQuery({
     queryKey: ["/api/admin/pending-users"],
     enabled: (user as any)?.isAdmin === true,
+  });
+
+  // Get user's jobs
+  const { data: userJobs = [], isLoading: userJobsLoading } = useQuery({
+    queryKey: ["/api/user/jobs"],
+    enabled: !!user,
   });
 
   // Create job mutation
@@ -140,6 +146,74 @@ export default function Dashboard() {
       toast({
         title: "Error",
         description: error.message || "Failed to approve user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete job mutation
+  const deleteJobMutation = useMutation({
+    mutationFn: async (jobId: number) => {
+      const response = await fetch(`/api/jobs/${jobId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to delete job: ${response.statusText}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Job deleted successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete job",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Edit mode state
+  const [editingJob, setEditingJob] = useState<any>(null);
+
+  // Update job mutation
+  const updateJobMutation = useMutation({
+    mutationFn: async ({ jobId, jobData }: { jobId: number; jobData: any }) => {
+      const response = await fetch(`/api/jobs/${jobId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+        body: JSON.stringify(jobData),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to update job: ${response.statusText}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Job updated successfully!",
+      });
+      setEditingJob(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/user/jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update job",
         variant: "destructive",
       });
     },
@@ -233,10 +307,14 @@ export default function Dashboard() {
         </div>
 
         <Tabs defaultValue="create-job" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <TabsTrigger value="create-job" className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               Create Job
+            </TabsTrigger>
+            <TabsTrigger value="my-jobs" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              My Jobs
             </TabsTrigger>
             {isAdmin && (
               <TabsTrigger value="manage-users" className="flex items-center gap-2">
@@ -463,6 +541,110 @@ export default function Dashboard() {
                     {createJobMutation.isPending ? "Creating..." : "Create Job Posting"}
                   </Button>
                 </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="my-jobs">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  My Job Postings
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {userJobsLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0077B5] mx-auto"></div>
+                    <p className="text-gray-600 mt-2">Loading your jobs...</p>
+                  </div>
+                ) : userJobs.length === 0 ? (
+                  <div className="text-center py-8">
+                    <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 mb-4">You haven't posted any jobs yet</p>
+                    <Button 
+                      onClick={() => document.querySelector('[data-state="active"][value="create-job"]')?.click()}
+                      className="bg-[#0077B5] hover:bg-[#005582]"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Your First Job
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {userJobs.map((job: any) => (
+                      <div key={job.id} className="border rounded-lg p-4 hover:shadow-lg transition-shadow">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-lg mb-2">{job.title}</h3>
+                            <div className="space-y-1 text-sm text-gray-600">
+                              <p><strong>Organization:</strong> {job.organization}</p>
+                              <p><strong>Location:</strong> {job.location}</p>
+                              <p><strong>Sector:</strong> {job.sector || 'Not specified'}</p>
+                              <p><strong>Posted:</strong> {new Date(job.datePosted).toLocaleDateString()}</p>
+                              {job.deadline && (
+                                <p><strong>Deadline:</strong> {new Date(job.deadline).toLocaleDateString()}</p>
+                              )}
+                            </div>
+                            <div className="mt-3">
+                              <Badge variant="outline" className="text-[#0077B5] border-[#0077B5]">
+                                {job.experience || 'Any level'}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 ml-4">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => window.open(`/jobs/${job.id}`, '_blank')}
+                              className="text-[#0077B5] border-[#0077B5] hover:bg-[#0077B5] hover:text-white"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingJob(job);
+                                setJobForm({
+                                  title: job.title,
+                                  organization: job.organization,
+                                  location: job.location,
+                                  country: job.country,
+                                  sector: job.sector || '',
+                                  description: job.description,
+                                  howToApply: job.howToApply || '',
+                                  experience: job.experience || '',
+                                  qualifications: job.qualifications || '',
+                                  responsibilities: job.responsibilities || '',
+                                  deadline: job.deadline ? new Date(job.deadline).toISOString().split('T')[0] : '',
+                                  url: job.url || ''
+                                });
+                              }}
+                              className="text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to delete this job posting?')) {
+                                  deleteJobMutation.mutate(job.id);
+                                }
+                              }}
+                              disabled={deleteJobMutation.isPending}
+                              className="text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
