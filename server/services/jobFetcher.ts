@@ -98,7 +98,7 @@ export class JobFetcher {
               "type.name"
             ]
           },
-          limit: 50,
+          limit: 10,
           sort: ["date.created:desc"]
         };
 
