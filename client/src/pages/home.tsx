@@ -102,20 +102,22 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="main-container max-w-7xl">
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           
-          {/* Sidebar */}
-          <div className="lg:w-80 flex-shrink-0">
-            <Sidebar 
-              filters={filters}
-              onFilterChange={handleFilterChange}
-              availableFilters={data?.filters}
-              isLoading={isLoading}
-            />
+          {/* Left Sidebar - Desktop */}
+          <div className="lg:w-80 xl:w-96 flex-shrink-0 order-2 lg:order-1">
+            <div className="lg:sticky lg:top-24">
+              <Sidebar 
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                availableFilters={data?.filters}
+                isLoading={isLoading}
+              />
+            </div>
           </div>
 
           {/* Job Listings */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 order-1 lg:order-2">
             {/* Results Header */}
             <div className="mb-6">
               <h2 className="text-xl font-semibold mb-4">Latest Job Opportunities</h2>

@@ -66,8 +66,8 @@ export default function Sidebar({ filters, onFilterChange, availableFilters, isL
 
   if (isLoading) {
     return (
-      <aside className="lg:w-80 flex-shrink-0">
-        <Card className="sticky top-24">
+      <aside className="w-full">
+        <Card className="border-l-4 border-l-primary/20 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center">
               <Filter className="text-primary mr-2 h-5 w-5" />
@@ -95,8 +95,8 @@ export default function Sidebar({ filters, onFilterChange, availableFilters, isL
   }
 
   return (
-    <aside className="lg:w-80 flex-shrink-0">
-      <Card className="sticky top-24">
+    <aside className="w-full">
+      <Card className="border-l-4 border-l-primary/20 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center">
             <Filter className="text-primary mr-2 h-5 w-5" />

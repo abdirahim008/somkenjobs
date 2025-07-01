@@ -142,6 +142,8 @@ The application follows a modern full-stack architecture with clear separation b
 - June 30, 2025: Improved job listings header layout by separating title from controls, placing "Latest Job Opportunities" on its own line with sorting and view controls positioned below for better visual hierarchy and mobile responsiveness
 - July 1, 2025: Enhanced job card typography for mobile readability by increasing font sizes from text-sm to text-base for metadata, enlarging icons from h-4 to h-5, and upgrading badge text sizes for better accessibility
 - July 1, 2025: Removed organization name truncation to allow full organization names to display across multiple lines with natural word wrapping and improved line height for better readability
+- July 1, 2025: Added related jobs section below Important Dates card with smart matching algorithm based on sector, organization, and location relevance scoring
+- July 1, 2025: Reorganized desktop layout with dedicated left sidebar for filters, improved sticky positioning, enhanced visual separation with primary accent border, and optimized responsive ordering
 
 ## User Preferences
 
