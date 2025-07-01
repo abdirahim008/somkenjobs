@@ -11,8 +11,9 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import AuthModal from "./AuthModal";
-import { User, LogOut, Shield, Building } from "lucide-react";
+import { User, LogOut, Shield, Building, LayoutDashboard } from "lucide-react";
 import type { User as UserType } from "@shared/schema";
+import { Link } from "wouter";
 
 export default function UserMenu() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -107,6 +108,12 @@ export default function UserMenu() {
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
+        <Link href="/dashboard">
+          <DropdownMenuItem>
+            <LayoutDashboard className="mr-2 h-4 w-4" />
+            <span>Dashboard</span>
+          </DropdownMenuItem>
+        </Link>
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>

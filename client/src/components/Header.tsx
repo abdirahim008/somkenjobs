@@ -95,9 +95,9 @@ export default function Header() {
                 ))}
                 
                 {/* Mobile Authentication Options */}
-                {!isAuthenticated && (
+                <hr className="border-t border-border" />
+                {!isAuthenticated ? (
                   <>
-                    <hr className="border-t border-border" />
                     <button
                       onClick={() => {
                         setAuthTab("login");
@@ -119,6 +119,26 @@ export default function Header() {
                     >
                       <User className="mr-2 h-4 w-4" />
                       Register
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => handleNavigation("/dashboard", "Dashboard")}
+                      className="font-medium transition-colors text-left text-muted-foreground hover:text-foreground flex items-center"
+                    >
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      Dashboard
+                    </button>
+                    <button
+                      onClick={() => {
+                        logout();
+                        setIsOpen(false);
+                      }}
+                      className="font-medium transition-colors text-left text-muted-foreground hover:text-foreground flex items-center"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
                     </button>
                   </>
                 )}

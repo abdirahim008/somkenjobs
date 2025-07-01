@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { jobFetcher } from "./services/jobFetcher";
 import { seedDatabase } from "./seed";
 import { z } from "zod";
-import { insertUserSchema, loginUserSchema, type User } from "@shared/schema";
+import { insertUserSchema, loginUserSchema, insertJobSchema, type User } from "@shared/schema";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
