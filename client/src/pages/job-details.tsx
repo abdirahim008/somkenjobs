@@ -90,6 +90,29 @@ export default function JobDetails() {
       .replace(/\\~/g, '~');          // Fix escaped tildes
   };
 
+  // Helper function to convert URLs to clickable links
+  const convertUrlsToLinks = (text: string) => {
+    // Enhanced URL regex to catch various URL formats
+    const urlRegex = /(https?:\/\/[^\s\)]+|www\.[^\s\)]+|\b[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}\/[^\s\)]*)/gi;
+    
+    return text.replace(urlRegex, (url) => {
+      let href = url;
+      let displayText = url;
+      
+      // Add https:// if it's missing
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        href = `https://${url}`;
+      }
+      
+      // Truncate display text if URL is very long
+      if (displayText.length > 50) {
+        displayText = displayText.substring(0, 47) + '...';
+      }
+      
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline break-all">${displayText}</a>`;
+    });
+  };
+
   const renderDescription = (job: Job) => {
     if (!job) return null;
     
@@ -120,9 +143,11 @@ export default function JobDetails() {
                   return (
                     <h3 key={index} className="text-lg font-semibold text-foreground mt-6 mb-3">
                       <span dangerouslySetInnerHTML={{
-                        __html: trimmedParagraph
-                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                          .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        __html: convertUrlsToLinks(
+                          trimmedParagraph
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        )
                       }} />
                     </h3>
                   );
@@ -133,10 +158,12 @@ export default function JobDetails() {
                   return (
                     <li key={index} className="ml-4 mb-2 text-foreground leading-relaxed">
                       <span dangerouslySetInnerHTML={{
-                        __html: trimmedParagraph
-                          .replace(/^[•\-*]\s*/, '')
-                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                          .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        __html: convertUrlsToLinks(
+                          trimmedParagraph
+                            .replace(/^[•\-*]\s*/, '')
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        )
                       }} />
                     </li>
                   );
@@ -146,9 +173,11 @@ export default function JobDetails() {
                 return (
                   <p key={index} className="mb-4 text-foreground leading-relaxed break-words">
                     <span dangerouslySetInnerHTML={{
-                      __html: trimmedParagraph
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                      __html: convertUrlsToLinks(
+                        trimmedParagraph
+                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                          .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                      )
                     }} />
                   </p>
                 );
@@ -387,26 +416,23 @@ export default function JobDetails() {
                         );
                       }
                       
-                      // Check if it contains email addresses
+                      // Check if it contains email addresses or URLs
                       const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
-                      if (trimmed.match(emailRegex)) {
+                      const urlRegex = /(https?:\/\/[^\s\)]+|www\.[^\s\)]+|\b[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}\/[^\s\)]*)/gi;
+                      
+                      if (trimmed.match(emailRegex) || trimmed.match(urlRegex)) {
                         return (
                           <p key={index} className="mb-3 text-foreground leading-relaxed break-words">
-                            {trimmed
-                              .replace(/___STRONG_START___(.*?)___STRONG_END___/g, '<strong>$1</strong>')
-                              .replace(/___EM_START___(.*?)___EM_END___/g, '<em>$1</em>')
-                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Convert **text** to bold
-                              .replace(/\*(.*?)\*/g, '<em>$1</em>') // Convert *text* to italic
-                              .split(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
-                              .map((part, i) => 
-                              /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/.test(part) ? (
-                                <span key={i} className="font-medium text-[#0077B5] bg-[#E8F4FD] px-2 py-1 rounded break-all inline-block max-w-full">
-                                  {part}
-                                </span>
-                              ) : (
-                                <span key={i} dangerouslySetInnerHTML={{ __html: part }} />
+                            <span dangerouslySetInnerHTML={{
+                              __html: convertUrlsToLinks(
+                                trimmed
+                                  .replace(/___STRONG_START___(.*?)___STRONG_END___/g, '<strong>$1</strong>')
+                                  .replace(/___EM_START___(.*?)___EM_END___/g, '<em>$1</em>')
+                                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Convert **text** to bold
+                                  .replace(/\*(.*?)\*/g, '<em>$1</em>') // Convert *text* to italic
+                                  .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<span class="font-medium text-[#0077B5] bg-[#E8F4FD] px-2 py-1 rounded break-all inline-block max-w-full">$1</span>')
                               )
-                            )}
+                            }} />
                           </p>
                         );
                       }
@@ -415,11 +441,13 @@ export default function JobDetails() {
                       return (
                         <p key={index} className="mb-3 text-foreground leading-relaxed break-words">
                           <span dangerouslySetInnerHTML={{
-                            __html: trimmed
-                              .replace(/___STRONG_START___(.*?)___STRONG_END___/g, '<strong>$1</strong>')
-                              .replace(/___EM_START___(.*?)___EM_END___/g, '<em>$1</em>')
-                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Convert **text** to bold
-                              .replace(/\*(.*?)\*/g, '<em>$1</em>') // Convert *text* to italic
+                            __html: convertUrlsToLinks(
+                              trimmed
+                                .replace(/___STRONG_START___(.*?)___STRONG_END___/g, '<strong>$1</strong>')
+                                .replace(/___EM_START___(.*?)___EM_END___/g, '<em>$1</em>')
+                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Convert **text** to bold
+                                .replace(/\*(.*?)\*/g, '<em>$1</em>') // Convert *text* to italic
+                            )
                           }} />
                         </p>
                       );
