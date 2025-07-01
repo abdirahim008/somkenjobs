@@ -49,9 +49,7 @@ export default function JobDetails() {
     if (diffDays < 0) return "Expired";
     if (diffDays === 0) return "Today";
     if (diffDays === 1) return "1 day left";
-    if (diffDays < 7) return `${diffDays} days left`;
-    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks left`;
-    return formatDate(date);
+    return `${diffDays} days left`;
   };
 
   const cleanText = (text: string) => {
