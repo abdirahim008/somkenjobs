@@ -1,14 +1,30 @@
 import { Briefcase, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { useLocation } from "wouter";
+import { useState } from "react";
 
 export default function Header() {
+  const [, setLocation] = useLocation();
+  const [isOpen, setIsOpen] = useState(false);
+  
   const navItems = [
-    { label: "Jobs", href: "#", active: true },
-    { label: "Organizations", href: "#" },
-    { label: "About", href: "#" },
-    { label: "Contact", href: "#" },
+    { label: "Jobs", href: "/", active: true },
+    { label: "Organizations", href: "/organizations" },
+    { label: "About", href: "/about" },
+    { label: "Contact", href: "/contact" },
   ];
+
+  const handleNavigation = (href: string) => {
+    if (href === "/") {
+      setLocation("/");
+    } else {
+      // For now, just scroll to top and show a message for other pages
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // These could be implemented as actual pages later
+    }
+    setIsOpen(false); // Close mobile menu after navigation
+  };
 
   return (
     <header className="bg-card shadow-sm border-b border-border sticky top-0 z-50">
@@ -28,9 +44,9 @@ export default function Header() {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             {navItems.map((item) => (
-              <a
+              <button
                 key={item.label}
-                href={item.href}
+                onClick={() => handleNavigation(item.href)}
                 className={`font-medium transition-colors ${
                   item.active
                     ? "text-foreground"
@@ -38,31 +54,35 @@ export default function Header() {
                 }`}
               >
                 {item.label}
-              </a>
+              </button>
             ))}
           </nav>
 
           {/* Mobile Menu */}
-          <Sheet>
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="sm" className="md:hidden">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
             <SheetContent side="right">
+              <SheetTitle>Navigation Menu</SheetTitle>
+              <SheetDescription>
+                Navigate to different sections of JobConnect East Africa
+              </SheetDescription>
               <nav className="flex flex-col space-y-4 mt-8">
                 {navItems.map((item) => (
-                  <a
+                  <button
                     key={item.label}
-                    href={item.href}
-                    className={`font-medium transition-colors ${
+                    onClick={() => handleNavigation(item.href)}
+                    className={`font-medium transition-colors text-left ${
                       item.active
                         ? "text-foreground"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     {item.label}
-                  </a>
+                  </button>
                 ))}
               </nav>
             </SheetContent>

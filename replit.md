@@ -146,6 +146,7 @@ The application follows a modern full-stack architecture with clear separation b
 - July 1, 2025: Reorganized desktop layout with dedicated left sidebar for filters, improved sticky positioning, enhanced visual separation with primary accent border, and optimized responsive ordering
 - July 1, 2025: Standardized deadline format to always display "X days left" instead of mixing weeks and days for consistent user experience
 - July 1, 2025: Fixed mobile filter positioning to display at the top instead of bottom for better user experience
+- July 1, 2025: Fixed mobile menu functionality with proper click handlers, navigation routing, and accessibility improvements including SheetTitle and SheetDescription
 
 ## User Preferences
 
