@@ -284,34 +284,12 @@ export default function Dashboard() {
 
                   <div className="grid md:grid-cols-3 gap-4">
                     <div>
-                      <Label htmlFor="location">Location/City *</Label>
-                      <Select
-                        value={jobForm.location}
-                        onValueChange={(value) => setJobForm({ ...jobForm, location: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select location" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Nairobi">Nairobi</SelectItem>
-                          <SelectItem value="Mombasa">Mombasa</SelectItem>
-                          <SelectItem value="Kisumu">Kisumu</SelectItem>
-                          <SelectItem value="Garissa">Garissa</SelectItem>
-                          <SelectItem value="Eldoret">Eldoret</SelectItem>
-                          <SelectItem value="Multiple locations">Multiple locations (Kenya)</SelectItem>
-                          <SelectItem value="Mogadishu">Mogadishu</SelectItem>
-                          <SelectItem value="Hargeisa">Hargeisa</SelectItem>
-                          <SelectItem value="Baidoa">Baidoa</SelectItem>
-                          <SelectItem value="Kismayo">Kismayo</SelectItem>
-                          <SelectItem value="Multiple locations">Multiple locations (Somalia)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
                       <Label htmlFor="country">Country *</Label>
                       <Select
                         value={jobForm.country}
-                        onValueChange={(value) => setJobForm({ ...jobForm, country: value })}
+                        onValueChange={(value) => {
+                          setJobForm({ ...jobForm, country: value, location: "" }); // Reset location when country changes
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select country" />
@@ -319,6 +297,43 @@ export default function Dashboard() {
                         <SelectContent>
                           <SelectItem value="Kenya">Kenya</SelectItem>
                           <SelectItem value="Somalia">Somalia</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="location">Location/City *</Label>
+                      <Select
+                        value={jobForm.location}
+                        onValueChange={(value) => setJobForm({ ...jobForm, location: value })}
+                        disabled={!jobForm.country}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={jobForm.country ? "Select location" : "Select country first"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {jobForm.country === "Kenya" && (
+                            <>
+                              <SelectItem value="Nairobi">Nairobi</SelectItem>
+                              <SelectItem value="Mombasa">Mombasa</SelectItem>
+                              <SelectItem value="Kisumu">Kisumu</SelectItem>
+                              <SelectItem value="Garissa">Garissa</SelectItem>
+                              <SelectItem value="Eldoret">Eldoret</SelectItem>
+                              <SelectItem value="Nakuru">Nakuru</SelectItem>
+                              <SelectItem value="Machakos">Machakos</SelectItem>
+                              <SelectItem value="Multiple locations (Kenya)">Multiple locations (Kenya)</SelectItem>
+                            </>
+                          )}
+                          {jobForm.country === "Somalia" && (
+                            <>
+                              <SelectItem value="Mogadishu">Mogadishu</SelectItem>
+                              <SelectItem value="Hargeisa">Hargeisa</SelectItem>
+                              <SelectItem value="Baidoa">Baidoa</SelectItem>
+                              <SelectItem value="Kismayo">Kismayo</SelectItem>
+                              <SelectItem value="Galkayo">Galkayo</SelectItem>
+                              <SelectItem value="Bosaso">Bosaso</SelectItem>
+                              <SelectItem value="Multiple locations (Somalia)">Multiple locations (Somalia)</SelectItem>
+                            </>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
