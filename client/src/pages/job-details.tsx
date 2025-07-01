@@ -400,7 +400,7 @@ export default function JobDetails() {
                               .split(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
                               .map((part, i) => 
                               /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/.test(part) ? (
-                                <span key={i} className="font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded break-all inline-block max-w-full">
+                                <span key={i} className="font-medium text-[#0077B5] bg-[#E8F4FD] px-2 py-1 rounded break-all inline-block max-w-full">
                                   {part}
                                 </span>
                               ) : (
