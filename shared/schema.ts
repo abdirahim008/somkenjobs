@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -21,6 +21,7 @@ export const jobs = pgTable("jobs", {
   qualifications: text("qualifications"),
   responsibilities: text("responsibilities"),
   bodyHtml: text("body_html"),
+  createdBy: integer("created_by"), // User ID who created the job (null for scraped jobs)
 });
 
 export const insertJobSchema = createInsertSchema(jobs).omit({

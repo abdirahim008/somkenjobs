@@ -352,6 +352,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get jobs created by the current user
+  app.get("/api/user/jobs", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const userJobs = await storage.getJobsByUserId(userId);
+      res.json(userJobs);
+    } catch (error) {
+      console.error("Error fetching user jobs:", error);
+      res.status(500).json({ message: "Failed to fetch user jobs" });
+    }
+  });
+
+  // Update a job (only if user owns it)
+  app.put("/api/jobs/:id", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      // Check if user owns this job
+      const existingJob = await storage.getJobById(jobId);
+      if (!existingJob || existingJob.createdBy !== userId) {
+        return res.status(403).json({ message: "You can only edit your own jobs" });
+      }
+
+      // Validate job data
+      const jobData = req.body;
+      const updatedJob = await storage.updateJob(jobId, {
+        ...jobData,
+        updatedAt: new Date()
+      });
+
+      if (!updatedJob) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      res.json({ message: "Job updated successfully", job: updatedJob });
+    } catch (error) {
+      console.error("Error updating job:", error);
+      res.status(500).json({ message: "Failed to update job" });
+    }
+  });
+
+  // Delete a job (only if user owns it)
+  app.delete("/api/jobs/:id", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      // Check if user owns this job
+      const existingJob = await storage.getJobById(jobId);
+      if (!existingJob || existingJob.createdBy !== userId) {
+        return res.status(403).json({ message: "You can only delete your own jobs" });
+      }
+
+      const deleted = await storage.deleteJob(jobId);
+      if (!deleted) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      res.json({ message: "Job deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting job:", error);
+      res.status(500).json({ message: "Failed to delete job" });
+    }
+  });
+
   // Create job (authenticated users only)
   app.post("/api/jobs", authenticate, async (req: AuthRequest, res) => {
     try {

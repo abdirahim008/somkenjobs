@@ -15,6 +15,7 @@ export interface IStorage {
   getAllJobs(): Promise<Job[]>;
   getJobById(id: number): Promise<Job | undefined>;
   getJobByExternalId(externalId: string): Promise<Job | undefined>;
+  getJobsByUserId(userId: number): Promise<Job[]>;
   createJob(job: InsertJob): Promise<Job>;
   updateJob(id: number, job: Partial<InsertJob>): Promise<Job | undefined>;
   deleteJob(id: number): Promise<boolean>;
