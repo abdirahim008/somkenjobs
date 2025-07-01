@@ -401,6 +401,7 @@ export default function JobDetails() {
                     .replace(/<br\s*\/?>/gi, '\n') // Convert <br> to line breaks
                     .replace(/<p>/gi, '\n\n') // Convert <p> to paragraphs
                     .replace(/<\/p>/gi, '') // Remove closing p tags
+                    .replace(/<a\s+[^>]*href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi, '___LINK_START___$1___LINK_MIDDLE___$2___LINK_END___') // Preserve HTML links
                     .replace(/<strong>(.*?)<\/strong>/gi, '___STRONG_START___$1___STRONG_END___') // Preserve HTML bold
                     .replace(/<b>(.*?)<\/b>/gi, '___STRONG_START___$1___STRONG_END___') // Preserve HTML bold
                     .replace(/<em>(.*?)<\/em>/gi, '___EM_START___$1___EM_END___') // Preserve HTML italic
@@ -421,16 +422,18 @@ export default function JobDetails() {
                         );
                       }
                       
-                      // Check if it contains email addresses or URLs
+                      // Check if it contains email addresses, URLs, or preserved links
                       const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
                       const urlRegex = /(https?:\/\/[^\s\)]+|www\.[^\s\)]+|\b[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}\/[^\s\)]*)/gi;
+                      const hasPreservedLinks = trimmed.includes('___LINK_START___');
                       
-                      if (trimmed.match(emailRegex) || trimmed.match(urlRegex)) {
+                      if (trimmed.match(emailRegex) || trimmed.match(urlRegex) || hasPreservedLinks) {
                         return (
                           <p key={index} className="mb-3 text-foreground leading-relaxed break-words">
                             <span dangerouslySetInnerHTML={{
                               __html: convertUrlsToLinks(
                                 trimmed
+                                  .replace(/___LINK_START___(.*?)___LINK_MIDDLE___(.*?)___LINK_END___/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline break-all font-medium">$2</a>')
                                   .replace(/___STRONG_START___(.*?)___STRONG_END___/g, '<strong>$1</strong>')
                                   .replace(/___EM_START___(.*?)___EM_END___/g, '<em>$1</em>')
                                   .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Convert **text** to bold
@@ -448,6 +451,7 @@ export default function JobDetails() {
                           <span dangerouslySetInnerHTML={{
                             __html: convertUrlsToLinks(
                               trimmed
+                                .replace(/___LINK_START___(.*?)___LINK_MIDDLE___(.*?)___LINK_END___/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline break-all font-medium">$2</a>')
                                 .replace(/___STRONG_START___(.*?)___STRONG_END___/g, '<strong>$1</strong>')
                                 .replace(/___EM_START___(.*?)___EM_END___/g, '<em>$1</em>')
                                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Convert **text** to bold
