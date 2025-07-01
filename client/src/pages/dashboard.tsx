@@ -41,12 +41,15 @@ export default function Dashboard() {
     title: "",
     organization: "",
     location: "",
+    country: "",
     sector: "",
     description: "",
-    applicationInstructions: "",
-    applicationEmail: "",
-    closingDate: "",
-    externalUrl: ""
+    howToApply: "",
+    experience: "",
+    qualifications: "",
+    responsibilities: "",
+    deadline: "",
+    url: ""
   });
 
   // Update organization field when user data loads
@@ -88,14 +91,17 @@ export default function Dashboard() {
       });
       setJobForm({
         title: "",
-        organization: "",
+        organization: (user as any)?.companyName || "",
         location: "",
+        country: "",
         sector: "",
         description: "",
-        applicationInstructions: "",
-        applicationEmail: "",
-        closingDate: "",
-        externalUrl: ""
+        howToApply: "",
+        experience: "",
+        qualifications: "",
+        responsibilities: "",
+        deadline: "",
+        url: ""
       });
       queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
     },
@@ -142,7 +148,7 @@ export default function Dashboard() {
   const handleJobSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!jobForm.title || !jobForm.organization || !jobForm.location) {
+    if (!jobForm.title || !jobForm.organization || !jobForm.location || !jobForm.country) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -151,18 +157,33 @@ export default function Dashboard() {
       return;
     }
 
+    // Build comprehensive job data matching ReliefWeb structure
     const jobData = {
       title: jobForm.title,
       organization: jobForm.organization,
       location: jobForm.location,
-      country: jobForm.location.includes("Kenya") ? "Kenya" : "Somalia",
+      country: jobForm.country,
       sector: jobForm.sector || "Other",
       description: jobForm.description,
-      url: jobForm.externalUrl || "",
+      url: jobForm.url || `https://jobconnect.replit.app/jobs/internal-${Date.now()}`,
       datePosted: new Date(),
-      source: "Manual Entry",
-      externalId: `manual-${Date.now()}`,
-      deadline: jobForm.closingDate ? new Date(jobForm.closingDate) : null,
+      source: "Internal",
+      externalId: `internal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      deadline: jobForm.deadline ? new Date(jobForm.deadline) : null,
+      howToApply: jobForm.howToApply,
+      experience: jobForm.experience,
+      qualifications: jobForm.qualifications,
+      responsibilities: jobForm.responsibilities,
+      bodyHtml: `
+        <div>
+          <h3>Job Description</h3>
+          <p>${jobForm.description.replace(/\n/g, '<br>')}</p>
+          ${jobForm.responsibilities ? `<h3>Key Responsibilities</h3><p>${jobForm.responsibilities.replace(/\n/g, '<br>')}</p>` : ''}
+          ${jobForm.qualifications ? `<h3>Qualifications & Requirements</h3><p>${jobForm.qualifications.replace(/\n/g, '<br>')}</p>` : ''}
+          ${jobForm.experience ? `<h3>Experience Level</h3><p>${jobForm.experience}</p>` : ''}
+          ${jobForm.howToApply ? `<h3>How to Apply</h3><p>${jobForm.howToApply.replace(/\n/g, '<br>')}</p>` : ''}
+        </div>
+      `.trim()
     };
 
     createJobMutation.mutate(jobData);
@@ -242,7 +263,7 @@ export default function Dashboard() {
                         id="title"
                         value={jobForm.title}
                         onChange={(e) => setJobForm({ ...jobForm, title: e.target.value })}
-                        placeholder="e.g. Program Manager"
+                        placeholder="e.g. Protection Officer, Program Manager, Field Coordinator"
                         required
                       />
                     </div>
@@ -252,7 +273,7 @@ export default function Dashboard() {
                         id="organization"
                         value={jobForm.organization}
                         onChange={(e) => setJobForm({ ...jobForm, organization: e.target.value })}
-                        placeholder="e.g. UNICEF"
+                        placeholder="e.g. UNICEF, WHO, Save the Children"
                         required
                         readOnly={!isAdmin}
                         className={!isAdmin ? "bg-gray-100" : ""}
@@ -261,9 +282,9 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid md:grid-cols-3 gap-4">
                     <div>
-                      <Label htmlFor="location">Location *</Label>
+                      <Label htmlFor="location">Location/City *</Label>
                       <Select
                         value={jobForm.location}
                         onValueChange={(value) => setJobForm({ ...jobForm, location: value })}
@@ -272,94 +293,151 @@ export default function Dashboard() {
                           <SelectValue placeholder="Select location" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Nairobi, Kenya">Nairobi, Kenya</SelectItem>
-                          <SelectItem value="Mombasa, Kenya">Mombasa, Kenya</SelectItem>
-                          <SelectItem value="Kisumu, Kenya">Kisumu, Kenya</SelectItem>
-                          <SelectItem value="Kenya">Kenya (Multiple Locations)</SelectItem>
-                          <SelectItem value="Mogadishu, Somalia">Mogadishu, Somalia</SelectItem>
-                          <SelectItem value="Hargeisa, Somalia">Hargeisa, Somalia</SelectItem>
-                          <SelectItem value="Somalia">Somalia (Multiple Locations)</SelectItem>
+                          <SelectItem value="Nairobi">Nairobi</SelectItem>
+                          <SelectItem value="Mombasa">Mombasa</SelectItem>
+                          <SelectItem value="Kisumu">Kisumu</SelectItem>
+                          <SelectItem value="Garissa">Garissa</SelectItem>
+                          <SelectItem value="Eldoret">Eldoret</SelectItem>
+                          <SelectItem value="Multiple locations">Multiple locations (Kenya)</SelectItem>
+                          <SelectItem value="Mogadishu">Mogadishu</SelectItem>
+                          <SelectItem value="Hargeisa">Hargeisa</SelectItem>
+                          <SelectItem value="Baidoa">Baidoa</SelectItem>
+                          <SelectItem value="Kismayo">Kismayo</SelectItem>
+                          <SelectItem value="Multiple locations">Multiple locations (Somalia)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div>
-                      <Label htmlFor="sector">Sector</Label>
+                      <Label htmlFor="country">Country *</Label>
                       <Select
-                        value={jobForm.sector}
-                        onValueChange={(value) => setJobForm({ ...jobForm, sector: value })}
+                        value={jobForm.country}
+                        onValueChange={(value) => setJobForm({ ...jobForm, country: value })}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select sector" />
+                          <SelectValue placeholder="Select country" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Health">Health</SelectItem>
-                          <SelectItem value="Education">Education</SelectItem>
-                          <SelectItem value="Protection">Protection</SelectItem>
-                          <SelectItem value="Food Security">Food Security</SelectItem>
-                          <SelectItem value="Water and Sanitation">Water and Sanitation</SelectItem>
-                          <SelectItem value="Shelter">Shelter</SelectItem>
-                          <SelectItem value="Logistics">Logistics</SelectItem>
-                          <SelectItem value="Human Resources">Human Resources</SelectItem>
-                          <SelectItem value="Finance">Finance</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
+                          <SelectItem value="Kenya">Kenya</SelectItem>
+                          <SelectItem value="Somalia">Somalia</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="experience">Experience Level</Label>
+                      <Select
+                        value={jobForm.experience}
+                        onValueChange={(value) => setJobForm({ ...jobForm, experience: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Entry level">Entry level</SelectItem>
+                          <SelectItem value="Mid level">Mid level</SelectItem>
+                          <SelectItem value="Senior level">Senior level</SelectItem>
+                          <SelectItem value="Executive level">Executive level</SelectItem>
+                          <SelectItem value="Internship">Internship</SelectItem>
+                          <SelectItem value="Volunteer">Volunteer</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
 
                   <div>
-                    <Label htmlFor="description">Job Description</Label>
+                    <Label htmlFor="sector">Career Category/Sector</Label>
+                    <Select
+                      value={jobForm.sector}
+                      onValueChange={(value) => setJobForm({ ...jobForm, sector: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select career category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Health">Health</SelectItem>
+                        <SelectItem value="Education">Education</SelectItem>
+                        <SelectItem value="Protection">Protection</SelectItem>
+                        <SelectItem value="Food Security">Food Security</SelectItem>
+                        <SelectItem value="Water, Sanitation and Hygiene">Water, Sanitation and Hygiene</SelectItem>
+                        <SelectItem value="Shelter">Shelter</SelectItem>
+                        <SelectItem value="Logistics">Logistics</SelectItem>
+                        <SelectItem value="Emergency Response">Emergency Response</SelectItem>
+                        <SelectItem value="Management">Management</SelectItem>
+                        <SelectItem value="Administration">Administration</SelectItem>
+                        <SelectItem value="Finance">Finance</SelectItem>
+                        <SelectItem value="Human Resources">Human Resources</SelectItem>
+                        <SelectItem value="Information Management">Information Management</SelectItem>
+                        <SelectItem value="Coordination">Coordination</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="description">Job Description *</Label>
                     <Textarea
                       id="description"
                       value={jobForm.description}
                       onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })}
-                      placeholder="Describe the role, responsibilities, and requirements..."
+                      placeholder="Provide a comprehensive job description including background, context, and purpose of the role..."
                       rows={6}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="responsibilities">Key Responsibilities</Label>
+                    <Textarea
+                      id="responsibilities"
+                      value={jobForm.responsibilities}
+                      onChange={(e) => setJobForm({ ...jobForm, responsibilities: e.target.value })}
+                      placeholder="List the main duties and responsibilities for this position..."
+                      rows={4}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="qualifications">Qualifications & Requirements</Label>
+                    <Textarea
+                      id="qualifications"
+                      value={jobForm.qualifications}
+                      onChange={(e) => setJobForm({ ...jobForm, qualifications: e.target.value })}
+                      placeholder="List required education, skills, certifications, and other qualifications..."
+                      rows={4}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="howToApply">How to Apply *</Label>
+                    <Textarea
+                      id="howToApply"
+                      value={jobForm.howToApply}
+                      onChange={(e) => setJobForm({ ...jobForm, howToApply: e.target.value })}
+                      placeholder="Please provide detailed application instructions including required documents, email address, and any specific requirements..."
+                      rows={3}
+                      required
                     />
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="applicationEmail">Application Email</Label>
+                      <Label htmlFor="deadline">Application Deadline</Label>
                       <Input
-                        id="applicationEmail"
-                        type="email"
-                        value={jobForm.applicationEmail}
-                        onChange={(e) => setJobForm({ ...jobForm, applicationEmail: e.target.value })}
-                        placeholder="jobs@organization.org"
+                        id="deadline"
+                        type="date"
+                        value={jobForm.deadline}
+                        onChange={(e) => setJobForm({ ...jobForm, deadline: e.target.value })}
                       />
                     </div>
                     <div>
-                      <Label htmlFor="closingDate">Closing Date</Label>
+                      <Label htmlFor="url">External Job URL (Optional)</Label>
                       <Input
-                        id="closingDate"
-                        type="date"
-                        value={jobForm.closingDate}
-                        onChange={(e) => setJobForm({ ...jobForm, closingDate: e.target.value })}
+                        id="url"
+                        type="url"
+                        value={jobForm.url}
+                        onChange={(e) => setJobForm({ ...jobForm, url: e.target.value })}
+                        placeholder="https://organization.org/careers/job-123"
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="applicationInstructions">Application Instructions</Label>
-                    <Textarea
-                      id="applicationInstructions"
-                      value={jobForm.applicationInstructions}
-                      onChange={(e) => setJobForm({ ...jobForm, applicationInstructions: e.target.value })}
-                      placeholder="How to apply for this position..."
-                      rows={3}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="externalUrl">External URL (Optional)</Label>
-                    <Input
-                      id="externalUrl"
-                      type="url"
-                      value={jobForm.externalUrl}
-                      onChange={(e) => setJobForm({ ...jobForm, externalUrl: e.target.value })}
-                      placeholder="https://organization.org/careers/job-id"
-                    />
                   </div>
 
                   <Button 
