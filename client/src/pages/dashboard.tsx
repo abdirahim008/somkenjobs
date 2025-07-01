@@ -49,6 +49,16 @@ export default function Dashboard() {
     externalUrl: ""
   });
 
+  // Update organization field when user data loads
+  useEffect(() => {
+    if (user && (user as any)?.companyName) {
+      setJobForm(prev => ({
+        ...prev,
+        organization: (user as any).companyName
+      }));
+    }
+  }, [user]);
+
   // Get pending users (for super admin)
   const { data: pendingUsers = [] } = useQuery({
     queryKey: ["/api/admin/pending-users"],
@@ -244,6 +254,9 @@ export default function Dashboard() {
                         onChange={(e) => setJobForm({ ...jobForm, organization: e.target.value })}
                         placeholder="e.g. UNICEF"
                         required
+                        readOnly={!isAdmin}
+                        className={!isAdmin ? "bg-gray-100" : ""}
+                        title={!isAdmin ? "Organization is auto-filled from your profile" : ""}
                       />
                     </div>
                   </div>
