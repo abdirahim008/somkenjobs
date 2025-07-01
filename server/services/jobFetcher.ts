@@ -88,6 +88,7 @@ export class JobFetcher {
               "source.type",
               "country.name",
               "country.iso3",
+              "country.shortname",
               "url",
               "url_alias",
               "theme.name",
@@ -123,8 +124,29 @@ export class JobFetcher {
           const existingJob = await storage.getJobByExternalId(`reliefweb-${rwJob.id}`);
           if (existingJob) continue; // Skip if already exists
 
-          // Extract location with better fallbacks
-          const location = rwJob.fields.country?.[0]?.name || country;
+          // Extract location with enhanced city detection
+          const countryName = rwJob.fields.country?.[0]?.name || country;
+          let location = countryName;
+          
+          // Try to extract city from job title and description
+          const titleAndDesc = `${rwJob.fields.title} ${rwJob.fields.body || ''}`.toLowerCase();
+          
+          // Common cities in Kenya and Somalia
+          const kenyanCities = ['nairobi', 'mombasa', 'kisumu', 'nakuru', 'eldoret', 'thika', 'malindi', 'kitale', 'garissa', 'isiolo'];
+          const somaliCities = ['mogadishu', 'hargeisa', 'bosaso', 'kismayo', 'galkayo', 'baidoa', 'berbera', 'burao'];
+          
+          const allCities = [...kenyanCities, ...somaliCities];
+          
+          // Check if any city is mentioned in the job content
+          for (const city of allCities) {
+            if (titleAndDesc.includes(city)) {
+              // Capitalize city name properly
+              const properCityName = city.charAt(0).toUpperCase() + city.slice(1);
+              location = `${properCityName}, ${countryName}`;
+              console.log(`Enhanced location detected: ${location} from job content`);
+              break;
+            }
+          }
           
           // Extract sector from theme first, then career categories 
           const sector = rwJob.fields.theme?.[0]?.name || 

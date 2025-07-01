@@ -153,6 +153,7 @@ The application follows a modern full-stack architecture with clear separation b
 - July 1, 2025: Optimized ReliefWeb API usage by reducing daily job fetch limit from 50 Kenya jobs and 18 Somalia jobs to 10 jobs per country to minimize API load while maintaining fresh job availability
 - July 1, 2025: Enhanced job fetching schedule from once daily at 6 AM to twice daily at 8 AM and 7 PM for more frequent job updates and better coverage of new postings throughout the day
 - July 1, 2025: Updated UI design to remove gradient background and apply solid LinkedIn blue (#0077B5) to hero section and search button for more professional, consistent branding
+- July 1, 2025: Enhanced location display to show city and country when possible (e.g. "Nairobi, Kenya" instead of just "Kenya") by intelligently parsing job titles and descriptions for major cities in Kenya and Somalia
 
 ## User Preferences
 
