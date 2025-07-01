@@ -3,10 +3,13 @@ import { db } from "./db";
 import { eq, desc, and, or, gte, ilike } from "drizzle-orm";
 
 export interface IStorage {
-  // User methods (keep for future use)
+  // User authentication methods
   getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
+  getAllPendingUsers(): Promise<User[]>;
+  approveUser(id: number, approvedBy: string): Promise<User | undefined>;
   
   // Job methods
   getAllJobs(): Promise<Job[]>;
@@ -230,8 +233,8 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
     return user || undefined;
   }
 
@@ -241,6 +244,37 @@ export class DatabaseStorage implements IStorage {
       .values(insertUser)
       .returning();
     return user;
+  }
+
+  async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
+  }
+
+  async getAllPendingUsers(): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(eq(users.isApproved, false))
+      .orderBy(desc(users.createdAt));
+  }
+
+  async approveUser(id: number, approvedBy: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({
+        isApproved: true,
+        approvedAt: new Date(),
+        approvedBy,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
   }
 
   async getAllJobs(): Promise<Job[]> {
