@@ -5,10 +5,15 @@ import { jobFetcher } from "./services/jobFetcher";
 import { seedDatabase } from "./seed";
 import { z } from "zod";
 
+// Helper function to transform string or string[] to string[]
+const arrayTransform = z.union([z.string(), z.array(z.string())]).transform((val) => 
+  Array.isArray(val) ? val : [val]
+);
+
 const jobFiltersSchema = z.object({
-  country: z.array(z.string()).optional(),
-  organization: z.array(z.string()).optional(),
-  sector: z.array(z.string()).optional(),
+  country: arrayTransform.optional(),
+  organization: arrayTransform.optional(),
+  sector: arrayTransform.optional(),
   datePosted: z.string().optional(),
   search: z.string().optional(),
 });
@@ -24,7 +29,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/jobs", async (req, res) => {
     try {
       const filters = jobFiltersSchema.parse(req.query);
-      console.log("API received filters:", filters);
       
       let jobs;
       

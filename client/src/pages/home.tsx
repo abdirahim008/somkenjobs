@@ -49,12 +49,7 @@ export default function Home() {
   });
 
   const handleFilterChange = (newFilters: Partial<Filters>) => {
-    console.log("Filter change:", newFilters);
-    setFilters(prev => {
-      const updated = { ...prev, ...newFilters };
-      console.log("Updated filters:", updated);
-      return updated;
-    });
+    setFilters(prev => ({ ...prev, ...newFilters }));
   };
 
   const handleSearch = (searchTerm: string) => {

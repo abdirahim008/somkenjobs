@@ -58,8 +58,6 @@ export const getQueryFn: <T>(options: {
       }
     }
     
-    console.log("Query URL:", url);
-    
     const res = await fetch(url, {
       credentials: "include",
     });
