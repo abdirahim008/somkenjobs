@@ -77,13 +77,13 @@ export default function Home() {
 
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground py-12">
+      <section className="bg-[#0077B5] text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Find Humanitarian Jobs in East Africa
             </h2>
-            <p className="text-primary-foreground/90 text-lg max-w-2xl mx-auto">
+            <p className="text-white/90 text-lg max-w-2xl mx-auto">
               Discover meaningful career opportunities with leading humanitarian organizations in Kenya and Somalia
             </p>
           </div>
@@ -94,15 +94,15 @@ export default function Home() {
           <div className="flex justify-center space-x-8 mt-8 text-sm">
             <div className="text-center">
               <div className="text-2xl font-bold">{data?.stats.totalJobs || 0}</div>
-              <div className="text-primary-foreground/80">Active Jobs</div>
+              <div className="text-white/80">Active Jobs</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold">{data?.stats.organizations || 0}</div>
-              <div className="text-primary-foreground/80">Organizations</div>
+              <div className="text-white/80">Organizations</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold">{data?.stats.newToday || 0}</div>
-              <div className="text-primary-foreground/80">New Today</div>
+              <div className="text-white/80">New Today</div>
             </div>
           </div>
         </div>
