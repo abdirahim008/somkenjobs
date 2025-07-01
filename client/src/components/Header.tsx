@@ -61,8 +61,10 @@ export default function Header() {
               ))}
             </nav>
 
-            {/* User Menu */}
-            <UserMenu />
+            {/* User Menu - Hidden on mobile since auth options are in mobile menu */}
+            <div className="hidden md:block">
+              <UserMenu />
+            </div>
           </div>
 
           {/* Mobile Menu */}
