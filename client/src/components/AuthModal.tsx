@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,12 +14,25 @@ import { insertUserSchema, loginUserSchema, type InsertUser, type LoginUser } fr
 import { UserPlus, LogIn } from "lucide-react";
 
 interface AuthModalProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  defaultTab?: "login" | "register";
 }
 
-export default function AuthModal({ children }: AuthModalProps) {
-  const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("login");
+export default function AuthModal({ children, open: controlledOpen, onOpenChange, defaultTab = "login" }: AuthModalProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState(defaultTab);
+  
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
+
+  // Update active tab when defaultTab changes and modal opens
+  useEffect(() => {
+    if (open) {
+      setActiveTab(defaultTab);
+    }
+  }, [open, defaultTab]);
   const { login, register } = useAuth();
   const { toast } = useToast();
 
@@ -81,15 +94,17 @@ export default function AuthModal({ children }: AuthModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
+      {children && (
+        <DialogTrigger asChild>
+          {children}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Access Your Account</DialogTitle>
         </DialogHeader>
         
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "login" | "register")}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="register">Register</TabsTrigger>

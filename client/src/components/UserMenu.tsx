@@ -17,18 +17,46 @@ import type { User as UserType } from "@shared/schema";
 export default function UserMenu() {
   const { user, isAuthenticated, logout } = useAuth();
   const typedUser = user as UserType | undefined;
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authTab, setAuthTab] = useState<"login" | "register">("login");
 
   if (!isAuthenticated) {
     return (
-      <AuthModal>
-        <Button 
-          variant="outline" 
-          className="border-blue-600 text-blue-600 hover:bg-blue-50"
-        >
-          <User className="mr-2 h-4 w-4" />
-          Login / Register
-        </Button>
-      </AuthModal>
+      <>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button 
+              variant="outline" 
+              className="border-blue-600 text-blue-600 hover:bg-blue-50"
+            >
+              <User className="mr-2 h-4 w-4" />
+              Login / Register
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-48" align="end">
+            <DropdownMenuItem onClick={() => {
+              setAuthTab("login");
+              setAuthModalOpen(true);
+            }}>
+              <User className="mr-2 h-4 w-4" />
+              <span>Login</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              setAuthTab("register");
+              setAuthModalOpen(true);
+            }}>
+              <User className="mr-2 h-4 w-4" />
+              <span>Register</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        
+        <AuthModal 
+          open={authModalOpen} 
+          onOpenChange={setAuthModalOpen}
+          defaultTab={authTab}
+        />
+      </>
     );
   }
 
