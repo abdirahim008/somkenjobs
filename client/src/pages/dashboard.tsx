@@ -568,39 +568,65 @@ export default function Dashboard() {
       
       // Job details table
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(12);
+      pdf.setFontSize(13);
       pdf.text('Job Posting Details:', margin, currentY);
-      currentY += 10;
+      currentY += 12;
+      
+      // Calculate table dimensions (reduced width and centered)
+      const tableWidth = Math.min(pageWidth - 2 * margin, 140); // Reduced from full width
+      const tableStartX = (pageWidth - tableWidth) / 2; // Center the table
+      const colWidth1 = 20; // # column
+      const colWidth2 = tableWidth - colWidth1 - 40; // Job Title column
+      const colWidth3 = 40; // Price column
+      
+      // Outer table border
+      pdf.setDrawColor(0, 0, 0);
+      pdf.setLineWidth(0.5);
+      pdf.rect(tableStartX, currentY - 3, tableWidth, 12 + (selectedJobs.length * 12), 'S');
       
       // Table header
       pdf.setFillColor(248, 249, 250);
-      pdf.rect(margin, currentY - 3, pageWidth - 2 * margin, 12, 'F');
-      pdf.setFontSize(9);
+      pdf.rect(tableStartX, currentY - 3, tableWidth, 12, 'FD');
+      pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('#', margin + 2, currentY + 4);
-      pdf.text('Job Title', margin + 15, currentY + 4);
-      pdf.text('Price', pageWidth - margin - 15, currentY + 4, { align: 'right' });
+      pdf.text('#', tableStartX + 2, currentY + 5);
+      pdf.text('Job Title', tableStartX + colWidth1 + 2, currentY + 5);
+      pdf.text('Price', tableStartX + tableWidth - 5, currentY + 5, { align: 'right' });
+      
+      // Header column separators
+      pdf.line(tableStartX + colWidth1, currentY - 3, tableStartX + colWidth1, currentY + 9);
+      pdf.line(tableStartX + colWidth1 + colWidth2, currentY - 3, tableStartX + colWidth1 + colWidth2, currentY + 9);
+      
       currentY += 12;
       
       // Table rows
       pdf.setFont('helvetica', 'normal');
       selectedJobs.forEach((job, index) => {
-        // Keep all content on single page for simplicity
-        
+        // Alternating row colors
         if (index % 2 === 0) {
           pdf.setFillColor(250, 250, 250);
-          pdf.rect(margin, currentY - 3, pageWidth - 2 * margin, 10, 'F');
+          pdf.rect(tableStartX, currentY - 3, tableWidth, 12, 'F');
         }
         
-        const jobTitle = pdf.splitTextToSize(job.title, 130); // Increased width since no organization column
+        // Row borders
+        pdf.setDrawColor(200, 200, 200);
+        pdf.setLineWidth(0.3);
+        pdf.line(tableStartX, currentY + 9, tableStartX + tableWidth, currentY + 9);
+        
+        // Column separators
+        pdf.line(tableStartX + colWidth1, currentY - 3, tableStartX + colWidth1, currentY + 9);
+        pdf.line(tableStartX + colWidth1 + colWidth2, currentY - 3, tableStartX + colWidth1 + colWidth2, currentY + 9);
+        
+        const jobTitle = pdf.splitTextToSize(job.title, colWidth2 - 4);
         
         // Row number
-        pdf.text(`${index + 1}`, margin + 2, currentY + 3);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text(`${index + 1}`, tableStartX + 2, currentY + 5);
         // Job title
-        pdf.text(jobTitle[0] + (jobTitle.length > 1 ? '...' : ''), margin + 15, currentY + 3);
+        pdf.text(jobTitle[0] + (jobTitle.length > 1 ? '...' : ''), tableStartX + colWidth1 + 2, currentY + 5);
         // Price
-        pdf.text(`$${invoice.pricePerJob}`, pageWidth - margin - 5, currentY + 3, { align: 'right' });
-        currentY += 10;
+        pdf.text(`$${invoice.pricePerJob}`, tableStartX + tableWidth - 5, currentY + 5, { align: 'right' });
+        currentY += 12;
       });
       
       // Add spacing before totals
