@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, FileText, CheckCircle, ArrowLeft, Edit, Trash2, Eye, Receipt, Download, DollarSign } from "lucide-react";
+import { Plus, Users, FileText, CheckCircle, ArrowLeft, Edit, Trash2, Eye, Receipt, Download, DollarSign, Pen } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,6 +35,9 @@ export default function Dashboard() {
       return;
     }
   }, [user, isLoading, toast]);
+
+  // Tab management state
+  const [activeTab, setActiveTab] = useState("my-jobs");
 
   // Job creation form state
   const [jobForm, setJobForm] = useState({
@@ -787,7 +790,7 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <Tabs defaultValue="my-jobs" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'}`}>
             <TabsTrigger value="my-jobs" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
@@ -1089,7 +1092,7 @@ export default function Dashboard() {
                         </Button>
                       )}
                       <Button 
-                        onClick={() => document.querySelector('[data-state="active"][value="create-job"]')?.click()}
+                        onClick={() => setActiveTab("create-job")}
                         className="bg-[#0077B5] hover:bg-[#005582]"
                         size="sm"
                       >
@@ -1111,7 +1114,7 @@ export default function Dashboard() {
                     <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600 mb-4">You haven't posted any jobs yet</p>
                     <Button 
-                      onClick={() => document.querySelector('[data-state="active"][value="create-job"]')?.click()}
+                      onClick={() => setActiveTab("create-job")}
                       className="bg-[#0077B5] hover:bg-[#005582]"
                     >
                       <Plus className="h-4 w-4 mr-2" />
@@ -1182,12 +1185,11 @@ export default function Dashboard() {
                                 url: job.url || ''
                               });
                               // Switch to create-job tab
-                              const createJobTab = document.querySelector('[value="create-job"]') as HTMLElement;
-                              if (createJobTab) createJobTab.click();
+                              setActiveTab("create-job");
                             }}
                             className="text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white"
                           >
-                            <Edit className="h-4 w-4" />
+                            <Pen className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
