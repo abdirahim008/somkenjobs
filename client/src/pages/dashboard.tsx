@@ -1185,6 +1185,236 @@ export default function Dashboard() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="invoices">
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Invoice Management</h2>
+                <Button
+                  onClick={() => {
+                    setShowInvoiceForm(true);
+                    setEditingInvoice(null);
+                    setInvoiceForm({
+                      title: "",
+                      description: "",
+                      pricePerJob: "",
+                      selectedJobIds: [],
+                    });
+                  }}
+                  className="bg-[#0077B5] hover:bg-[#005582]"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Invoice
+                </Button>
+              </div>
+
+              {showInvoiceForm && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>{editingInvoice ? "Edit Invoice" : "Create New Invoice"}</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setShowInvoiceForm(false);
+                          setEditingInvoice(null);
+                        }}
+                      >
+                        <ArrowLeft className="h-4 w-4 mr-1" />
+                        Cancel
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleInvoiceSubmit} className="space-y-6">
+                      <div>
+                        <Label htmlFor="invoiceTitle">Invoice Title *</Label>
+                        <Input
+                          id="invoiceTitle"
+                          value={invoiceForm.title}
+                          onChange={(e) => setInvoiceForm({ ...invoiceForm, title: e.target.value })}
+                          placeholder="e.g. Job Posting Services - March 2025"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="invoiceDescription">Description</Label>
+                        <Textarea
+                          id="invoiceDescription"
+                          value={invoiceForm.description}
+                          onChange={(e) => setInvoiceForm({ ...invoiceForm, description: e.target.value })}
+                          placeholder="Brief description of services provided..."
+                          rows={3}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="pricePerJob">Price per Job (USD) *</Label>
+                        <Input
+                          id="pricePerJob"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={invoiceForm.pricePerJob}
+                          onChange={(e) => setInvoiceForm({ ...invoiceForm, pricePerJob: e.target.value })}
+                          placeholder="50.00"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <Label>Select Jobs to Include *</Label>
+                        <div className="mt-2 space-y-2 max-h-60 overflow-y-auto border rounded-md p-4">
+                          {userJobsLoading ? (
+                            <p className="text-center text-gray-500">Loading your jobs...</p>
+                          ) : (userJobs as any[]).length === 0 ? (
+                            <p className="text-center text-gray-500">No jobs available to invoice</p>
+                          ) : (
+                            (userJobs as any[]).map((job: any) => (
+                              <div key={job.id} className="flex items-center space-x-3">
+                                <input
+                                  type="checkbox"
+                                  id={`job-${job.id}`}
+                                  checked={invoiceForm.selectedJobIds.includes(job.id)}
+                                  onChange={() => toggleJobSelection(job.id)}
+                                  className="h-4 w-4 text-[#0077B5] focus:ring-[#0077B5] border-gray-300 rounded"
+                                />
+                                <label htmlFor={`job-${job.id}`} className="flex-1 text-sm">
+                                  <div className="font-medium">{job.title}</div>
+                                  <div className="text-gray-500">{job.organization} • {job.location}</div>
+                                </label>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                        {invoiceForm.selectedJobIds.length > 0 && (
+                          <p className="text-sm text-gray-600 mt-2">
+                            Selected: {invoiceForm.selectedJobIds.length} job(s) 
+                            {invoiceForm.pricePerJob && ` • Total: $${(invoiceForm.selectedJobIds.length * parseFloat(invoiceForm.pricePerJob || '0')).toFixed(2)}`}
+                          </p>
+                        )}
+                      </div>
+
+                      <Button 
+                        type="submit" 
+                        className="w-full bg-[#0077B5] hover:bg-[#005582]"
+                        disabled={createInvoiceMutation.isPending || updateInvoiceMutation.isPending}
+                      >
+                        {editingInvoice 
+                          ? updateInvoiceMutation.isPending ? "Updating..." : "Update Invoice"
+                          : createInvoiceMutation.isPending ? "Creating..." : "Create Invoice"
+                        }
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Receipt className="h-5 w-5" />
+                    Your Invoices
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {invoicesLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0077B5] mx-auto"></div>
+                      <p className="text-gray-600 mt-2">Loading your invoices...</p>
+                    </div>
+                  ) : (userInvoices as any[]).length === 0 ? (
+                    <div className="text-center py-8">
+                      <Receipt className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 mb-4">No invoices created yet</p>
+                      <Button 
+                        onClick={() => {
+                          setShowInvoiceForm(true);
+                          setEditingInvoice(null);
+                        }}
+                        className="bg-[#0077B5] hover:bg-[#005582]"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Your First Invoice
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {(userInvoices as any[]).map((invoice: any) => (
+                        <div key={invoice.id} className="border rounded-lg p-6 hover:shadow-lg transition-shadow">
+                          <div className="flex justify-between items-start mb-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <h3 className="text-lg font-semibold">{invoice.title}</h3>
+                                <Badge className={
+                                  invoice.status === 'draft' ? 'bg-gray-100 text-gray-800' :
+                                  invoice.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                                  'bg-green-100 text-green-800'
+                                }>
+                                  {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                                </Badge>
+                              </div>
+                              <div className="text-sm text-gray-600 space-y-1">
+                                <p><strong>Invoice #:</strong> {invoice.invoiceNumber}</p>
+                                <p><strong>Created:</strong> {new Date(invoice.createdAt).toLocaleDateString()}</p>
+                                <p><strong>Jobs:</strong> {invoice.totalJobs} job(s)</p>
+                                <p><strong>Total Amount:</strong> ${invoice.totalAmount}</p>
+                              </div>
+                              {invoice.description && (
+                                <p className="text-sm text-gray-600 mt-2">{invoice.description}</p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => generatePDF(invoice)}
+                                className="text-[#0077B5] border-[#0077B5] hover:bg-[#0077B5] hover:text-white"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setEditingInvoice(invoice);
+                                  setInvoiceForm({
+                                    title: invoice.title,
+                                    description: invoice.description || "",
+                                    pricePerJob: invoice.pricePerJob,
+                                    selectedJobIds: JSON.parse(invoice.selectedJobIds || '[]'),
+                                  });
+                                  setShowInvoiceForm(true);
+                                }}
+                                className="text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (confirm('Are you sure you want to delete this invoice?')) {
+                                    deleteInvoiceMutation.mutate(invoice.id);
+                                  }
+                                }}
+                                disabled={deleteInvoiceMutation.isPending}
+                                className="text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
           {isAdmin && (
             <TabsContent value="manage-users">
               <Card>
