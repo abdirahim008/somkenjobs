@@ -1104,13 +1104,15 @@ export default function Dashboard() {
                   )}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                {userJobsLoading ? (
+              {userJobsLoading ? (
+                <CardContent>
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0077B5] mx-auto"></div>
                     <p className="text-gray-600 mt-2">Loading your jobs...</p>
                   </div>
-                ) : userJobs.length === 0 ? (
+                </CardContent>
+              ) : userJobs.length === 0 ? (
+                <CardContent>
                   <div className="text-center py-8">
                     <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600 mb-4">You haven't posted any jobs yet</p>
@@ -1122,84 +1124,84 @@ export default function Dashboard() {
                       Create Your First Job
                     </Button>
                   </div>
-                ) : (
-                  <div className="border rounded-lg bg-white shadow-sm">
-                    {/* Select All Header */}
-                    <div className="flex items-center gap-3 p-4 bg-gray-50 border-b">
-                      <input
-                        type="checkbox"
-                        checked={selectedJobs.length === userJobs.length && userJobs.length > 0}
-                        onChange={selectAllJobs}
-                        className="h-4 w-4 text-[#0077B5] focus:ring-[#0077B5] border-gray-300 rounded"
-                      />
-                      <span className="text-sm font-medium text-gray-700">
-                        Select All ({userJobs.length} jobs)
-                      </span>
-                    </div>
-
-                    {/* Job List - Simple list inside single card */}
-                    <div className="divide-y divide-gray-100">
-                      {userJobs.map((job: any, index: number) => (
-                        <div key={job.id} className="flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors">
-                          <input
-                            type="checkbox"
-                            checked={selectedJobs.includes(job.id)}
-                            onChange={() => toggleJobForDeletion(job.id)}
-                            className="h-4 w-4 text-[#0077B5] focus:ring-[#0077B5] border-gray-300 rounded"
-                          />
-                          
-                          {/* Row number */}
-                          <div className="w-8 text-sm font-medium text-gray-500">
-                            {index + 1}.
-                          </div>
-                          
-                          {/* Job title only */}
-                          <div className="flex-1">
-                            <h3 className="font-medium text-gray-900">{job.title}</h3>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => window.open(`/jobs/${job.id}`, '_blank')}
-                              className="text-gray-500 hover:text-[#0077B5] hover:bg-gray-100 p-1"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                setEditingJob(job);
-                                setJobForm({
-                                  title: job.title,
-                                  organization: job.organization,
-                                  location: job.location,
-                                  country: job.country,
-                                  sector: job.sector || '',
-                                  description: job.description,
-                                  howToApply: job.howToApply || '',
-                                  experience: job.experience || '',
-                                  qualifications: job.qualifications || '',
-                                  responsibilities: job.responsibilities || '',
-                                  deadline: job.deadline ? new Date(job.deadline).toISOString().split('T')[0] : '',
-                                  url: job.url || ''
-                                });
-                                // Switch to create-job tab
-                                setActiveTab("create-job");
-                              }}
-                              className="text-gray-500 hover:text-[#0077B5] hover:bg-gray-100 p-1"
-                            >
-                              <Pen className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                </CardContent>
+              ) : (
+                <>
+                  {/* Select All Header */}
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 border-b">
+                    <input
+                      type="checkbox"
+                      checked={selectedJobs.length === userJobs.length && userJobs.length > 0}
+                      onChange={selectAllJobs}
+                      className="h-4 w-4 text-[#0077B5] focus:ring-[#0077B5] border-gray-300 rounded"
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      Select All ({userJobs.length} jobs)
+                    </span>
                   </div>
-                )}
-              </CardContent>
+
+                  {/* Job List - Simple list inside main card */}
+                  <div className="divide-y divide-gray-100">
+                    {userJobs.map((job: any, index: number) => (
+                      <div key={job.id} className="flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={selectedJobs.includes(job.id)}
+                          onChange={() => toggleJobForDeletion(job.id)}
+                          className="h-4 w-4 text-[#0077B5] focus:ring-[#0077B5] border-gray-300 rounded"
+                        />
+                        
+                        {/* Row number */}
+                        <div className="w-8 text-sm font-medium text-gray-500">
+                          {index + 1}.
+                        </div>
+                        
+                        {/* Job title only */}
+                        <div className="flex-1">
+                          <h3 className="font-medium text-gray-900">{job.title}</h3>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => window.open(`/jobs/${job.id}`, '_blank')}
+                            className="text-gray-500 hover:text-[#0077B5] hover:bg-gray-100 p-1"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setEditingJob(job);
+                              setJobForm({
+                                title: job.title,
+                                organization: job.organization,
+                                location: job.location,
+                                country: job.country,
+                                sector: job.sector || '',
+                                description: job.description,
+                                howToApply: job.howToApply || '',
+                                experience: job.experience || '',
+                                qualifications: job.qualifications || '',
+                                responsibilities: job.responsibilities || '',
+                                deadline: job.deadline ? new Date(job.deadline).toISOString().split('T')[0] : '',
+                                url: job.url || ''
+                              });
+                              // Switch to create-job tab
+                              setActiveTab("create-job");
+                            }}
+                            className="text-gray-500 hover:text-[#0077B5] hover:bg-gray-100 p-1"
+                          >
+                            <Pen className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </Card>
           </TabsContent>
 
