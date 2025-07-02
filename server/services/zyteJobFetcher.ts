@@ -127,7 +127,8 @@ export class ZyteJobFetcher {
 
       if (response.jobs) {
         const country = this.determineCountryFromLocation(location);
-        return response.jobs.map(job => this.convertZyteJobToOurFormat(job, country));
+        const jobsData = response.jobs.map(job => this.convertZyteJobToOurFormat(job, country));
+        return await this.saveJobsWithDeduplication(jobsData);
       }
       
       return [];
@@ -206,6 +207,30 @@ export class ZyteJobFetcher {
     return mockResponse;
   }
 
+  private async makeZyteJobDetailRequest(endpoint: string, params: any): Promise<ZyteJobDetailResponse> {
+    // Simulate Zyte API response structure for single job details
+    // In production, this would make actual HTTP requests to Zyte API
+    const mockResponse: ZyteJobDetailResponse = {
+      status: 'success',
+      job: {
+        id: 'mock_id',
+        title: 'Mock Job Title',
+        company: 'Mock Company',
+        location: 'Mock Location',
+        description: 'Mock job description',
+        datePosted: new Date().toISOString(),
+        applicationUrl: 'https://example.com/apply',
+        sourceUrl: 'https://example.com/job'
+      }
+    };
+
+    console.log(`[Mock] Zyte Job Detail API request to ${endpoint} with params:`, params);
+    
+    // Return mock response for now
+    // TODO: Replace with actual Zyte API integration
+    return mockResponse;
+  }
+
   private convertZyteJobToOurFormat(zyteJob: ZyteJobResponse, country: string): InsertJob {
     // Enhance location with city detection
     const enhancedLocation = this.enhanceLocationData(zyteJob.location, country);
@@ -220,15 +245,17 @@ export class ZyteJobFetcher {
       title: zyteJob.title,
       organization: zyteJob.company || "Company Name Not Available",
       location: enhancedLocation,
+      country: country === 'kenya' ? 'Kenya' : 'Somalia',
       description: cleanDescription,
-      fullDescription: zyteJob.description,
+      url: zyteJob.applicationUrl,
       datePosted: new Date(zyteJob.datePosted),
       deadline: zyteJob.deadline ? new Date(zyteJob.deadline) : null,
       source: "zyte",
       externalId: `zyte_${zyteJob.id}`,
       sector: sector,
-      applicationInstructions: `Apply online: ${zyteJob.applicationUrl}`,
-      sourceUrl: zyteJob.sourceUrl
+      howToApply: `Apply online: ${zyteJob.applicationUrl}`,
+      bodyHtml: zyteJob.description,
+      createdBy: null // Scraped jobs don't have a creator
     };
   }
 

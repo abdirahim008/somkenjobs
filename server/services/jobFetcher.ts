@@ -283,14 +283,37 @@ export class JobFetcher {
     }
 
     this.isRunning = true;
-    console.log("Fetching comprehensive jobs from ReliefWeb...");
+    console.log("Fetching comprehensive jobs from ReliefWeb and Zyte...");
     try {
+      // Fetch from ReliefWeb (humanitarian jobs)
       await this.fetchReliefWebJobs();
+      
+      // Fetch from Zyte (local job boards) - currently mock implementation
+      await this.fetchZyteJobs();
+      
       console.log("Job fetch completed successfully");
     } catch (error) {
       console.error("Error in job fetch:", error);
     } finally {
       this.isRunning = false;
+    }
+  }
+
+  private async fetchZyteJobs(): Promise<void> {
+    try {
+      console.log("Fetching jobs from Zyte API...");
+      
+      // Fetch jobs for Kenya and Somalia using Zyte
+      const [kenyaJobs, somaliaJobs] = await Promise.all([
+        zyteJobFetcher.fetchJobsForCountry('kenya', 15), // 15 jobs per country
+        zyteJobFetcher.fetchJobsForCountry('somalia', 5)  // 5 jobs for Somalia
+      ]);
+      
+      const totalZyteJobs = kenyaJobs.length + somaliaJobs.length;
+      console.log(`Fetched ${totalZyteJobs} jobs from Zyte (${kenyaJobs.length} Kenya, ${somaliaJobs.length} Somalia)`);
+      
+    } catch (error) {
+      console.error("Error fetching jobs from Zyte:", error);
     }
   }
 

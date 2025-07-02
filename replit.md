@@ -159,6 +159,8 @@ The application follows a modern full-stack architecture with clear separation b
 - July 1, 2025: Fixed authentication token handling in dashboard API calls, resolving "Invalid token" errors for user approval functionality - dashboard now successfully authenticates with backend using correct 'auth_token' key from localStorage
 - July 1, 2025: Enhanced job posting form to match ReliefWeb format with hierarchical country → city selection, ReliefWeb-style experience levels (0-2 years, 3-5 years, etc.), comprehensive field sections, and organization auto-population for recruiters
 - July 1, 2025: Enhanced "How to Apply" section with automatic URL detection and clickable link formatting - URLs are now properly converted to clickable blue links that open in new tabs, with safeguards against nested link creation and proper email address preservation
+- July 2, 2025: Applied comprehensive desktop layout optimizations with better content width constraints (max-w-5xl container, max-w-4xl job listings area, increased horizontal padding, job card max-width constraints of 800-850px on large screens) to prevent over-stretching while maintaining full mobile responsiveness
+- July 2, 2025: Completed comprehensive analysis and preliminary integration framework for Zyte.com API - created complete job extraction service architecture, integrated with existing scheduler, documented major Kenyan (BrighterMonday, Jobs.co.ke) and Somali (Jobs.so) job board targets, established cost-benefit analysis showing potential 10x job inventory increase, and prepared production-ready implementation guide requiring only API credentials to activate
 
 ## User Preferences
 
