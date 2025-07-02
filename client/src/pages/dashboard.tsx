@@ -1159,9 +1159,9 @@ export default function Dashboard() {
                         <div className="flex items-center gap-2">
                           <Button
                             size="sm"
-                            variant="outline"
+                            variant="ghost"
                             onClick={() => window.open(`/jobs/${job.id}`, '_blank')}
-                            className="text-[#0077B5] border-[#0077B5] hover:bg-[#0077B5] hover:text-white"
+                            className="text-gray-500 hover:text-[#0077B5] hover:bg-gray-100 p-1"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
