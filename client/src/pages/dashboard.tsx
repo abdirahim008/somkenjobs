@@ -574,8 +574,8 @@ export default function Dashboard() {
       pdf.rect(margin, currentY - 3, pageWidth - 2 * margin, 12, 'F');
       pdf.setFontSize(9);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('Job Title', margin + 2, currentY + 4);
-      pdf.text('Organization', margin + 70, currentY + 4);
+      pdf.text('#', margin + 2, currentY + 4);
+      pdf.text('Job Title', margin + 15, currentY + 4);
       pdf.text('Price', pageWidth - margin - 15, currentY + 4, { align: 'right' });
       currentY += 12;
       
@@ -589,11 +589,13 @@ export default function Dashboard() {
           pdf.rect(margin, currentY - 3, pageWidth - 2 * margin, 10, 'F');
         }
         
-        const jobTitle = pdf.splitTextToSize(job.title, 65);
-        const orgName = pdf.splitTextToSize(job.organization, 60);
+        const jobTitle = pdf.splitTextToSize(job.title, 130); // Increased width since no organization column
         
-        pdf.text(jobTitle[0] + (jobTitle.length > 1 ? '...' : ''), margin + 2, currentY + 3);
-        pdf.text(orgName[0] + (orgName.length > 1 ? '...' : ''), margin + 70, currentY + 3);
+        // Row number
+        pdf.text(`${index + 1}`, margin + 2, currentY + 3);
+        // Job title
+        pdf.text(jobTitle[0] + (jobTitle.length > 1 ? '...' : ''), margin + 15, currentY + 3);
+        // Price
         pdf.text(`$${invoice.pricePerJob}`, pageWidth - margin - 5, currentY + 3, { align: 'right' });
         currentY += 10;
       });
