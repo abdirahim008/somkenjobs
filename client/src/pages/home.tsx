@@ -109,7 +109,7 @@ export default function Home() {
       </section>
 
       {/* Main Content */}
-      <main className="main-container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="main-container max-w-5xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
         {/* Left sidebar layout for desktop - Updated July 1, 2025 */}
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           
@@ -126,7 +126,7 @@ export default function Home() {
           </div>
 
           {/* Job Listings */}
-          <div className="flex-1 min-w-0 order-2">
+          <div className="flex-1 min-w-0 order-2 max-w-4xl">
             {/* Results Header */}
             <div className="mb-6">
               <h2 className="text-xl font-semibold mb-4">Latest Job Opportunities</h2>

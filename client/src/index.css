@@ -139,7 +139,7 @@
 /* Better content width constraints on very large screens */
 @media (min-width: 1536px) {
   .main-container {
-    max-width: 1400px;
+    max-width: 1200px;
   }
 }
 
@@ -148,10 +148,17 @@
   max-width: 100%;
 }
 
-/* Prevent over-stretching on very wide screens */
+/* Prevent over-stretching on large screens */
+@media (min-width: 1024px) {
+  .job-card {
+    max-width: 800px; /* Constraint job cards on large screens */
+  }
+}
+
+/* More aggressive constraints on very wide screens */
 @media (min-width: 1280px) {
   .job-card {
-    max-width: none; /* Allow flex layout to control width */
+    max-width: 850px;
   }
 }
 
