@@ -1,4 +1,4 @@
-import { jobs, type Job, type InsertJob, users, type User, type InsertUser } from "@shared/schema";
+import { jobs, type Job, type InsertJob, users, type User, type InsertUser, invoices, type Invoice, type InsertInvoice } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, gte, ilike } from "drizzle-orm";
 
@@ -26,6 +26,14 @@ export interface IStorage {
     sector?: string[];
     datePosted?: string;
   }): Promise<Job[]>;
+
+  // Invoice methods
+  getAllInvoices(): Promise<Invoice[]>;
+  getInvoiceById(id: number): Promise<Invoice | undefined>;
+  getInvoicesByUserId(userId: number): Promise<Invoice[]>;
+  createInvoice(invoice: InsertInvoice): Promise<Invoice>;
+  updateInvoice(id: number, invoice: Partial<InsertInvoice>): Promise<Invoice | undefined>;
+  deleteInvoice(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -275,6 +283,31 @@ export class MemStorage implements IStorage {
       (a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime()
     );
   }
+
+  // Invoice methods (not implemented for MemStorage)
+  async getAllInvoices(): Promise<Invoice[]> {
+    return [];
+  }
+
+  async getInvoiceById(id: number): Promise<Invoice | undefined> {
+    return undefined;
+  }
+
+  async getInvoicesByUserId(userId: number): Promise<Invoice[]> {
+    return [];
+  }
+
+  async createInvoice(invoice: InsertInvoice): Promise<Invoice> {
+    throw new Error("Invoice operations not supported in MemStorage");
+  }
+
+  async updateInvoice(id: number, invoice: Partial<InsertInvoice>): Promise<Invoice | undefined> {
+    return undefined;
+  }
+
+  async deleteInvoice(id: number): Promise<boolean> {
+    return false;
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -435,6 +468,77 @@ export class DatabaseStorage implements IStorage {
       .from(jobs)
       .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
       .orderBy(desc(jobs.datePosted));
+  }
+
+  // Invoice methods
+  async getAllInvoices(): Promise<Invoice[]> {
+    return await db.select().from(invoices).orderBy(desc(invoices.createdAt));
+  }
+
+  async getInvoiceById(id: number): Promise<Invoice | undefined> {
+    const [invoice] = await db.select().from(invoices).where(eq(invoices.id, id));
+    return invoice || undefined;
+  }
+
+  async getInvoicesByUserId(userId: number): Promise<Invoice[]> {
+    return await db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.userId, userId))
+      .orderBy(desc(invoices.createdAt));
+  }
+
+  async createInvoice(insertInvoice: InsertInvoice): Promise<Invoice> {
+    // Generate unique invoice number
+    const invoiceNumber = `INV-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+    
+    // Parse selected job IDs and calculate totals
+    const selectedJobIds = JSON.parse(insertInvoice.selectedJobIds || '[]');
+    const totalJobs = selectedJobIds.length;
+    const pricePerJob = parseFloat(insertInvoice.pricePerJob);
+    const totalAmount = (totalJobs * pricePerJob).toFixed(2);
+
+    const [invoice] = await db
+      .insert(invoices)
+      .values({
+        ...insertInvoice,
+        invoiceNumber,
+        totalJobs,
+        totalAmount,
+        updatedAt: new Date(),
+      })
+      .returning();
+    return invoice;
+  }
+
+  async updateInvoice(id: number, updateData: Partial<InsertInvoice>): Promise<Invoice | undefined> {
+    // Recalculate totals if selectedJobIds or pricePerJob changed
+    let updatePayload: any = { ...updateData, updatedAt: new Date() };
+    
+    if (updateData.selectedJobIds || updateData.pricePerJob) {
+      const selectedJobIds = JSON.parse(updateData.selectedJobIds || '[]');
+      const totalJobs = selectedJobIds.length;
+      const pricePerJob = parseFloat(updateData.pricePerJob || '0');
+      const totalAmount = (totalJobs * pricePerJob).toFixed(2);
+      
+      updatePayload = {
+        ...updatePayload,
+        totalJobs,
+        totalAmount,
+      };
+    }
+
+    const [invoice] = await db
+      .update(invoices)
+      .set(updatePayload)
+      .where(eq(invoices.id, id))
+      .returning();
+    return invoice || undefined;
+  }
+
+  async deleteInvoice(id: number): Promise<boolean> {
+    const result = await db.delete(invoices).where(eq(invoices.id, id));
+    return (result.rowCount || 0) > 0;
   }
 }
 

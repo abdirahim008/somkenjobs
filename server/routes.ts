@@ -472,6 +472,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Invoice API Routes
+
+  // Get user's invoices
+  app.get("/api/invoices", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const invoices = await storage.getInvoicesByUserId(userId);
+      res.json(invoices);
+    } catch (error) {
+      console.error("Error fetching invoices:", error);
+      res.status(500).json({ message: "Failed to fetch invoices" });
+    }
+  });
+
+  // Get specific invoice
+  app.get("/api/invoices/:id", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const invoiceId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      const invoice = await storage.getInvoiceById(invoiceId);
+      
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      
+      // Check if user owns this invoice
+      if (invoice.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      res.json(invoice);
+    } catch (error) {
+      console.error("Error fetching invoice:", error);
+      res.status(500).json({ message: "Failed to fetch invoice" });
+    }
+  });
+
+  // Create new invoice
+  app.post("/api/invoices", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      
+      const invoiceData = {
+        ...req.body,
+        userId,
+        status: req.body.status || "draft"
+      };
+      
+      const invoice = await storage.createInvoice(invoiceData);
+      res.status(201).json(invoice);
+    } catch (error) {
+      console.error("Error creating invoice:", error);
+      res.status(500).json({ message: "Failed to create invoice" });
+    }
+  });
+
+  // Update invoice
+  app.put("/api/invoices/:id", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const invoiceId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      // Check if user owns this invoice
+      const existingInvoice = await storage.getInvoiceById(invoiceId);
+      if (!existingInvoice || existingInvoice.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const updatedInvoice = await storage.updateInvoice(invoiceId, req.body);
+      
+      if (!updatedInvoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      
+      res.json(updatedInvoice);
+    } catch (error) {
+      console.error("Error updating invoice:", error);
+      res.status(500).json({ message: "Failed to update invoice" });
+    }
+  });
+
+  // Delete invoice
+  app.delete("/api/invoices/:id", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const invoiceId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      // Check if user owns this invoice
+      const existingInvoice = await storage.getInvoiceById(invoiceId);
+      if (!existingInvoice || existingInvoice.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const deleted = await storage.deleteInvoice(invoiceId);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      
+      res.json({ message: "Invoice deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting invoice:", error);
+      res.status(500).json({ message: "Failed to delete invoice" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
