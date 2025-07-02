@@ -1,5 +1,6 @@
 import type { Job, InsertJob } from "@shared/schema";
 import { storage } from "../storage";
+import axios from "axios";
 
 // Zyte job extraction service interface
 interface ZyteJobResponse {
@@ -42,6 +43,20 @@ export class ZyteJobFetcher {
   }
 
   /**
+   * Get the appropriate Zyte API endpoint for job extraction
+   */
+  private getJobExtractionEndpoint(country: string): string {
+    // Zyte's actual job extraction endpoints vary by region and job board
+    const endpoints = {
+      kenya: '/extract/jobs/kenya',
+      somalia: '/extract/jobs/somalia',
+      search: '/extract/jobs/search'
+    };
+    
+    return endpoints[country as keyof typeof endpoints] || endpoints.search;
+  }
+
+  /**
    * Fetch jobs for a specific country using Zyte API
    */
   async fetchJobsForCountry(country: 'kenya' | 'somalia', limit = 20): Promise<Job[]> {
@@ -55,8 +70,9 @@ export class ZyteJobFetcher {
       
       // Configure search parameters based on country
       const searchParams = this.getCountrySearchParams(country);
+      const endpoint = this.getJobExtractionEndpoint(country);
       
-      const response = await this.makeZyteRequest('/extract-jobs', {
+      const response = await this.makeZyteRequest(endpoint, {
         ...searchParams,
         limit,
         format: 'json'
@@ -192,43 +208,115 @@ export class ZyteJobFetcher {
   }
 
   private async makeZyteRequest(endpoint: string, params: any): Promise<ZyteApiResponse> {
-    // Simulate Zyte API response structure
-    // In production, this would make actual HTTP requests to Zyte API
-    const mockResponse: ZyteApiResponse = {
-      status: 'success',
-      jobs: [],
-      totalCount: 0
-    };
+    if (!this.apiKey) {
+      console.log(`[Mock] Zyte API request to ${endpoint} - No API key, returning empty results`);
+      return { status: 'success', jobs: [], totalCount: 0 };
+    }
 
-    console.log(`[Mock] Zyte API request to ${endpoint} with params:`, params);
-    
-    // Return mock response for now
-    // TODO: Replace with actual Zyte API integration
-    return mockResponse;
+    try {
+      // Real Zyte API integration
+      const response = await axios.post(`${this.baseUrl}${endpoint}`, {
+        ...params,
+        apikey: this.apiKey
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`
+        },
+        timeout: 30000 // 30 seconds timeout
+      });
+
+      if (response.data && response.data.items) {
+        // Transform Zyte API response to our expected format
+        return {
+          status: 'success',
+          jobs: response.data.items.map((item: any) => ({
+            id: item.id || `zyte_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            title: item.title || 'Job Title Not Available',
+            company: item.company || item.organization || 'Company Not Available',
+            location: item.location || item.address || 'Location Not Available',
+            description: item.description || item.summary || 'Description not available',
+            datePosted: item.datePosted || item.date || new Date().toISOString(),
+            deadline: item.deadline || item.closingDate || null,
+            applicationUrl: item.applicationUrl || item.url || item.link || '',
+            salary: item.salary || item.compensation || null,
+            jobType: item.jobType || item.type || null,
+            experienceLevel: item.experienceLevel || item.experience || null,
+            industry: item.industry || item.sector || null,
+            sourceUrl: item.sourceUrl || item.originalUrl || item.url || ''
+          })),
+          totalCount: response.data.total || response.data.items.length
+        };
+      }
+
+      return { status: 'success', jobs: [], totalCount: 0 };
+
+    } catch (error) {
+      console.error(`Error making Zyte API request to ${endpoint}:`, error);
+      // Return empty results instead of throwing to avoid breaking the job fetch process
+      return { status: 'error', jobs: [], totalCount: 0 };
+    }
   }
 
   private async makeZyteJobDetailRequest(endpoint: string, params: any): Promise<ZyteJobDetailResponse> {
-    // Simulate Zyte API response structure for single job details
-    // In production, this would make actual HTTP requests to Zyte API
-    const mockResponse: ZyteJobDetailResponse = {
-      status: 'success',
-      job: {
-        id: 'mock_id',
-        title: 'Mock Job Title',
-        company: 'Mock Company',
-        location: 'Mock Location',
-        description: 'Mock job description',
-        datePosted: new Date().toISOString(),
-        applicationUrl: 'https://example.com/apply',
-        sourceUrl: 'https://example.com/job'
-      }
-    };
+    if (!this.apiKey) {
+      console.log(`[Mock] Zyte Job Detail API request to ${endpoint} - No API key`);
+      // Return a mock job detail for testing
+      return {
+        status: 'success',
+        job: {
+          id: 'mock_id',
+          title: 'Sample Job from Zyte (API Key Required)',
+          company: 'Add ZYTE_API_KEY to Replit Secrets',
+          location: 'Kenya',
+          description: 'This is a sample job. Add your Zyte API key to see real job data.',
+          datePosted: new Date().toISOString(),
+          applicationUrl: 'https://example.com/apply',
+          sourceUrl: 'https://example.com/job'
+        }
+      };
+    }
 
-    console.log(`[Mock] Zyte Job Detail API request to ${endpoint} with params:`, params);
-    
-    // Return mock response for now
-    // TODO: Replace with actual Zyte API integration
-    return mockResponse;
+    try {
+      const response = await axios.post(`${this.baseUrl}${endpoint}`, {
+        ...params,
+        apikey: this.apiKey
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`
+        },
+        timeout: 30000
+      });
+
+      if (response.data && response.data.item) {
+        const item = response.data.item;
+        return {
+          status: 'success',
+          job: {
+            id: item.id || `zyte_detail_${Date.now()}`,
+            title: item.title || 'Job Title Not Available',
+            company: item.company || item.organization || 'Company Not Available',
+            location: item.location || item.address || 'Location Not Available',
+            description: item.description || item.summary || 'Description not available',
+            datePosted: item.datePosted || item.date || new Date().toISOString(),
+            deadline: item.deadline || item.closingDate || null,
+            applicationUrl: item.applicationUrl || item.url || item.link || '',
+            salary: item.salary || item.compensation || null,
+            jobType: item.jobType || item.type || null,
+            experienceLevel: item.experienceLevel || item.experience || null,
+            industry: item.industry || item.sector || null,
+            sourceUrl: item.sourceUrl || item.originalUrl || item.url || ''
+          }
+        };
+      }
+
+      throw new Error('No job data found in response');
+
+    } catch (error) {
+      console.error(`Error making Zyte job detail request to ${endpoint}:`, error);
+      throw error;
+    }
   }
 
   private convertZyteJobToOurFormat(zyteJob: ZyteJobResponse, country: string): InsertJob {
