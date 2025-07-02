@@ -376,7 +376,7 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <Tabs defaultValue="create-job" className="space-y-6">
+        <Tabs defaultValue="my-jobs" className="space-y-6">
           <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'}`}>
             <TabsTrigger value="create-job" className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
