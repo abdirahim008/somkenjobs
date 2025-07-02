@@ -448,8 +448,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/jobs", authenticate, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.id;
-      console.log("Received job data:", req.body);
-      console.log("Creating job for user ID:", userId);
       
       // Generate defaults for required fields that users don't need to provide
       const jobDataWithDefaults = {

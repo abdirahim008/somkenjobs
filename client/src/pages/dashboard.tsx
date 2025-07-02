@@ -202,6 +202,7 @@ export default function Dashboard() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/user/jobs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
+      setSelectedJobs([]);
     },
     onError: (error: any) => {
       toast({
@@ -212,9 +213,45 @@ export default function Dashboard() {
     },
   });
 
+  // Bulk delete jobs mutation
+  const bulkDeleteJobsMutation = useMutation({
+    mutationFn: async (jobIds: number[]) => {
+      const promises = jobIds.map(jobId => 
+        fetch(`/api/jobs/${jobId}`, {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("auth_token")}`,
+          },
+        })
+      );
+      const responses = await Promise.all(promises);
+      const failedDeletes = responses.filter(response => !response.ok);
+      if (failedDeletes.length > 0) {
+        throw new Error(`Failed to delete ${failedDeletes.length} job(s)`);
+      }
+    },
+    onSuccess: (_, jobIds) => {
+      toast({
+        title: "Success",
+        description: `${jobIds.length} job(s) deleted successfully!`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
+      setSelectedJobs([]);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete selected jobs",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Edit mode state
   const [editingJob, setEditingJob] = useState<any>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [selectedJobs, setSelectedJobs] = useState<number[]>([]);
   const [profileForm, setProfileForm] = useState({
     firstName: "",
     lastName: "",
@@ -421,6 +458,19 @@ export default function Dashboard() {
         ? prev.selectedJobIds.filter(id => id !== jobId)
         : [...prev.selectedJobIds, jobId]
     }));
+  };
+
+  const toggleJobForDeletion = (jobId: number) => {
+    setSelectedJobs(prev => 
+      prev.includes(jobId) 
+        ? prev.filter(id => id !== jobId)
+        : [...prev, jobId]
+    );
+  };
+
+  const selectAllJobs = () => {
+    const allJobIds = (userJobs as any[]).map(job => job.id);
+    setSelectedJobs(selectedJobs.length === allJobIds.length ? [] : allJobIds);
   };
 
   // Generate PDF
@@ -914,9 +964,38 @@ export default function Dashboard() {
           <TabsContent value="my-jobs">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  My Job Postings
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    My Job Postings
+                  </div>
+                  {userJobs.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      {selectedJobs.length > 0 && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => {
+                            if (confirm(`Are you sure you want to delete ${selectedJobs.length} selected job(s)?`)) {
+                              bulkDeleteJobsMutation.mutate(selectedJobs);
+                            }
+                          }}
+                          disabled={bulkDeleteJobsMutation.isPending}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete ({selectedJobs.length})
+                        </Button>
+                      )}
+                      <Button 
+                        onClick={() => document.querySelector('[data-state="active"][value="create-job"]')?.click()}
+                        className="bg-[#0077B5] hover:bg-[#005582]"
+                        size="sm"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Job
+                      </Button>
+                    </div>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -938,77 +1017,86 @@ export default function Dashboard() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
+                    {/* Select All Checkbox */}
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border">
+                      <input
+                        type="checkbox"
+                        checked={selectedJobs.length === userJobs.length && userJobs.length > 0}
+                        onChange={selectAllJobs}
+                        className="h-4 w-4 text-[#0077B5] focus:ring-[#0077B5] border-gray-300 rounded"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        Select All ({userJobs.length} jobs)
+                      </span>
+                    </div>
+
+                    {/* Job List */}
                     {userJobs.map((job: any) => (
-                      <div key={job.id} className="border rounded-lg p-4 hover:shadow-lg transition-shadow">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-lg mb-2">{job.title}</h3>
-                            <div className="space-y-1 text-sm text-gray-600">
-                              <p><strong>Organization:</strong> {job.organization}</p>
-                              <p><strong>Location:</strong> {job.location}</p>
-                              <p><strong>Sector:</strong> {job.sector || 'Not specified'}</p>
-                              <p><strong>Posted:</strong> {new Date(job.datePosted).toLocaleDateString()}</p>
-                              {job.deadline && (
-                                <p><strong>Deadline:</strong> {new Date(job.deadline).toLocaleDateString()}</p>
-                              )}
-                            </div>
-                            <div className="mt-3">
-                              <Badge variant="outline" className="text-[#0077B5] border-[#0077B5]">
-                                {job.experience || 'Any level'}
-                              </Badge>
-                            </div>
+                      <div key={job.id} className="flex items-center gap-3 p-4 border rounded-lg hover:shadow-md transition-shadow">
+                        <input
+                          type="checkbox"
+                          checked={selectedJobs.includes(job.id)}
+                          onChange={() => toggleJobForDeletion(job.id)}
+                          className="h-4 w-4 text-[#0077B5] focus:ring-[#0077B5] border-gray-300 rounded"
+                        />
+                        
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-gray-900">{job.title}</h3>
+                            <Badge className="bg-blue-100 text-blue-800 text-xs">Active</Badge>
                           </div>
-                          <div className="flex gap-2 ml-4">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => window.open(`/jobs/${job.id}`, '_blank')}
-                              className="text-[#0077B5] border-[#0077B5] hover:bg-[#0077B5] hover:text-white"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setEditingJob(job);
-                                setJobForm({
-                                  title: job.title,
-                                  organization: job.organization,
-                                  location: job.location,
-                                  country: job.country,
-                                  sector: job.sector || '',
-                                  description: job.description,
-                                  howToApply: job.howToApply || '',
-                                  experience: job.experience || '',
-                                  qualifications: job.qualifications || '',
-                                  responsibilities: job.responsibilities || '',
-                                  deadline: job.deadline ? new Date(job.deadline).toISOString().split('T')[0] : '',
-                                  url: job.url || ''
-                                });
-                                // Switch to create-job tab
-                                const createJobTab = document.querySelector('[value="create-job"]') as HTMLElement;
-                                if (createJobTab) createJobTab.click();
-                              }}
-                              className="text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                if (confirm('Are you sure you want to delete this job posting?')) {
-                                  deleteJobMutation.mutate(job.id);
-                                }
-                              }}
-                              disabled={deleteJobMutation.isPending}
-                              className="text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                          <div className="text-sm text-gray-600">
+                            <span>{job.organization}</span>
+                            <span className="mx-2">•</span>
+                            <span>{job.location}</span>
+                            <span className="mx-2">•</span>
+                            <span>Posted {new Date(job.datePosted).toLocaleDateString()}</span>
+                            {job.deadline && (
+                              <>
+                                <span className="mx-2">•</span>
+                                <span>Deadline {new Date(job.deadline).toLocaleDateString()}</span>
+                              </>
+                            )}
                           </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.open(`/jobs/${job.id}`, '_blank')}
+                            className="text-[#0077B5] border-[#0077B5] hover:bg-[#0077B5] hover:text-white"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingJob(job);
+                              setJobForm({
+                                title: job.title,
+                                organization: job.organization,
+                                location: job.location,
+                                country: job.country,
+                                sector: job.sector || '',
+                                description: job.description,
+                                howToApply: job.howToApply || '',
+                                experience: job.experience || '',
+                                qualifications: job.qualifications || '',
+                                responsibilities: job.responsibilities || '',
+                                deadline: job.deadline ? new Date(job.deadline).toISOString().split('T')[0] : '',
+                                url: job.url || ''
+                              });
+                              // Switch to create-job tab
+                              const createJobTab = document.querySelector('[value="create-job"]') as HTMLElement;
+                              if (createJobTab) createJobTab.click();
+                            }}
+                            className="text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     ))}
