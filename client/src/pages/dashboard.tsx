@@ -52,13 +52,26 @@ export default function Dashboard() {
     url: ""
   });
 
-  // Update organization field when user data loads
+  // Update organization field when user data loads and initialize profile form
   useEffect(() => {
-    if (user && (user as any)?.companyName) {
-      setJobForm(prev => ({
-        ...prev,
-        organization: (user as any).companyName
-      }));
+    if (user) {
+      if ((user as any)?.companyName) {
+        setJobForm(prev => ({
+          ...prev,
+          organization: (user as any).companyName
+        }));
+      }
+      
+      // Initialize profile form with user data
+      setProfileForm({
+        firstName: (user as any)?.firstName || "",
+        lastName: (user as any)?.lastName || "",
+        email: (user as any)?.email || "",
+        phoneNumber: (user as any)?.phoneNumber || "",
+        companyName: (user as any)?.companyName || "",
+        position: (user as any)?.position || "",
+        bio: (user as any)?.bio || ""
+      });
     }
   }, [user]);
 
@@ -184,6 +197,37 @@ export default function Dashboard() {
 
   // Edit mode state
   const [editingJob, setEditingJob] = useState<any>(null);
+  const [profileForm, setProfileForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phoneNumber: "",
+    companyName: "",
+    position: "",
+    bio: ""
+  });
+
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (profileData: any) => {
+      const response = await apiRequest(`/api/users/${(user as any)?.id}`, "PUT", profileData);
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update profile",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Update job mutation
   const updateJobMutation = useMutation({
@@ -276,6 +320,21 @@ export default function Dashboard() {
     approveUserMutation.mutate(userId);
   };
 
+  const handleProfileSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!profileForm.firstName || !profileForm.lastName || !profileForm.email) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateProfileMutation.mutate(profileForm);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -316,7 +375,7 @@ export default function Dashboard() {
         </div>
 
         <Tabs defaultValue="create-job" className="space-y-6">
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'}`}>
             <TabsTrigger value="create-job" className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               Create Job
@@ -324,6 +383,10 @@ export default function Dashboard() {
             <TabsTrigger value="my-jobs" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               My Jobs
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Profile
             </TabsTrigger>
             {isAdmin && (
               <TabsTrigger value="manage-users" className="flex items-center gap-2">
