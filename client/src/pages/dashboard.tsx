@@ -378,13 +378,13 @@ export default function Dashboard() {
 
         <Tabs defaultValue="my-jobs" className="space-y-6">
           <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'}`}>
-            <TabsTrigger value="create-job" className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Create Job
-            </TabsTrigger>
             <TabsTrigger value="my-jobs" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               My Jobs
+            </TabsTrigger>
+            <TabsTrigger value="create-job" className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Create Job
             </TabsTrigger>
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
