@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, FileText, CheckCircle, ArrowLeft, Edit, Trash2, Eye } from "lucide-react";
+import { Plus, Users, FileText, CheckCircle, ArrowLeft, Edit, Trash2, Eye, Receipt, Download, DollarSign } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -86,6 +86,23 @@ export default function Dashboard() {
     queryKey: ["/api/user/jobs"],
     enabled: !!user,
   });
+
+  // Get user's invoices
+  const { data: userInvoices = [], isLoading: invoicesLoading } = useQuery({
+    queryKey: ["/api/invoices"],
+    enabled: !!user,
+  });
+
+  // Invoice form state
+  const [invoiceForm, setInvoiceForm] = useState({
+    title: "",
+    description: "",
+    pricePerJob: "",
+    selectedJobIds: [] as number[],
+  });
+
+  const [showInvoiceForm, setShowInvoiceForm] = useState(false);
+  const [editingInvoice, setEditingInvoice] = useState<any>(null);
 
   // Create job mutation
   const createJobMutation = useMutation({
@@ -265,6 +282,248 @@ export default function Dashboard() {
     },
   });
 
+  // Create invoice mutation
+  const createInvoiceMutation = useMutation({
+    mutationFn: async (invoiceData: any) => {
+      const response = await fetch("/api/invoices", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+        body: JSON.stringify(invoiceData),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to create invoice: ${response.statusText}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Invoice created successfully!",
+      });
+      setInvoiceForm({
+        title: "",
+        description: "",
+        pricePerJob: "",
+        selectedJobIds: [],
+      });
+      setShowInvoiceForm(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create invoice",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update invoice mutation
+  const updateInvoiceMutation = useMutation({
+    mutationFn: async ({ invoiceId, invoiceData }: { invoiceId: number; invoiceData: any }) => {
+      const response = await fetch(`/api/invoices/${invoiceId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+        body: JSON.stringify(invoiceData),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to update invoice: ${response.statusText}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Invoice updated successfully!",
+      });
+      setEditingInvoice(null);
+      setShowInvoiceForm(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update invoice",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete invoice mutation
+  const deleteInvoiceMutation = useMutation({
+    mutationFn: async (invoiceId: number) => {
+      const response = await fetch(`/api/invoices/${invoiceId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to delete invoice: ${response.statusText}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Invoice deleted successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete invoice",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Invoice form handling
+  const handleInvoiceSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!invoiceForm.title || !invoiceForm.pricePerJob || invoiceForm.selectedJobIds.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields and select at least one job",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const invoiceData = {
+      ...invoiceForm,
+      selectedJobIds: JSON.stringify(invoiceForm.selectedJobIds),
+    };
+
+    if (editingInvoice) {
+      updateInvoiceMutation.mutate({ 
+        invoiceId: editingInvoice.id, 
+        invoiceData 
+      });
+    } else {
+      createInvoiceMutation.mutate(invoiceData);
+    }
+  };
+
+  // Handle job selection for invoice
+  const toggleJobSelection = (jobId: number) => {
+    setInvoiceForm(prev => ({
+      ...prev,
+      selectedJobIds: prev.selectedJobIds.includes(jobId)
+        ? prev.selectedJobIds.filter(id => id !== jobId)
+        : [...prev.selectedJobIds, jobId]
+    }));
+  };
+
+  // Generate PDF
+  const generatePDF = async (invoice: any) => {
+    const { jsPDF } = await import('jspdf');
+    const html2canvas = await import('html2canvas');
+    
+    // Create invoice content
+    const invoiceContent = document.createElement('div');
+    invoiceContent.style.padding = '40px';
+    invoiceContent.style.fontFamily = 'Arial, sans-serif';
+    invoiceContent.style.backgroundColor = 'white';
+    invoiceContent.style.color = 'black';
+    
+    // Get selected jobs data
+    const selectedJobs = (userJobs as any[]).filter(job => 
+      JSON.parse(invoice.selectedJobIds || '[]').includes(job.id)
+    );
+    
+    invoiceContent.innerHTML = `
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #0077B5; margin: 0;">JobConnect East Africa</h1>
+        <h2 style="margin: 10px 0;">Invoice</h2>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <strong>Invoice #:</strong> ${invoice.invoiceNumber}<br>
+        <strong>Date:</strong> ${new Date(invoice.createdAt).toLocaleDateString()}<br>
+        <strong>Status:</strong> ${invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <h3 style="color: #0077B5;">${invoice.title}</h3>
+        <p>${invoice.description || 'No description provided'}</p>
+      </div>
+      
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <thead>
+          <tr style="background-color: #f8f9fa;">
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Job Title</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Organization</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${selectedJobs.map(job => `
+            <tr>
+              <td style="border: 1px solid #ddd; padding: 8px;">${job.title}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${job.organization}</td>
+              <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">$${invoice.pricePerJob}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      
+      <div style="text-align: right; margin-top: 20px;">
+        <p><strong>Total Jobs: ${invoice.totalJobs}</strong></p>
+        <p><strong>Price per Job: $${invoice.pricePerJob}</strong></p>
+        <p style="font-size: 18px;"><strong>Total Amount: $${invoice.totalAmount}</strong></p>
+      </div>
+    `;
+    
+    document.body.appendChild(invoiceContent);
+    
+    try {
+      const canvas = await html2canvas.default(invoiceContent);
+      const imgData = canvas.toDataURL('image/png');
+      
+      const pdf = new jsPDF();
+      const imgWidth = 210;
+      const pageHeight = 295;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      
+      let position = 0;
+      
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      pdf.save(`invoice-${invoice.invoiceNumber}.pdf`);
+      
+      toast({
+        title: "Success",
+        description: "Invoice PDF generated successfully!",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF",
+        variant: "destructive",
+      });
+    } finally {
+      document.body.removeChild(invoiceContent);
+    }
+  };
+
   const handleJobSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -377,7 +636,7 @@ export default function Dashboard() {
         </div>
 
         <Tabs defaultValue="my-jobs" className="space-y-6">
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'}`}>
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'}`}>
             <TabsTrigger value="my-jobs" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               My Jobs
@@ -385,6 +644,10 @@ export default function Dashboard() {
             <TabsTrigger value="create-job" className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               Create Job
+            </TabsTrigger>
+            <TabsTrigger value="invoices" className="flex items-center gap-2">
+              <Receipt className="h-4 w-4" />
+              Invoices
             </TabsTrigger>
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
