@@ -210,8 +210,8 @@ export default function Dashboard() {
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (profileData: any) => {
-      const response = await apiRequest(`/api/users/${(user as any)?.id}`, "PUT", profileData);
-      return response;
+      const response = await apiRequest("PUT", `/api/users/${(user as any)?.id}`, profileData);
+      return response.json();
     },
     onSuccess: () => {
       toast({
