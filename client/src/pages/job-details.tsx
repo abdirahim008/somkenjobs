@@ -575,43 +575,83 @@ export default function JobDetails() {
                   {relatedJobs.map((relatedJob) => (
                     <div 
                       key={relatedJob.id} 
-                      className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                      className="job-card cursor-pointer"
                       onClick={() => {
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                         setLocation(`/jobs/${relatedJob.id}`);
                       }}
                     >
-                      <div className="flex justify-between items-start gap-4">
+                      <div className="flex items-start justify-between mb-4 gap-4">
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-foreground hover:text-primary mb-2 line-clamp-2">
+                          <h3 
+                            className="text-lg font-semibold text-foreground hover:text-primary cursor-pointer mb-2 break-words leading-tight"
+                          >
                             {relatedJob.title}
-                          </h4>
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-muted-foreground mb-2">
-                            <span className="flex items-center">
-                              <Building2 className="mr-1 h-4 w-4 flex-shrink-0" />
-                              <span className="truncate max-w-[200px]">{relatedJob.organization}</span>
+                          </h3>
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:flex-wrap gap-2 text-base text-muted-foreground mb-3">
+                            <span className="flex items-center min-w-0">
+                              <Building2 className="mr-2 h-5 w-5 flex-shrink-0" />
+                              <span className="truncate-org">{relatedJob.organization}</span>
                             </span>
-                            <span className="flex items-center">
-                              <MapPin className="mr-1 h-4 w-4 flex-shrink-0" />
-                              <span>{relatedJob.location}</span>
+                            <span className="flex items-center flex-shrink-0">
+                              <MapPin className="mr-2 h-5 w-5 flex-shrink-0" />
+                              <span className="whitespace-nowrap">{relatedJob.location}</span>
+                            </span>
+                            <span className="flex items-center flex-shrink-0">
+                              <Calendar className="mr-2 h-5 w-5 flex-shrink-0" />
+                              <span className="whitespace-nowrap">{formatDate(relatedJob.datePosted)}</span>
                             </span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {relatedJob.sector && (
-                              <Badge className={`badge ${getSectorBadgeColor(relatedJob.sector)} text-xs`}>
-                                {relatedJob.sector}
-                              </Badge>
-                            )}
-                            <Badge className={`badge ${getSourceBadgeColor(relatedJob.source)} text-xs`}>
-                              {relatedJob.source === "reliefweb" ? "ReliefWeb" : "UN Jobs"}
-                            </Badge>
-                          </div>
                         </div>
-                        <div className="flex-shrink-0">
-                          <Button variant="outline" size="sm">
-                            View Details
-                          </Button>
+
+                        <div className="flex-shrink-0 flex items-center gap-2">
+                          <button 
+                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Toggle bookmark functionality can be added here
+                            }}
+                          >
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                            </svg>
+                          </button>
                         </div>
+                      </div>
+
+                      <div className="mb-4">
+                        <p className="text-muted-foreground text-sm leading-relaxed line-clamp-2">
+                          {relatedJob.description ? relatedJob.description.substring(0, 150) + '...' : 'No description available'}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {relatedJob.sector && (
+                            <span className={`badge ${getSectorBadgeColor(relatedJob.sector)}`}>
+                              {relatedJob.sector}
+                            </span>
+                          )}
+                          <span className={`badge ${getSourceBadgeColor(relatedJob.source)}`}>
+                            {relatedJob.source === "reliefweb" ? "ReliefWeb" : relatedJob.source === "zyte" ? "Zyte" : "UN Jobs"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <Clock className="mr-1 h-4 w-4" />
+                          <span>
+                            {relatedJob.deadline 
+                              ? `${Math.ceil((new Date(relatedJob.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days left`
+                              : 'No deadline'
+                            }
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 pt-4 border-t border-border flex justify-end">
+                        <Button variant="outline" size="sm" className="text-primary border-primary hover:bg-primary hover:text-white">
+                          View Details
+                        </Button>
                       </div>
                     </div>
                   ))}
