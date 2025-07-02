@@ -380,7 +380,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/user/jobs", authenticate, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.id;
+      console.log("Fetching jobs for user ID:", userId);
       const userJobs = await storage.getJobsByUserId(userId);
+      console.log("Found user jobs:", userJobs.length, "jobs");
       res.json(userJobs);
     } catch (error) {
       console.error("Error fetching user jobs:", error);
@@ -447,6 +449,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user!.id;
       console.log("Received job data:", req.body);
+      console.log("Creating job for user ID:", userId);
       
       // Generate defaults for required fields that users don't need to provide
       const jobDataWithDefaults = {
