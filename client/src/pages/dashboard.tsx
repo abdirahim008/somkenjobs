@@ -1167,7 +1167,7 @@ export default function Dashboard() {
                           </Button>
                           <Button
                             size="sm"
-                            variant="outline"
+                            variant="ghost"
                             onClick={() => {
                               setEditingJob(job);
                               setJobForm({
@@ -1187,7 +1187,7 @@ export default function Dashboard() {
                               // Switch to create-job tab
                               setActiveTab("create-job");
                             }}
-                            className="text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white"
+                            className="text-gray-500 hover:text-[#0077B5] hover:bg-gray-100 p-1"
                           >
                             <Pen className="h-4 w-4" />
                           </Button>
