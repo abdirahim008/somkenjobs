@@ -22,6 +22,7 @@ export const jobs = pgTable("jobs", {
   responsibilities: text("responsibilities"),
   bodyHtml: text("body_html"),
   createdBy: integer("created_by"), // User ID who created the job (null for scraped jobs)
+  status: text("status").notNull().default("published"), // 'draft' or 'published'
 });
 
 export const insertJobSchema = createInsertSchema(jobs).omit({

@@ -52,7 +52,8 @@ export default function Dashboard() {
     qualifications: "",
     responsibilities: "",
     deadline: "",
-    url: ""
+    url: "",
+    status: "published" // Add status field
   });
 
   // Update organization field when user data loads and initialize profile form
@@ -140,7 +141,8 @@ export default function Dashboard() {
         qualifications: "",
         responsibilities: "",
         deadline: "",
-        url: ""
+        url: "",
+        status: "published"
       });
       queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
     },
@@ -582,7 +584,7 @@ export default function Dashboard() {
       // Outer table border
       pdf.setDrawColor(0, 0, 0);
       pdf.setLineWidth(0.5);
-      pdf.rect(tableStartX, currentY - 3, tableWidth, 12 + (selectedJobs.length * 12), 'S');
+      pdf.rect(tableStartX, currentY - 3, tableWidth, 12 + (selectedJobs.length * 14), 'S');
       
       // Table header
       pdf.setFillColor(248, 249, 250);
@@ -599,34 +601,39 @@ export default function Dashboard() {
       
       currentY += 12;
       
-      // Table rows
+      // Table rows with improved vertical alignment
       pdf.setFont('helvetica', 'normal');
       selectedJobs.forEach((job, index) => {
+        const rowHeight = 14; // Increased row height for better spacing
+        
         // Alternating row colors
         if (index % 2 === 0) {
           pdf.setFillColor(250, 250, 250);
-          pdf.rect(tableStartX, currentY - 3, tableWidth, 12, 'F');
+          pdf.rect(tableStartX, currentY - 2, tableWidth, rowHeight, 'F');
         }
         
         // Row borders
         pdf.setDrawColor(200, 200, 200);
         pdf.setLineWidth(0.3);
-        pdf.line(tableStartX, currentY + 9, tableStartX + tableWidth, currentY + 9);
+        pdf.line(tableStartX, currentY + rowHeight - 2, tableStartX + tableWidth, currentY + rowHeight - 2);
         
-        // Column separators
-        pdf.line(tableStartX + colWidth1, currentY - 3, tableStartX + colWidth1, currentY + 9);
-        pdf.line(tableStartX + colWidth1 + colWidth2, currentY - 3, tableStartX + colWidth1 + colWidth2, currentY + 9);
+        // Column separators (full height)
+        pdf.line(tableStartX + colWidth1, currentY - 2, tableStartX + colWidth1, currentY + rowHeight - 2);
+        pdf.line(tableStartX + colWidth1 + colWidth2, currentY - 2, tableStartX + colWidth1 + colWidth2, currentY + rowHeight - 2);
         
         const jobTitle = pdf.splitTextToSize(job.title, colWidth2 - 4);
         
+        // Vertically centered text positioning
+        const textY = currentY + (rowHeight / 2) + 1; // Center text vertically
+        
         // Row number
         pdf.setTextColor(0, 0, 0);
-        pdf.text(`${index + 1}`, tableStartX + 2, currentY + 5);
+        pdf.text(`${index + 1}`, tableStartX + colWidth1/2, textY, { align: 'center' });
         // Job title
-        pdf.text(jobTitle[0] + (jobTitle.length > 1 ? '...' : ''), tableStartX + colWidth1 + 2, currentY + 5);
+        pdf.text(jobTitle[0] + (jobTitle.length > 1 ? '...' : ''), tableStartX + colWidth1 + 3, textY);
         // Price
-        pdf.text(`$${invoice.pricePerJob}`, tableStartX + tableWidth - 5, currentY + 5, { align: 'right' });
-        currentY += 12;
+        pdf.text(`$${invoice.pricePerJob}`, tableStartX + tableWidth - 8, textY, { align: 'right' });
+        currentY += rowHeight;
       });
       
       // Add spacing before totals
@@ -734,6 +741,7 @@ export default function Dashboard() {
       experience: jobForm.experience,
       qualifications: jobForm.qualifications,
       responsibilities: jobForm.responsibilities,
+      status: jobForm.status, // Include status field
       bodyHtml: `
         <div>
           <h3>Job Description</h3>
@@ -867,7 +875,8 @@ export default function Dashboard() {
                         qualifications: "",
                         responsibilities: "",
                         deadline: "",
-                        url: ""
+                        url: "",
+                        status: "published"
                       });
                     }}
                     className="mt-2"
@@ -1077,16 +1086,54 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <Button 
-                    type="submit" 
-                    className="w-full"
-                    disabled={createJobMutation.isPending || updateJobMutation.isPending}
-                  >
-                    {editingJob 
-                      ? updateJobMutation.isPending ? "Updating..." : "Update Job Posting"
-                      : createJobMutation.isPending ? "Creating..." : "Create Job Posting"
-                    }
-                  </Button>
+                  <div>
+                    <Label htmlFor="status">Publication Status *</Label>
+                    <Select value={jobForm.status} onValueChange={(value) => setJobForm({ ...jobForm, status: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="draft">Save as Draft</SelectItem>
+                        <SelectItem value="published">Publish Job</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {jobForm.status === 'draft' ? 'Job will be saved but not visible to job seekers' : 'Job will be live and searchable immediately'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Button 
+                      type="submit" 
+                      className="w-full"
+                      disabled={createJobMutation.isPending || updateJobMutation.isPending}
+                    >
+                      {editingJob 
+                        ? updateJobMutation.isPending ? "Updating..." : "Update Job Posting"
+                        : createJobMutation.isPending ? "Creating..." : 
+                          jobForm.status === 'draft' ? "Save as Draft" : "Create & Publish Job"
+                      }
+                    </Button>
+                    
+                    {!editingJob && jobForm.status === 'published' && (
+                      <Button 
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
+                          setJobForm({ ...jobForm, status: 'draft' });
+                          const form = document.querySelector('form');
+                          if (form) {
+                            const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                            form.dispatchEvent(submitEvent);
+                          }
+                        }}
+                        disabled={createJobMutation.isPending}
+                      >
+                        Save as Draft Instead
+                      </Button>
+                    )}
+                  </div>
                 </form>
               </CardContent>
             </Card>
@@ -1170,21 +1217,37 @@ export default function Dashboard() {
                   <div className="divide-y divide-gray-100">
                     {userJobs.map((job: any, index: number) => (
                       <div key={job.id} className="flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={selectedJobs.includes(job.id)}
-                          onChange={() => toggleJobForDeletion(job.id)}
-                          className="h-4 w-4 text-[#0077B5] focus:ring-[#0077B5] border-gray-300 rounded"
-                        />
+                        {/* Only show checkbox for draft jobs */}
+                        {job.status === 'draft' && (
+                          <input
+                            type="checkbox"
+                            checked={selectedJobs.includes(job.id)}
+                            onChange={() => toggleJobForDeletion(job.id)}
+                            className="h-4 w-4 text-[#0077B5] focus:ring-[#0077B5] border-gray-300 rounded"
+                          />
+                        )}
                         
                         {/* Row number */}
                         <div className="w-8 text-sm font-medium text-gray-500">
                           {index + 1}.
                         </div>
                         
-                        {/* Job title only */}
+                        {/* Job title and status */}
                         <div className="flex-1">
-                          <h3 className="font-medium text-gray-900">{job.title}</h3>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-medium text-gray-900">{job.title}</h3>
+                            <Badge 
+                              variant={job.status === 'published' ? 'default' : 'secondary'}
+                              className={
+                                job.status === 'published' 
+                                  ? 'bg-green-100 text-green-800 hover:bg-green-100' 
+                                  : 'bg-gray-100 text-gray-800 hover:bg-gray-100'
+                              }
+                            >
+                              {job.status === 'published' ? 'Live' : 'Draft'}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600">{job.organization} • {job.location}</p>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -1213,7 +1276,8 @@ export default function Dashboard() {
                                 qualifications: job.qualifications || '',
                                 responsibilities: job.responsibilities || '',
                                 deadline: job.deadline ? new Date(job.deadline).toISOString().split('T')[0] : '',
-                                url: job.url || ''
+                                url: job.url || '',
+                                status: (job as any).status || 'published'
                               });
                               // Switch to create-job tab
                               setActiveTab("create-job");
