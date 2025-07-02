@@ -137,6 +137,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(userWithoutPassword);
   });
 
+  // Update user profile
+  app.put("/api/users/:id", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const currentUser = req.user!;
+      
+      // Only allow users to update their own profile or admins to update any profile
+      if (currentUser.id !== userId && !currentUser.isAdmin) {
+        return res.status(403).json({ message: "Unauthorized to update this profile" });
+      }
+
+      const updatedUser = await storage.updateUser(userId, req.body);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { password: _, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
   // Admin routes for user approval
   app.get("/api/admin/pending-users", authenticate, requireAdmin, async (req, res) => {
     try {

@@ -41,6 +41,8 @@ export const users = pgTable("users", {
   companyName: text("company_name").notNull(),
   jobTitle: text("job_title").notNull(),
   phoneNumber: text("phone_number"),
+  position: text("position"),
+  bio: text("bio"),
   isApproved: boolean("is_approved").default(false).notNull(),
   isAdmin: boolean("is_admin").default(false).notNull(),
   approvedAt: timestamp("approved_at"),

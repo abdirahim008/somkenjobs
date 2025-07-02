@@ -753,6 +753,105 @@ export default function Dashboard() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="profile">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Profile Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleProfileSubmit} className="space-y-6">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="firstName">First Name *</Label>
+                      <Input
+                        id="firstName"
+                        value={profileForm.firstName}
+                        onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
+                        placeholder="Enter your first name"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="lastName">Last Name *</Label>
+                      <Input
+                        id="lastName"
+                        value={profileForm.lastName}
+                        onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
+                        placeholder="Enter your last name"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="email">Email Address *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={profileForm.email}
+                      onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                      placeholder="your.email@company.com"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="phoneNumber">Phone Number</Label>
+                      <Input
+                        id="phoneNumber"
+                        value={profileForm.phoneNumber}
+                        onChange={(e) => setProfileForm({ ...profileForm, phoneNumber: e.target.value })}
+                        placeholder="+254 700 000 000"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="position">Position/Title</Label>
+                      <Input
+                        id="position"
+                        value={profileForm.position}
+                        onChange={(e) => setProfileForm({ ...profileForm, position: e.target.value })}
+                        placeholder="e.g. HR Manager, Recruiter"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="companyName">Company/Organization</Label>
+                    <Input
+                      id="companyName"
+                      value={profileForm.companyName}
+                      onChange={(e) => setProfileForm({ ...profileForm, companyName: e.target.value })}
+                      placeholder="Enter your organization name"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="bio">Bio/Description</Label>
+                    <Textarea
+                      id="bio"
+                      value={profileForm.bio}
+                      onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
+                      placeholder="Brief description about yourself or your role..."
+                      rows={4}
+                    />
+                  </div>
+
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-[#0077B5] hover:bg-[#005582]"
+                    disabled={updateProfileMutation.isPending}
+                  >
+                    {updateProfileMutation.isPending ? "Updating..." : "Update Profile"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {isAdmin && (
             <TabsContent value="manage-users">
               <Card>
