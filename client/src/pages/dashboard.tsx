@@ -489,27 +489,13 @@ export default function Dashboard() {
       const margin = 20;
       let currentY = margin;
       
-      // Header with Somken Jobs logo recreation
-      // African continent (green background)
-      pdf.setFillColor(46, 125, 50); // Green
-      pdf.ellipse(margin + 7.5, currentY + 7.5, 6, 8, 'F');
-      
-      // Somalia flag circle (blue)
-      pdf.setFillColor(93, 173, 226); // Light blue
-      pdf.circle(margin + 11, currentY + 5, 3, 'F');
-      
-      // Star in flag (white)
-      pdf.setFillColor(255, 255, 255);
-      pdf.setFontSize(6);
-      pdf.text('★', margin + 10.2, currentY + 5.5);
-      
-      // Professional figure (red)
-      pdf.setFillColor(229, 62, 62); // Red
-      pdf.ellipse(margin + 5, currentY + 7, 1.5, 2, 'F');
-      
-      // Briefcase (black)
-      pdf.setFillColor(0, 0, 0);
-      pdf.rect(margin + 3.5, currentY + 10, 3, 2, 'F');
+      // Header with company logo (using text-based logo)
+      pdf.setFillColor(0, 119, 181); // #0077B5
+      pdf.rect(margin, currentY, 15, 15, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('SJ', margin + 7.5, currentY + 9, { align: 'center' });
       pdf.setFontSize(18);
       pdf.setTextColor(0, 119, 181); // #0077B5
       pdf.setFont('helvetica', 'bold');
