@@ -1076,29 +1076,30 @@ export default function Dashboard() {
                   </div>
                   {userJobs.length > 0 && (
                     <div className="flex items-center gap-2">
-                      {selectedJobs.length > 0 && (
+                      {selectedJobs.length > 0 ? (
                         <Button
                           size="sm"
-                          variant="destructive"
+                          variant="ghost"
                           onClick={() => {
                             if (confirm(`Are you sure you want to delete ${selectedJobs.length} selected job(s)?`)) {
                               bulkDeleteJobsMutation.mutate(selectedJobs);
                             }
                           }}
                           disabled={bulkDeleteJobsMutation.isPending}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1"
                         >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Delete ({selectedJobs.length})
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button 
+                          onClick={() => setActiveTab("create-job")}
+                          className="bg-[#0077B5] hover:bg-[#005582]"
+                          size="sm"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          New Job
                         </Button>
                       )}
-                      <Button 
-                        onClick={() => setActiveTab("create-job")}
-                        className="bg-[#0077B5] hover:bg-[#005582]"
-                        size="sm"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        New Job
-                      </Button>
                     </div>
                   )}
                 </CardTitle>
