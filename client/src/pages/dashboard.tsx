@@ -489,17 +489,13 @@ export default function Dashboard() {
       const margin = 20;
       let currentY = margin;
       
-      // Create SVG logo as base64
-      const logoSvg = `
-        <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-          <rect width="40" height="40" rx="8" fill="#0077B5"/>
-          <text x="20" y="28" text-anchor="middle" fill="white" font-family="Arial" font-size="18" font-weight="bold">JC</text>
-        </svg>
-      `;
-      const logoBase64 = btoa(logoSvg);
-      
-      // Header with logo and company info
-      pdf.addImage(`data:image/svg+xml;base64,${logoBase64}`, 'SVG', margin, currentY, 15, 15);
+      // Header with company logo (using text-based logo)
+      pdf.setFillColor(0, 119, 181); // #0077B5
+      pdf.rect(margin, currentY, 15, 15, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('JC', margin + 7.5, currentY + 9, { align: 'center' });
       pdf.setFontSize(18);
       pdf.setTextColor(0, 119, 181); // #0077B5
       pdf.setFont('helvetica', 'bold');
@@ -542,11 +538,11 @@ export default function Dashboard() {
       pdf.text('Bill To:', rightColumnX, currentY);
       pdf.setFont('helvetica', 'normal');
       currentY += 6;
-      pdf.text(`${user?.firstName || ''} ${user?.lastName || ''}`, rightColumnX, currentY);
+      pdf.text(`${(user as any)?.firstName || ''} ${(user as any)?.lastName || ''}`, rightColumnX, currentY);
       currentY += 5;
-      pdf.text(`${user?.companyName || 'Company Name'}`, rightColumnX, currentY);
+      pdf.text(`${(user as any)?.companyName || 'Company Name'}`, rightColumnX, currentY);
       currentY += 5;
-      pdf.text(`${user?.email || 'email@company.com'}`, rightColumnX, currentY);
+      pdf.text(`${(user as any)?.email || 'email@company.com'}`, rightColumnX, currentY);
       
       currentY += 25;
       
@@ -586,10 +582,7 @@ export default function Dashboard() {
       // Table rows
       pdf.setFont('helvetica', 'normal');
       selectedJobs.forEach((job, index) => {
-        if (currentY > pageHeight - 50) {
-          pdf.addPage();
-          currentY = margin;
-        }
+        // Keep all content on single page for simplicity
         
         if (index % 2 === 0) {
           pdf.setFillColor(250, 250, 250);
@@ -659,15 +652,11 @@ export default function Dashboard() {
       currentY += 4;
       pdf.text(`Authenticated: ${new Date().toLocaleString()}`, margin, currentY);
       
-      // Page numbers
-      const totalPages = pdf.internal.getNumberOfPages();
-      for (let i = 1; i <= totalPages; i++) {
-        pdf.setPage(i);
-        pdf.setFontSize(8);
-        pdf.setTextColor(150, 150, 150);
-        pdf.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
-        pdf.text('JobConnect East Africa - Professional Invoice', margin, pageHeight - 10);
-      }
+      // Page footer
+      pdf.setFontSize(8);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text('Page 1', pageWidth - margin, pageHeight - 10, { align: 'right' });
+      pdf.text('JobConnect East Africa - Professional Invoice', margin, pageHeight - 10);
       
       pdf.save(`invoice-${invoice.invoiceNumber}.pdf`);
       
