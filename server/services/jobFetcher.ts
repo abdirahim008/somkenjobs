@@ -1,6 +1,7 @@
 import { storage } from "../storage";
 import { type InsertJob } from "@shared/schema";
 import * as cron from "node-cron";
+import { zyteJobFetcher } from "./zyteJobFetcher";
 
 const RELIEFWEB_API_URL = "https://api.reliefweb.int/v1/jobs";
 const UNJOBS_RSS_URL = "https://jobs.un.org/rss";
