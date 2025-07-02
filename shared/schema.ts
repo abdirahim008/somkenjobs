@@ -69,3 +69,31 @@ export const loginUserSchema = z.object({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type LoginUser = z.infer<typeof loginUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// Invoice schema for employers to generate invoices for published jobs
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  invoiceNumber: text("invoice_number").notNull().unique(),
+  title: text("title").notNull(),
+  description: text("description"),
+  pricePerJob: text("price_per_job").notNull(), // Store as text to avoid decimal issues
+  totalJobs: integer("total_jobs").notNull().default(0),
+  totalAmount: text("total_amount").notNull(), // Store as text to avoid decimal issues
+  selectedJobIds: text("selected_job_ids").notNull().default("[]"), // Store as JSON string
+  status: text("status").notNull().default("draft"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertInvoiceSchema = createInsertSchema(invoices).omit({
+  id: true,
+  invoiceNumber: true,
+  totalJobs: true,
+  totalAmount: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type Invoice = typeof invoices.$inferSelect;
