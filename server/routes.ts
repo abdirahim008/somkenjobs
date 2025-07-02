@@ -446,14 +446,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/jobs", authenticate, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.id;
-      const jobData = insertJobSchema.parse({
+      console.log("Received job data:", req.body);
+      
+      // Generate defaults for required fields that users don't need to provide
+      const jobDataWithDefaults = {
         ...req.body,
-        createdBy: userId
-      });
+        createdBy: userId,
+        source: req.body.source || "user",
+        externalId: req.body.externalId || `user-${userId}-${Date.now()}`,
+        datePosted: req.body.datePosted || new Date(),
+        url: req.body.url || "",
+      };
+      
+      const jobData = insertJobSchema.parse(jobDataWithDefaults);
       const job = await storage.createJob(jobData);
       res.status(201).json(job);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("Zod validation errors:", error.errors);
         return res.status(400).json({ message: "Invalid job data", errors: error.errors });
       }
       console.error("Error creating job:", error);

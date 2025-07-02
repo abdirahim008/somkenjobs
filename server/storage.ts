@@ -190,6 +190,10 @@ export class MemStorage implements IStorage {
     const job: Job = { 
       ...insertJob, 
       id,
+      url: insertJob.url || "",
+      source: insertJob.source || "user",
+      externalId: insertJob.externalId || `user-${insertJob.createdBy}-${Date.now()}`,
+      datePosted: insertJob.datePosted || new Date(),
       sector: insertJob.sector || null,
       deadline: insertJob.deadline || null,
       howToApply: insertJob.howToApply || null,
@@ -379,9 +383,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createJob(insertJob: InsertJob): Promise<Job> {
+    // Ensure required fields have values for database insertion
+    const jobData = {
+      ...insertJob,
+      url: insertJob.url || "",
+      source: insertJob.source || "user",
+      externalId: insertJob.externalId || `user-${insertJob.createdBy}-${Date.now()}`,
+      datePosted: insertJob.datePosted || new Date(),
+    };
+    
     const [job] = await db
       .insert(jobs)
-      .values(insertJob)
+      .values(jobData)
       .returning();
     return job;
   }
