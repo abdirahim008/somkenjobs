@@ -379,13 +379,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getJobsByUserId(userId: number): Promise<Job[]> {
-    console.log("DatabaseStorage: Searching for jobs with createdBy =", userId);
-    const userJobs = await db.select().from(jobs).where(eq(jobs.createdBy, userId)).orderBy(desc(jobs.datePosted));
-    console.log("DatabaseStorage: Found", userJobs.length, "jobs for user", userId);
-    if (userJobs.length > 0) {
-      console.log("DatabaseStorage: Job IDs:", userJobs.map(j => `${j.id} (createdBy: ${j.createdBy})`));
-    }
-    return userJobs;
+    return await db.select().from(jobs).where(eq(jobs.createdBy, userId)).orderBy(desc(jobs.datePosted));
   }
 
   async createJob(insertJob: InsertJob): Promise<Job> {
