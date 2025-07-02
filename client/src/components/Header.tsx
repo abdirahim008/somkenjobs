@@ -34,8 +34,12 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo and Brand */}
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <Briefcase className="text-primary-foreground h-5 w-5" />
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img 
+                src="/somken-logo.svg" 
+                alt="Somken Jobs Logo" 
+                className="w-10 h-10 object-contain"
+              />
             </div>
             <div>
               <h1 className="text-xl font-bold text-primary">Somken Jobs</h1>
