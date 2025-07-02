@@ -109,7 +109,7 @@ export default function Home() {
       </section>
 
       {/* Main Content */}
-      <main className="main-container max-w-7xl">
+      <main className="main-container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Left sidebar layout for desktop - Updated July 1, 2025 */}
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           

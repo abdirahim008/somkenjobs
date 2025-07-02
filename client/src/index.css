@@ -131,6 +131,30 @@
   hyphens: auto;
 }
 
+/* Main container responsive constraints */
+.main-container {
+  @apply py-8;
+}
+
+/* Better content width constraints on very large screens */
+@media (min-width: 1536px) {
+  .main-container {
+    max-width: 1400px;
+  }
+}
+
+/* Optimal job card width constraints */
+.job-card {
+  max-width: 100%;
+}
+
+/* Prevent over-stretching on very wide screens */
+@media (min-width: 1280px) {
+  .job-card {
+    max-width: none; /* Allow flex layout to control width */
+  }
+}
+
 /* Ensure text never overflows container bounds */
 .job-card * {
   max-width: 100%;
