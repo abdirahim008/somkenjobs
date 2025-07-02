@@ -87,7 +87,9 @@ export default function JobDetails() {
       .replace(/\\>/g, '>')           // Fix escaped greater than
       .replace(/\\\|/g, '|')          // Fix escaped pipes
       .replace(/\\`/g, '`')           // Fix escaped backticks
-      .replace(/\\~/g, '~');          // Fix escaped tildes
+      .replace(/\\~/g, '~')           // Fix escaped tildes
+      .replace(/^#{1,6}\s*/gm, '')    // Remove markdown headers (# ## ### etc.) at start of lines
+      .replace(/^\s*#{1,6}\s*/gm, ''); // Remove markdown headers with leading whitespace
   };
 
   // Helper function to convert URLs to clickable links
