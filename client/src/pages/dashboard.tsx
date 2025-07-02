@@ -1133,9 +1133,9 @@ export default function Dashboard() {
                       </span>
                     </div>
 
-                    {/* Job List */}
-                    {userJobs.map((job: any) => (
-                      <div key={job.id} className="flex items-center gap-3 p-4 border rounded-lg hover:shadow-md transition-shadow">
+                    {/* Job List - Simple numbered list */}
+                    {userJobs.map((job: any, index: number) => (
+                      <div key={job.id} className="flex items-center gap-3 p-3 border rounded-lg hover:shadow-sm transition-shadow">
                         <input
                           type="checkbox"
                           checked={selectedJobs.includes(job.id)}
@@ -1143,24 +1143,14 @@ export default function Dashboard() {
                           className="h-4 w-4 text-[#0077B5] focus:ring-[#0077B5] border-gray-300 rounded"
                         />
                         
+                        {/* Row number */}
+                        <div className="w-8 text-sm font-medium text-gray-500">
+                          {index + 1}.
+                        </div>
+                        
+                        {/* Job title only */}
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-gray-900">{job.title}</h3>
-                            <Badge className="bg-blue-100 text-blue-800 text-xs">Active</Badge>
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            <span>{job.organization}</span>
-                            <span className="mx-2">•</span>
-                            <span>{job.location}</span>
-                            <span className="mx-2">•</span>
-                            <span>Posted {new Date(job.datePosted).toLocaleDateString()}</span>
-                            {job.deadline && (
-                              <>
-                                <span className="mx-2">•</span>
-                                <span>Deadline {new Date(job.deadline).toLocaleDateString()}</span>
-                              </>
-                            )}
-                          </div>
+                          <h3 className="font-medium text-gray-900">{job.title}</h3>
                         </div>
 
                         <div className="flex items-center gap-2">
