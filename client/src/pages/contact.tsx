@@ -16,10 +16,10 @@ export default function Contact() {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead 
-        title="Contact JobConnect East Africa - Get Help & Support"
-        description="Contact JobConnect East Africa for support, partnerships, or general inquiries. Our team is here to help humanitarian professionals navigate career opportunities in Kenya and Somalia."
-        keywords="contact JobConnect East Africa, humanitarian job support, partnership inquiries, NGO platform contact, East Africa job platform support"
-        canonicalUrl="https://jobconnect-eastafrica.replit.app/contact"
+        title="Contact Somken Jobs - Get Help & Support"
+        description="Contact Somken Jobs for support, partnerships, or general inquiries. Our team is here to help humanitarian professionals navigate career opportunities in Kenya and Somalia."
+        keywords="contact Somken Jobs, humanitarian job support, partnership inquiries, NGO platform contact, East Africa job platform support"
+        canonicalUrl="https://somkenjobs.replit.app/contact"
       />
       <Header />
       
@@ -30,7 +30,7 @@ export default function Contact() {
             Contact Us
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Get in touch with the JobConnect East Africa team. We're here to help you 
+            Get in touch with the Somken Jobs team. We're here to help you 
             navigate humanitarian career opportunities in Kenya and Somalia.
           </p>
         </div>

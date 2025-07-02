@@ -38,7 +38,7 @@ export default function Header() {
               <Briefcase className="text-primary-foreground h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-primary">JobConnect</h1>
+              <h1 className="text-xl font-bold text-primary">Somken Jobs</h1>
               <p className="text-xs text-muted-foreground">East Africa</p>
             </div>
           </div>

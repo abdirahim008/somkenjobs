@@ -1,8 +1,8 @@
-# JobConnect East Africa - Full Stack Application
+# Somken Jobs - Full Stack Application
 
 ## Overview
 
-JobConnect East Africa is a full-stack web application that aggregates and displays humanitarian job opportunities specifically for Kenya and Somalia. The application fetches job listings from multiple sources (ReliefWeb and UN Jobs) and provides a clean, searchable interface for users to find relevant employment opportunities in the humanitarian sector.
+Somken Jobs is a full-stack web application that aggregates and displays humanitarian job opportunities specifically for Kenya and Somalia. The application fetches job listings from multiple sources (ReliefWeb and UN Jobs) and provides a clean, searchable interface for users to find relevant employment opportunities in the humanitarian sector.
 
 ## System Architecture
 

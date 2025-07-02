@@ -495,17 +495,17 @@ export default function Dashboard() {
       pdf.setTextColor(255, 255, 255);
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('JC', margin + 7.5, currentY + 9, { align: 'center' });
+      pdf.text('SJ', margin + 7.5, currentY + 9, { align: 'center' });
       pdf.setFontSize(18);
       pdf.setTextColor(0, 119, 181); // #0077B5
       pdf.setFont('helvetica', 'bold');
-      pdf.text('JobConnect East Africa', margin + 20, currentY + 8);
+      pdf.text('Somken Jobs', margin + 20, currentY + 8);
       
       pdf.setFontSize(10);
       pdf.setTextColor(100, 100, 100);
       pdf.setFont('helvetica', 'normal');
       pdf.text('Professional Job Board Services', margin + 20, currentY + 12);
-      pdf.text('Email: info@jobconnectea.com | Web: www.jobconnectea.com', margin + 20, currentY + 16);
+      pdf.text('Email: info@somkenjobs.com | Web: www.somkenjobs.com', margin + 20, currentY + 16);
       
       currentY += 35;
       
@@ -631,7 +631,7 @@ export default function Dashboard() {
       pdf.setTextColor(100, 100, 100);
       pdf.text('Terms & Conditions: Payment due within 30 days. Late payments subject to 1.5% monthly service charge.', margin, currentY);
       currentY += 5;
-      pdf.text('This invoice is digitally generated and authenticated by JobConnect East Africa.', margin, currentY);
+      pdf.text('This invoice is digitally generated and authenticated by Somken Jobs.', margin, currentY);
       
       // Digital signature section
       currentY += 15;
@@ -656,7 +656,7 @@ export default function Dashboard() {
       pdf.setFontSize(8);
       pdf.setTextColor(150, 150, 150);
       pdf.text('Page 1', pageWidth - margin, pageHeight - 10, { align: 'right' });
-      pdf.text('JobConnect East Africa - Professional Invoice', margin, pageHeight - 10);
+      pdf.text('Somken Jobs - Professional Invoice', margin, pageHeight - 10);
       
       pdf.save(`invoice-${invoice.invoiceNumber}.pdf`);
       

@@ -15,10 +15,10 @@ export default function About() {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead 
-        title="About JobConnect East Africa - Our Mission & Impact"
-        description="Learn about JobConnect East Africa's mission to connect humanitarian professionals with meaningful career opportunities in Kenya and Somalia. Discover our comprehensive job aggregation platform and commitment to the humanitarian sector."
-        keywords="about JobConnect East Africa, humanitarian job platform, NGO career platform, East Africa humanitarian jobs, our mission humanitarian sector"
-        canonicalUrl="https://jobconnect-eastafrica.replit.app/about"
+        title="About Somken Jobs - Our Mission & Impact"
+        description="Learn about Somken Jobs' mission to connect humanitarian professionals with meaningful career opportunities in Kenya and Somalia. Discover our comprehensive job aggregation platform and commitment to the humanitarian sector."
+        keywords="about Somken Jobs, humanitarian job platform, NGO career platform, East Africa humanitarian jobs, our mission humanitarian sector"
+        canonicalUrl="https://somkenjobs.replit.app/about"
       />
       <Header />
       
@@ -26,7 +26,7 @@ export default function About() {
       <section className="bg-gradient-to-br from-primary/10 to-primary/5 py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl font-bold text-foreground mb-6">
-            About JobConnect East Africa
+            About Somken Jobs
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Connecting humanitarian professionals with meaningful career opportunities 
@@ -47,7 +47,7 @@ export default function About() {
           </CardHeader>
           <CardContent>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              JobConnect East Africa is dedicated to bridging the gap between humanitarian organizations 
+              Somken Jobs is dedicated to bridging the gap between humanitarian organizations 
               and qualified professionals in Kenya and Somalia. We aggregate job opportunities from 
               leading humanitarian sources, providing a centralized platform that makes it easier for 
               professionals to find meaningful work that creates positive impact in East African communities.
@@ -152,7 +152,7 @@ export default function About() {
           <CardHeader>
             <CardTitle className="flex items-center text-2xl">
               <Users className="h-6 w-6 mr-3 text-primary" />
-              Why Choose JobConnect East Africa
+              Why Choose Somken Jobs
             </CardTitle>
           </CardHeader>
           <CardContent>
