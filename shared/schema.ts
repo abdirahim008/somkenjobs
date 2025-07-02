@@ -31,7 +31,8 @@ export const insertJobSchema = createInsertSchema(jobs).omit({
   url: z.string().optional(),
   source: z.string().optional(), 
   externalId: z.string().optional(),
-  datePosted: z.date().optional(),
+  datePosted: z.union([z.date(), z.string().transform((str) => new Date(str))]).optional(),
+  deadline: z.union([z.date(), z.string().transform((str) => new Date(str)), z.null()]).optional(),
   // Allow bodyHtml to be optional since it's for scraped jobs
   bodyHtml: z.string().optional(),
 });
