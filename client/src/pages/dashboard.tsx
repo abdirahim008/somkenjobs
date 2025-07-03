@@ -1270,7 +1270,7 @@ export default function Dashboard() {
                     <FileText className="h-5 w-5" />
                     My Job Postings
                   </div>
-                  {userJobs.length > 0 && (
+                  {(userJobs as any[]).length > 0 && (
                     <div className="flex items-center gap-2">
                       {selectedJobs.length > 0 ? (
                         <Button
@@ -1307,7 +1307,7 @@ export default function Dashboard() {
                     <p className="text-gray-600 mt-2">Loading your jobs...</p>
                   </div>
                 </CardContent>
-              ) : userJobs.length === 0 ? (
+              ) : (userJobs as any[]).length === 0 ? (
                 <CardContent>
                   <div className="text-center py-8">
                     <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -1327,18 +1327,18 @@ export default function Dashboard() {
                   <div className="flex items-center gap-3 p-4 bg-gray-50 border-b">
                     <input
                       type="checkbox"
-                      checked={selectedJobs.length === userJobs.length && userJobs.length > 0}
+                      checked={selectedJobs.length === (userJobs as any[]).length && (userJobs as any[]).length > 0}
                       onChange={selectAllJobs}
                       className="h-4 w-4 text-[#0077B5] focus:ring-[#0077B5] border-gray-300 rounded"
                     />
                     <span className="text-sm font-medium text-gray-700">
-                      Select All ({userJobs.length} jobs)
+                      Select All ({(userJobs as any[]).length} jobs)
                     </span>
                   </div>
 
                   {/* Job List - Simple list inside main card */}
                   <div className="divide-y divide-gray-100">
-                    {userJobs.map((job: any, index: number) => (
+                    {(userJobs as any[]).map((job: any, index: number) => (
                       <div key={job.id} className="flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors">
                         {/* Only show checkbox for draft jobs */}
                         {job.status === 'draft' && (
@@ -1856,10 +1856,11 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </TabsContent>
+          )}
 
-            <>
-              <TabsContent value="manage-all-jobs">
-                <Card>
+          {isAdmin && (
+            <TabsContent value="manage-all-jobs">
+              <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <FileText className="h-5 w-5" />
@@ -1890,7 +1891,9 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
               </TabsContent>
+            )}
 
+            {isAdmin && (
               <TabsContent value="system-users">
                 <Card>
                   <CardHeader>
@@ -1920,8 +1923,7 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
               </TabsContent>
-            </>
-          )}
+            )}
         </Tabs>
       </div>
       <Footer />
