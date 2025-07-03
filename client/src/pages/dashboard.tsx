@@ -708,9 +708,9 @@ export default function Dashboard() {
       pdf.setTextColor(0, 119, 181); // LinkedIn blue
       pdf.text('DIGITALLY SIGNED & AUTHENTICATED', margin, currentY);
       
-      currentY += 18;
+      currentY += 15;
       
-      // Document details
+      // Document details with compact spacing
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(9);
       pdf.setTextColor(0, 0, 0);
@@ -721,10 +721,10 @@ export default function Dashboard() {
       const currentTime = new Date().toLocaleTimeString('en-GB', { hour12: false });
       
       pdf.text(`Document ID: ${documentId}`, margin, currentY);
-      pdf.text(`Digital Signature: ${digitalSignature}`, margin, currentY + 12);
-      pdf.text(`Authenticated: ${currentDate}, ${currentTime}`, margin, currentY + 24);
+      pdf.text(`Digital Signature: ${digitalSignature}`, margin, currentY + 10);
+      pdf.text(`Authenticated: ${currentDate}, ${currentTime}`, margin, currentY + 20);
       
-      currentY += 35;
+      currentY += 25;
       
       // Footer branding
       pdf.setFont('helvetica', 'normal');
