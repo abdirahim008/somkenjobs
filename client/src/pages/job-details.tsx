@@ -120,6 +120,40 @@ export default function JobDetails() {
     });
   };
 
+  // Helper function to create Apply Now button for How to Apply section
+  const createApplyButton = (text: string) => {
+    // Extract URL from the text
+    const urlRegex = /((?:https?:\/\/|www\.)[^\s\)]+)/gi;
+    const urlMatch = text.match(urlRegex);
+    
+    if (urlMatch && urlMatch.length > 0) {
+      let url = urlMatch[0];
+      
+      // Add https:// if it's missing
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = `https://${url}`;
+      }
+      
+      return `
+        <div class="flex flex-col gap-4">
+          <div class="text-sm text-gray-700 leading-relaxed">
+            ${text.replace(urlRegex, '').trim() || 'Click the button below to apply for this position.'}
+          </div>
+          <a href="${url}" target="_blank" rel="noopener noreferrer" 
+             class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 w-full sm:w-auto">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+            </svg>
+            Apply Now
+          </a>
+        </div>
+      `;
+    }
+    
+    // If no URL found, just return the text with conversion
+    return convertUrlsToLinks(text);
+  };
+
   const renderDescription = (job: Job) => {
     if (!job) return null;
     
@@ -574,7 +608,7 @@ export default function JobDetails() {
                       <div
                         className="text-foreground leading-relaxed break-words"
                         dangerouslySetInnerHTML={{
-                          __html: convertUrlsToLinks(cleanText(job.howToApply))
+                          __html: createApplyButton(cleanText(job.howToApply))
                         }}
                       />
                     </div>
