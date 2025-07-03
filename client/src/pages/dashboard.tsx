@@ -700,6 +700,72 @@ export default function Dashboard() {
       pdf.setFont('helvetica', 'italic');
       pdf.text('Note: Please send a remittance advice by email to billing@somkenjobs.com', margin, currentY);
       
+      currentY += 30;
+      
+      // Digital signature and seal section
+      const signatureY = currentY;
+      
+      // Left side - Digital signature
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(12);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text('Digitally Signed by', margin, signatureY);
+      
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(16);
+      pdf.text('SomkenJobs', margin, signatureY + 15);
+      
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+      const signatureId = `SJ${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
+      pdf.text(`Signature ID: ${signatureId}`, margin, signatureY + 30);
+      
+      // Right side - Company seal
+      const sealCenterX = pageWidth - 80;
+      const sealCenterY = signatureY + 25;
+      const sealRadius = 35;
+      
+      // Outer circle (LinkedIn blue)
+      pdf.setDrawColor(0, 119, 181); // LinkedIn blue
+      pdf.setLineWidth(2);
+      pdf.circle(sealCenterX, sealCenterY, sealRadius, 'S');
+      
+      // Inner circle
+      pdf.setLineWidth(1);
+      pdf.circle(sealCenterX, sealCenterY, sealRadius - 8, 'S');
+      
+      // Top curved text "PLATFORM SEAL"
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(8);
+      pdf.setTextColor(0, 119, 181);
+      
+      // Simulate curved text by positioning individual letters
+      const topText = 'PLATFORM SEAL';
+      const angleStep = 0.3;
+      const startAngle = -Math.PI * 0.7;
+      
+      for (let i = 0; i < topText.length; i++) {
+        const angle = startAngle + i * angleStep;
+        const x = sealCenterX + Math.cos(angle) * (sealRadius - 12);
+        const y = sealCenterY + Math.sin(angle) * (sealRadius - 12);
+        pdf.text(topText[i], x - 2, y);
+      }
+      
+      // Center text "SOMKENJOBS"
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(10);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text('SOMKENJOBS', sealCenterX, sealCenterY, { align: 'center' });
+      
+      // Stars on left and right
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(12);
+      pdf.text('★', sealCenterX - 25, sealCenterY + 2);
+      pdf.text('★', sealCenterX + 20, sealCenterY + 2);
+      
+      // Reset text color
+      pdf.setTextColor(0, 0, 0);
+      
       pdf.save(`invoice-${invoice.invoiceNumber}.pdf`);
       
       toast({
