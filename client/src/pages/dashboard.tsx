@@ -99,7 +99,6 @@ export default function Dashboard() {
 
   // Invoice form state
   const [invoiceForm, setInvoiceForm] = useState({
-    title: "",
     description: "",
     pricePerJob: "",
     selectedJobIds: [] as number[],
@@ -346,7 +345,6 @@ export default function Dashboard() {
         description: "Invoice created successfully!",
       });
       setInvoiceForm({
-        title: "",
         description: "",
         pricePerJob: "",
         selectedJobIds: [],
@@ -431,10 +429,10 @@ export default function Dashboard() {
   const handleInvoiceSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!invoiceForm.title || !invoiceForm.pricePerJob || invoiceForm.selectedJobIds.length === 0) {
+    if (!invoiceForm.pricePerJob || invoiceForm.selectedJobIds.length === 0) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields and select at least one job",
+        description: "Please fill in price per job and select at least one job",
         variant: "destructive",
       });
       return;
@@ -442,6 +440,7 @@ export default function Dashboard() {
 
     const invoiceData = {
       ...invoiceForm,
+      title: "Job Posting Services", // Auto-generate title
       selectedJobIds: JSON.stringify(invoiceForm.selectedJobIds),
     };
 
@@ -1506,7 +1505,6 @@ export default function Dashboard() {
                     setShowInvoiceForm(true);
                     setEditingInvoice(null);
                     setInvoiceForm({
-                      title: "",
                       description: "",
                       pricePerJob: "",
                       selectedJobIds: [],
@@ -1539,16 +1537,6 @@ export default function Dashboard() {
                   </CardHeader>
                   <CardContent>
                     <form onSubmit={handleInvoiceSubmit} className="space-y-6">
-                      <div>
-                        <Label htmlFor="invoiceTitle">Invoice Title *</Label>
-                        <Input
-                          id="invoiceTitle"
-                          value={invoiceForm.title}
-                          onChange={(e) => setInvoiceForm({ ...invoiceForm, title: e.target.value })}
-                          placeholder="e.g. Job Posting Services - March 2025"
-                          required
-                        />
-                      </div>
 
                       <div>
                         <Label htmlFor="invoiceDescription">Description</Label>
@@ -1692,7 +1680,6 @@ export default function Dashboard() {
                                 onClick={() => {
                                   setEditingInvoice(invoice);
                                   setInvoiceForm({
-                                    title: invoice.title,
                                     description: invoice.description || "",
                                     pricePerJob: invoice.pricePerJob,
                                     selectedJobIds: JSON.parse(invoice.selectedJobIds || '[]'),

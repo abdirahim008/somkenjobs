@@ -85,7 +85,7 @@ export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   invoiceNumber: text("invoice_number").notNull().unique(),
-  title: text("title").notNull(),
+  title: text("title").default("Job Posting Services"),
   description: text("description"),
   pricePerJob: text("price_per_job").notNull(), // Store as text to avoid decimal issues
   totalJobs: integer("total_jobs").notNull().default(0),
@@ -101,6 +101,7 @@ export const invoices = pgTable("invoices", {
 export const insertInvoiceSchema = createInsertSchema(invoices).omit({
   id: true,
   invoiceNumber: true,
+  title: true,
   totalJobs: true,
   totalAmount: true,
   createdAt: true,
