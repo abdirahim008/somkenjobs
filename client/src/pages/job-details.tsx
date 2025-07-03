@@ -79,7 +79,7 @@ export default function JobDetails() {
       .replace(/\\%/g, '%')           // Fix escaped percent signs
       .replace(/\\\$/g, '$')          // Fix escaped dollar signs
       .replace(/\\#/g, '#')           // Fix escaped hash symbols
-      .replace(/\\\^/g, '^')          // Fix escaped caret symbols
+      .replace(/\^\^/g, '^')          // Fix escaped caret symbols
       .replace(/\\\*/g, '*')          // Fix escaped asterisks (but handle ** bold separately)
       .replace(/\\\+/g, '+')          // Fix escaped plus signs
       .replace(/\\=/g, '=')           // Fix escaped equals signs
@@ -88,6 +88,9 @@ export default function JobDetails() {
       .replace(/\\\|/g, '|')          // Fix escaped pipes
       .replace(/\\`/g, '`')           // Fix escaped backticks
       .replace(/\\~/g, '~')           // Fix escaped tildes
+      .replace(/\*{3,}/g, '**')       // Replace multiple asterisks (3 or more) with just **
+      .replace(/\*\*(\w+)\*\*/g, '<strong>$1</strong>') // Convert **word** to bold
+      .replace(/\*(\w+)\*/g, '<em>$1</em>')             // Convert *word* to italic
       .replace(/^#{1,6}\s*/gm, '')    // Remove markdown headers (# ## ### etc.) at start of lines
       .replace(/^\s*#{1,6}\s*/gm, ''); // Remove markdown headers with leading whitespace
   };
@@ -155,7 +158,7 @@ export default function JobDetails() {
       return `
         <div class="flex flex-col gap-4">
           <div class="text-sm text-gray-700 leading-relaxed">
-            ${text.replace(urlRegex, '').trim() || 'Click the button below to apply for this position.'}
+            ${convertUrlsToLinks(text.replace(urlRegex, '').trim()) || 'Click the button below to apply for this position.'}
           </div>
           <a href="${url}" target="_blank" rel="noopener noreferrer" 
              class="inline-flex items-center justify-center gap-2 px-4 py-2 text-white font-medium rounded-lg transition-colors duration-200 w-auto max-w-fit no-underline"
