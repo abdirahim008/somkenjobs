@@ -633,22 +633,7 @@ export default function JobDetails() {
 
 
 
-              {/* Mobile Apply Button - Show on mobile */}
-              <Card className="mb-6 lg:hidden">
-                <CardContent className="pt-6">
-                  <Button
-                    className="w-full bg-[#0077B5] hover:bg-[#005885] text-white"
-                    onClick={() => {
-                      if (job.url) {
-                        window.open(job.url, '_blank');
-                      }
-                    }}
-                  >
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Apply Now
-                  </Button>
-                </CardContent>
-              </Card>
+
 
               {/* Mobile Related Jobs - Show below main content on mobile */}
               <div className="lg:hidden">
