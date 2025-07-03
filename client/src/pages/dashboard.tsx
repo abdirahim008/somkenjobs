@@ -1665,18 +1665,15 @@ export default function Dashboard() {
                                 <p className="text-sm text-gray-600 mt-2">{invoice.description}</p>
                               )}
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
+                            <div className="flex items-center gap-3">
+                              <button
                                 onClick={() => generatePDF(invoice)}
-                                className="text-[#0077B5] border-[#0077B5] hover:bg-[#0077B5] hover:text-white"
+                                className="text-[#0077B5] hover:text-[#005582] transition-colors p-1"
+                                title="Download PDF"
                               >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
+                                <Download className="h-5 w-5" />
+                              </button>
+                              <button
                                 onClick={() => {
                                   setEditingInvoice(invoice);
                                   setInvoiceForm({
@@ -1686,23 +1683,23 @@ export default function Dashboard() {
                                   });
                                   setShowInvoiceForm(true);
                                 }}
-                                className="text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white"
+                                className="text-blue-600 hover:text-blue-800 transition-colors p-1"
+                                title="Edit Invoice"
                               >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
+                                <Pen className="h-5 w-5" />
+                              </button>
+                              <button
                                 onClick={() => {
                                   if (confirm('Are you sure you want to delete this invoice?')) {
                                     deleteInvoiceMutation.mutate(invoice.id);
                                   }
                                 }}
                                 disabled={deleteInvoiceMutation.isPending}
-                                className="text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
+                                className="text-red-600 hover:text-red-800 transition-colors p-1 disabled:opacity-50"
+                                title="Delete Invoice"
                               >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                                <Trash2 className="h-5 w-5" />
+                              </button>
                             </div>
                           </div>
                         </div>
