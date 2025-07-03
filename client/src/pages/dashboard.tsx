@@ -536,7 +536,14 @@ export default function Dashboard() {
       pdf.text('Professional Job Board Services', margin + 20, currentY + 12);
       pdf.text('Email: info@somkenjobs.com | Web: www.somkenjobs.com', margin + 20, currentY + 16);
       
-      currentY += 45;
+      currentY += 25;
+      
+      // Horizontal line separator below header
+      pdf.setDrawColor(180, 180, 180);
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, currentY, pageWidth - margin, currentY);
+      
+      currentY += 20;
       
       // Sender information (top right)
       pdf.setFontSize(10);
@@ -588,22 +595,28 @@ export default function Dashboard() {
       const tableWidth = pageWidth - 2 * margin;
       const rowHeight = 15;
       
-      // Table header with clean background
+      // Table header with clean background and borders
       pdf.setFillColor(240, 240, 240);
       pdf.rect(margin, currentY, tableWidth, rowHeight, 'F');
-      pdf.setDrawColor(180, 180, 180);
+      pdf.setDrawColor(150, 150, 150);
+      pdf.setLineWidth(0.5);
       pdf.rect(margin, currentY, tableWidth, rowHeight, 'S');
-      
-      // Header text with proper column positioning
-      pdf.setTextColor(0, 0, 0);
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'bold');
       
       // Calculate column widths to fit within table
       const col1Width = tableWidth * 0.5;  // 50% for Item Description
       const col2Width = tableWidth * 0.2;  // 20% for Price
       const col3Width = tableWidth * 0.15; // 15% for Quantity  
       const col4Width = tableWidth * 0.15; // 15% for Subtotal
+      
+      // Header column separators (vertical lines)
+      pdf.line(margin + col1Width, currentY, margin + col1Width, currentY + rowHeight);
+      pdf.line(margin + col1Width + col2Width, currentY, margin + col1Width + col2Width, currentY + rowHeight);
+      pdf.line(margin + col1Width + col2Width + col3Width, currentY, margin + col1Width + col2Width + col3Width, currentY + rowHeight);
+      
+      // Header text with proper column positioning
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
       
       pdf.text('Item Description', margin + 5, currentY + 10);
       pdf.text('Price ($)', margin + col1Width + 5, currentY + 10);
@@ -625,9 +638,15 @@ export default function Dashboard() {
           pdf.rect(margin, currentY, tableWidth, rowHeight, 'F');
         }
         
-        // Row border
-        pdf.setDrawColor(200, 200, 200);
+        // Row border (outer border)
+        pdf.setDrawColor(150, 150, 150);
+        pdf.setLineWidth(0.5);
         pdf.rect(margin, currentY, tableWidth, rowHeight, 'S');
+        
+        // Column separators (vertical lines for this row)
+        pdf.line(margin + col1Width, currentY, margin + col1Width, currentY + rowHeight);
+        pdf.line(margin + col1Width + col2Width, currentY, margin + col1Width + col2Width, currentY + rowHeight);
+        pdf.line(margin + col1Width + col2Width + col3Width, currentY, margin + col1Width + col2Width + col3Width, currentY + rowHeight);
         
         // Row content using the same column positioning as headers
         pdf.setFont('helvetica', 'normal');
@@ -649,7 +668,14 @@ export default function Dashboard() {
       pdf.setFillColor(230, 230, 230);
       pdf.rect(margin, currentY, tableWidth, rowHeight + 3, 'F');
       pdf.setDrawColor(150, 150, 150);
+      pdf.setLineWidth(0.5);
       pdf.rect(margin, currentY, tableWidth, rowHeight + 3, 'S');
+      
+      // Column separators for total row
+      pdf.line(margin + col1Width, currentY, margin + col1Width, currentY + rowHeight + 3);
+      pdf.line(margin + col1Width + col2Width, currentY, margin + col1Width + col2Width, currentY + rowHeight + 3);
+      pdf.line(margin + col1Width + col2Width + col3Width, currentY, margin + col1Width + col2Width + col3Width, currentY + rowHeight + 3);
+      
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(11);
       pdf.text('Total ($)', margin + col1Width + col2Width + 5, currentY + 12);

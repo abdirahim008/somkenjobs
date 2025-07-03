@@ -164,6 +164,7 @@ The application follows a modern full-stack architecture with clear separation b
 - July 3, 2025: Enhanced PDF invoice table with professional borders, centered layout, improved vertical alignment with increased row height (14px), better column separators, and increased font sizes for enhanced readability
 - July 3, 2025: Implemented comprehensive job status workflow with draft/published states - added status field to database schema, created status selector in job creation form with "Save as Draft" and "Publish Job" options, implemented conditional deletion (only draft jobs can be deleted), added status badges to job listings showing "Live" for published and "Draft" for unpublished jobs, and enhanced UI to only show checkboxes for draft jobs
 - July 3, 2025: Redesigned invoice template to match professional reference design - restructured layout with clean header section, large gray "INVOICE" title, two-column invoice details, professional table with alternating row colors and proper borders, clean payment information section, and italic note footer while maintaining company branding
+- July 3, 2025: Enhanced invoice template with professional formatting - added horizontal line separator below header section, implemented complete table borders with column and row separators, improved column positioning using percentage-based widths to ensure all content fits within table boundaries, and maintained consistent border styling throughout
 
 ## User Preferences
 
