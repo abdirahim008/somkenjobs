@@ -92,17 +92,33 @@ export default function JobDetails() {
       .replace(/^\s*#{1,6}\s*/gm, ''); // Remove markdown headers with leading whitespace
   };
 
-  // Helper function to convert URLs to clickable links
+  // Helper function to convert URLs and emails to clickable links
   const convertUrlsToLinks = (text: string) => {
     // Don't process text that already contains HTML links
     if (text.includes('<a ') || text.includes('</a>')) {
       return text;
     }
     
+    let processedText = text;
+    
+    // Enhanced email regex to detect email addresses
+    const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+    
+    // First, replace email addresses
+    processedText = processedText.replace(emailRegex, (email) => {
+      return `<a href="mailto:${email}" class="text-blue-600 hover:text-blue-800 font-medium bg-blue-50 px-2 py-1 rounded-md border border-blue-200 inline-block">${email}</a>`;
+    });
+    
     // Enhanced URL regex to catch various URL formats, but exclude those in parentheses following text
     const urlRegex = /((?:https?:\/\/|www\.)[^\s\)]+)/gi;
     
-    return text.replace(urlRegex, (url) => {
+    // Then, replace URLs (but avoid replacing emails that are already processed)
+    processedText = processedText.replace(urlRegex, (url) => {
+      // Skip if this URL is already part of an email link
+      if (url.includes('mailto:')) {
+        return url;
+      }
+      
       let href = url;
       let displayText = url;
       
@@ -118,6 +134,8 @@ export default function JobDetails() {
       
       return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline break-all font-medium">${displayText}</a>`;
     });
+    
+    return processedText;
   };
 
   // Helper function to create Apply Now button for How to Apply section
