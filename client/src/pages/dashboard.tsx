@@ -724,13 +724,12 @@ export default function Dashboard() {
       pdf.text(`Digital Signature: ${digitalSignature}`, margin, currentY + 8);
       pdf.text(`Authenticated: ${currentDate}, ${currentTime}`, margin, currentY + 16);
       
-      currentY += 20;
-      
-      // Footer branding
+      // Footer branding at bottom of page
+      const footerY = pageHeight - 20; // 20mm from bottom
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(10);
       pdf.setTextColor(150, 150, 150);
-      pdf.text('Somken Jobs - Professional Invoice', margin, currentY);
+      pdf.text('Somken Jobs - Professional Invoice', margin, footerY);
       
       pdf.save(`invoice-${invoice.invoiceNumber}.pdf`);
       
