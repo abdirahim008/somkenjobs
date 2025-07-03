@@ -430,24 +430,7 @@ export default function JobDetails() {
                 </Card>
               )}
 
-              {/* How to Apply Card */}
-              {job.howToApply && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">How to Apply</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="prose prose-sm max-w-none">
-                      <div
-                        className="text-sm text-foreground leading-relaxed break-words"
-                        dangerouslySetInnerHTML={{
-                          __html: convertUrlsToLinks(cleanText(job.howToApply))
-                        }}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+
 
               {/* Apply Button */}
               <Card>
@@ -580,9 +563,9 @@ export default function JobDetails() {
                 </Card>
               )}
 
-              {/* Mobile How to Apply - Show on mobile */}
+              {/* How to Apply */}
               {job.howToApply && (
-                <Card className="mb-6 lg:hidden">
+                <Card className="mb-6">
                   <CardHeader>
                     <CardTitle>How to Apply</CardTitle>
                   </CardHeader>
@@ -598,6 +581,8 @@ export default function JobDetails() {
                   </CardContent>
                 </Card>
               )}
+
+
 
               {/* Mobile Apply Button - Show on mobile */}
               <Card className="mb-6 lg:hidden">
