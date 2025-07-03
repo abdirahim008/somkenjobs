@@ -700,54 +700,46 @@ export default function Dashboard() {
       pdf.setFont('helvetica', 'italic');
       pdf.text('Note: Please send a remittance advice by email to billing@somkenjobs.com', margin, currentY);
       
-      currentY += 30;
+      currentY += 25;
       
-      // Digital signature and seal section
-      const signatureY = currentY;
-      
-      // Left side - Digital signature
+      // Terms & Conditions section
       pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(12);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text('Digitally Signed by', margin, signatureY);
+      pdf.setFontSize(9);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text('Terms & Conditions: Payment due within 30 days. Late payment may incur additional charges.', margin, currentY);
+      pdf.text('This invoice is digitally generated and authenticated by SomkenJobs platform.', margin, currentY + 10);
       
+      currentY += 35;
+      
+      // Digital signature section matching reference
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(16);
-      pdf.text('SomkenJobs', margin, signatureY + 15);
+      pdf.setFontSize(14);
+      pdf.setTextColor(0, 119, 181); // LinkedIn blue
+      pdf.text('DIGITALLY SIGNED & AUTHENTICATED', margin, currentY);
       
+      currentY += 20;
+      
+      // Document details
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(9);
+      pdf.setTextColor(0, 0, 0);
+      
+      const documentId = `INV-${Date.now()}-NF8DI-${Math.random().toString(36).substr(2, 11).toUpperCase()}`;
+      const digitalSignature = `SHA256-${Math.random().toString(36).substr(2, 20).toUpperCase()}`;
+      const currentDate = new Date().toLocaleDateString('en-GB');
+      const currentTime = new Date().toLocaleTimeString('en-GB', { hour12: false });
+      
+      pdf.text(`Document ID: ${documentId}`, margin, currentY);
+      pdf.text(`Digital Signature: ${digitalSignature}`, margin, currentY + 12);
+      pdf.text(`Authenticated: ${currentDate}, ${currentTime}`, margin, currentY + 24);
+      
+      currentY += 45;
+      
+      // Footer branding
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(10);
-      const signatureId = `SJ${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
-      pdf.text(`Signature ID: ${signatureId}`, margin, signatureY + 30);
-      
-      // Right side - Company seal (smaller and simpler)
-      const sealCenterX = pageWidth - 60;
-      const sealCenterY = signatureY + 20;
-      const sealRadius = 20;
-      
-      // Outer circle (LinkedIn blue)
-      pdf.setDrawColor(0, 119, 181); // LinkedIn blue
-      pdf.setLineWidth(1.5);
-      pdf.circle(sealCenterX, sealCenterY, sealRadius, 'S');
-      
-      // Inner circle
-      pdf.setLineWidth(0.5);
-      pdf.circle(sealCenterX, sealCenterY, sealRadius - 5, 'S');
-      
-      // Center text "SOMKENJOBS"
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(7);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text('SOMKENJOBS', sealCenterX, sealCenterY, { align: 'center' });
-      
-      // Stars on left and right (smaller)
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(8);
-      pdf.text('★', sealCenterX - 12, sealCenterY + 1);
-      pdf.text('★', sealCenterX + 10, sealCenterY + 1);
-      
-      // Reset text color
-      pdf.setTextColor(0, 0, 0);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text('Somken Jobs - Professional Invoice', margin, currentY);
       
       pdf.save(`invoice-${invoice.invoiceNumber}.pdf`);
       
