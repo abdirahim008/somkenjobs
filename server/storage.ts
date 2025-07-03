@@ -502,8 +502,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createInvoice(insertInvoice: InsertInvoice): Promise<Invoice> {
-    // Generate unique invoice number
-    const invoiceNumber = `INV-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+    // Generate simple invoice number
+    const now = new Date();
+    const year = now.getFullYear().toString().slice(-2); // Last 2 digits of year
+    const randomNum = Math.floor(Math.random() * 90000) + 10000; // 5-digit random number
+    const invoiceNumber = `INV-${year}${randomNum}`;
     
     // Parse selected job IDs and calculate totals
     const selectedJobIds = JSON.parse(insertInvoice.selectedJobIds || '[]');
