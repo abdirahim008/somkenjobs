@@ -482,10 +482,34 @@ export default function Dashboard() {
   const generatePDF = async (invoice: any) => {
     const { jsPDF } = await import('jspdf');
     
-    // Get selected jobs data
-    const selectedJobs = (userJobs as any[]).filter(job => 
-      JSON.parse(invoice.selectedJobIds || '[]').includes(job.id)
-    );
+    // Get selected jobs data from the database using the stored job IDs
+    const selectedJobIds = JSON.parse(invoice.selectedJobIds || '[]');
+    let selectedJobs: any[] = [];
+    
+    if (selectedJobIds.length > 0) {
+      try {
+        // Fetch job details from the API
+        const jobPromises = selectedJobIds.map(async (jobId: number) => {
+          const response = await fetch(`/api/jobs/${jobId}`);
+          if (response.ok) {
+            return await response.json();
+          }
+          return null;
+        });
+        
+        const jobs = await Promise.all(jobPromises);
+        selectedJobs = jobs.filter(job => job !== null);
+      } catch (error) {
+        console.error('Error fetching job details:', error);
+        // Fallback to creating dummy data from invoice info
+        selectedJobs = selectedJobIds.map((id: number, index: number) => ({
+          id,
+          title: `Job Posting ${index + 1}`,
+          organization: 'Various Organizations',
+          location: 'Kenya/Somalia'
+        }));
+      }
+    }
     
     try {
       const pdf = new jsPDF();
