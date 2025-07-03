@@ -621,7 +621,7 @@ export default function Dashboard() {
       pdf.text('Item Description', margin + 5, currentY + 6);
       pdf.text('Price ($)', margin + col1Width + 5, currentY + 6);
       pdf.text('Quantity', margin + col1Width + col2Width + 5, currentY + 6);
-      pdf.text('Subtotal ($)', margin + col1Width + col2Width + col3Width + 5, currentY + 6);
+      pdf.text('Subtotal ($)', margin + col1Width + col2Width + col3Width + col4Width - 5, currentY + 6, { align: 'right' });
       
       currentY += rowHeight;
       
@@ -659,7 +659,7 @@ export default function Dashboard() {
         pdf.text(jobTitle, margin + 5, currentY + 6);
         pdf.text(pricePerJob.toFixed(2), margin + col1Width + 5, currentY + 6);
         pdf.text('1', margin + col1Width + col2Width + 5, currentY + 6);
-        pdf.text(subtotal.toFixed(2), margin + col1Width + col2Width + col3Width + 5, currentY + 6);
+        pdf.text(subtotal.toFixed(2), margin + col1Width + col2Width + col3Width + col4Width - 5, currentY + 6, { align: 'right' });
         
         currentY += rowHeight;
       });
@@ -679,7 +679,7 @@ export default function Dashboard() {
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(11);
       pdf.text('Total ($)', margin + col1Width + col2Width + 5, currentY + 6);
-      pdf.text(totalAmount.toFixed(2), margin + col1Width + col2Width + col3Width + 5, currentY + 6);
+      pdf.text(totalAmount.toFixed(2), margin + col1Width + col2Width + col3Width + col4Width - 5, currentY + 6, { align: 'right' });
       
       currentY += 30;
       
