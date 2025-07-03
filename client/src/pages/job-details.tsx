@@ -88,9 +88,12 @@ export default function JobDetails() {
       .replace(/\\\|/g, '|')          // Fix escaped pipes
       .replace(/\\`/g, '`')           // Fix escaped backticks
       .replace(/\\~/g, '~')           // Fix escaped tildes
-      .replace(/\*{3,}/g, '**')       // Replace multiple asterisks (3 or more) with just **
-      .replace(/\*\*(\w+)\*\*/g, '<strong>$1</strong>') // Convert **word** to bold
-      .replace(/\*(\w+)\*/g, '<em>$1</em>')             // Convert *word* to italic
+      .replace(/\*{4,}/g, '**')       // Replace 4 or more asterisks with just **
+      .replace(/\*{3}/g, '**')        // Replace triple asterisks with double
+      .replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>') // Convert **text** to bold (non-greedy)
+      .replace(/\*([^*\n]+?)\*/g, '<em>$1</em>')             // Convert *text* to italic (non-greedy)
+      .replace(/\*\*/g, '')           // Remove any remaining double asterisks
+      .replace(/\*+/g, '')            // Remove any remaining single or multiple asterisks
       .replace(/^#{1,6}\s*/gm, '')    // Remove markdown headers (# ## ### etc.) at start of lines
       .replace(/^\s*#{1,6}\s*/gm, ''); // Remove markdown headers with leading whitespace
   };
