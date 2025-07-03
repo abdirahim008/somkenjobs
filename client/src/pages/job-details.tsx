@@ -383,19 +383,27 @@ export default function JobDetails() {
                           <h4 className="font-medium text-sm mb-2 leading-tight">
                             <Button
                               variant="link"
-                              className="p-0 h-auto text-left font-medium text-blue-600 hover:text-blue-800"
+                              className="p-0 h-auto text-left font-medium text-blue-600 hover:text-blue-800 break-words hyphens-auto"
                               onClick={() => {
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                                 setLocation(`/jobs/${relatedJob.id}`);
+                              }}
+                              style={{ 
+                                wordBreak: 'break-word',
+                                overflowWrap: 'break-word',
+                                whiteSpace: 'normal',
+                                textAlign: 'left',
+                                display: 'block',
+                                width: '100%'
                               }}
                             >
                               {relatedJob.title}
                             </Button>
                           </h4>
-                          <p className="text-xs text-muted-foreground mb-1">
+                          <p className="text-xs text-muted-foreground mb-1 break-words">
                             {relatedJob.organization}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground break-words">
                             {relatedJob.location}, {relatedJob.country}
                           </p>
                           {relatedJob.deadline && (
@@ -622,19 +630,27 @@ export default function JobDetails() {
                             <h4 className="font-medium text-sm mb-2 leading-tight">
                               <Button
                                 variant="link"
-                                className="p-0 h-auto text-left font-medium text-blue-600 hover:text-blue-800"
+                                className="p-0 h-auto text-left font-medium text-blue-600 hover:text-blue-800 break-words hyphens-auto"
                                 onClick={() => {
                                   window.scrollTo({ top: 0, behavior: 'smooth' });
                                   setLocation(`/jobs/${relatedJob.id}`);
+                                }}
+                                style={{ 
+                                  wordBreak: 'break-word',
+                                  overflowWrap: 'break-word',
+                                  whiteSpace: 'normal',
+                                  textAlign: 'left',
+                                  display: 'block',
+                                  width: '100%'
                                 }}
                               >
                                 {relatedJob.title}
                               </Button>
                             </h4>
-                            <p className="text-xs text-muted-foreground mb-1">
+                            <p className="text-xs text-muted-foreground mb-1 break-words">
                               {relatedJob.organization}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground break-words">
                               {relatedJob.location}, {relatedJob.country}
                             </p>
                           </div>
