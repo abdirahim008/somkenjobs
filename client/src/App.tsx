@@ -9,6 +9,9 @@ import About from "@/pages/about";
 import Contact from "@/pages/contact";
 import Organizations from "@/pages/organizations";
 import CareerResources from "@/pages/career-resources";
+import HelpCenter from "@/pages/help-center";
+import PrivacyPolicy from "@/pages/privacy-policy";
+import TermsOfService from "@/pages/terms-of-service";
 import Dashboard from "@/pages/dashboard";
 import NotFound from "@/pages/not-found";
 
@@ -21,6 +24,9 @@ function Router() {
       <Route path="/contact" component={Contact} />
       <Route path="/organizations" component={Organizations} />
       <Route path="/career-resources" component={CareerResources} />
+      <Route path="/help-center" component={HelpCenter} />
+      <Route path="/privacy-policy" component={PrivacyPolicy} />
+      <Route path="/terms-of-service" component={TermsOfService} />
       <Route path="/dashboard" component={Dashboard} />
       <Route component={NotFound} />
     </Switch>

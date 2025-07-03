@@ -171,6 +171,7 @@ The application follows a modern full-stack architecture with clear separation b
 - July 3, 2025: Enhanced invoice UI design - removed square button borders around download, edit, and delete icons for cleaner minimalist appearance, changed edit icon from generic edit to simple pen icon, increased icon sizes to h-5 w-5 for better visibility, and added smooth color transitions on hover
 - July 3, 2025: Created comprehensive Career Resources page with high-quality content including detailed CV writing guide with humanitarian sector best practices, interview preparation strategies with behavioral and technical questions, cover letter excellence framework, career development pathways and networking strategies, professional certifications guide, and additional learning resources - fully integrated with navigation and footer links
 - July 3, 2025: Optimized Career Resources page for SEO with comprehensive meta tags (title, description, keywords), Open Graph tags for social media sharing, Twitter Cards, JSON-LD structured data for search engines, canonical URLs, and targeted keywords for humanitarian careers, CV writing, and professional development to improve search engine visibility
+- July 3, 2025: Created comprehensive Support section with dedicated Help Center, Privacy Policy, and Terms of Service pages - added FAQ section with common questions, contact information, support hours, detailed privacy protection policies, legal terms and conditions, and full integration with footer navigation for complete user support experience
 
 ## User Preferences
 
