@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,6 +6,118 @@ import { Badge } from "@/components/ui/badge";
 import { FileText, Users, Target, BookOpen, CheckCircle, AlertCircle, Star, Download, Clock } from "lucide-react";
 
 export default function CareerResources() {
+  useEffect(() => {
+    // Set page title and meta description
+    document.title = "Career Resources - CV Writing, Interview Tips & Career Development | Somken Jobs";
+    
+    // Update meta description
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute('content', 'Comprehensive career resources for humanitarian professionals. Expert guides on CV writing, interview preparation, cover letters, and career development in Kenya and Somalia humanitarian sector.');
+    } else {
+      const meta = document.createElement('meta');
+      meta.name = 'description';
+      meta.content = 'Comprehensive career resources for humanitarian professionals. Expert guides on CV writing, interview preparation, cover letters, and career development in Kenya and Somalia humanitarian sector.';
+      document.head.appendChild(meta);
+    }
+
+    // Add keywords meta tag
+    const metaKeywords = document.querySelector('meta[name="keywords"]');
+    if (metaKeywords) {
+      metaKeywords.setAttribute('content', 'humanitarian careers, CV writing guide, interview preparation, career development, NGO jobs, Kenya jobs, Somalia jobs, humanitarian sector, career resources, professional development');
+    } else {
+      const keywords = document.createElement('meta');
+      keywords.name = 'keywords';
+      keywords.content = 'humanitarian careers, CV writing guide, interview preparation, career development, NGO jobs, Kenya jobs, Somalia jobs, humanitarian sector, career resources, professional development';
+      document.head.appendChild(keywords);
+    }
+
+    // Add Open Graph tags
+    const updateOrCreateOGTag = (property: string, content: string) => {
+      let tag = document.querySelector(`meta[property="${property}"]`);
+      if (tag) {
+        tag.setAttribute('content', content);
+      } else {
+        tag = document.createElement('meta');
+        tag.setAttribute('property', property);
+        tag.setAttribute('content', content);
+        document.head.appendChild(tag);
+      }
+    };
+
+    updateOrCreateOGTag('og:title', 'Career Resources - CV Writing, Interview Tips & Career Development | Somken Jobs');
+    updateOrCreateOGTag('og:description', 'Comprehensive career resources for humanitarian professionals. Expert guides on CV writing, interview preparation, cover letters, and career development.');
+    updateOrCreateOGTag('og:type', 'article');
+    updateOrCreateOGTag('og:url', window.location.href);
+    updateOrCreateOGTag('og:site_name', 'Somken Jobs');
+
+    // Add Twitter Card tags
+    const updateOrCreateTwitterTag = (name: string, content: string) => {
+      let tag = document.querySelector(`meta[name="${name}"]`);
+      if (tag) {
+        tag.setAttribute('content', content);
+      } else {
+        tag = document.createElement('meta');
+        tag.setAttribute('name', name);
+        tag.setAttribute('content', content);
+        document.head.appendChild(tag);
+      }
+    };
+
+    updateOrCreateTwitterTag('twitter:card', 'summary_large_image');
+    updateOrCreateTwitterTag('twitter:title', 'Career Resources - CV Writing, Interview Tips & Career Development');
+    updateOrCreateTwitterTag('twitter:description', 'Comprehensive career resources for humanitarian professionals. Expert guides on CV writing, interview preparation, cover letters, and career development.');
+
+    // Add structured data (JSON-LD)
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "Career Resources for Humanitarian Professionals",
+      "description": "Comprehensive career resources including CV writing guides, interview preparation, cover letters, and career development for humanitarian sector professionals.",
+      "author": {
+        "@type": "Organization",
+        "name": "Somken Jobs"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Somken Jobs",
+        "url": "https://somkenjobs.com"
+      },
+      "datePublished": "2025-07-03",
+      "dateModified": "2025-07-03",
+      "articleSection": "Career Development",
+      "keywords": ["humanitarian careers", "CV writing", "interview preparation", "career development", "NGO jobs"],
+      "url": window.location.href,
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": window.location.href
+      }
+    };
+
+    // Remove existing structured data script if any
+    const existingScript = document.querySelector('script[type="application/ld+json"]');
+    if (existingScript) {
+      existingScript.remove();
+    }
+
+    // Add new structured data
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify(structuredData);
+    document.head.appendChild(script);
+
+    // Add canonical URL
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (canonical) {
+      canonical.setAttribute('href', window.location.href);
+    } else {
+      canonical = document.createElement('link');
+      canonical.setAttribute('rel', 'canonical');
+      canonical.setAttribute('href', window.location.href);
+      document.head.appendChild(canonical);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
