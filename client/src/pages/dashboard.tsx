@@ -1856,6 +1856,71 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <>
+              <TabsContent value="manage-all-jobs">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      All Jobs in System
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {allJobsLoading ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0077B5] mx-auto"></div>
+                        <p className="text-gray-600 mt-2">Loading jobs...</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {(allJobs as any[])?.map((job: any) => (
+                          <div 
+                            key={job.id} 
+                            className="p-3 border rounded hover:bg-blue-50 cursor-pointer"
+                            onClick={() => window.open(`/jobs/${job.id}`, '_blank')}
+                          >
+                            <h3 className="text-blue-600 hover:text-blue-800 font-medium">
+                              {job.title}
+                            </h3>
+                          </div>
+                        )) || <p className="text-gray-500">No jobs found</p>}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="system-users">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      All System Users
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {allUsersLoading ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0077B5] mx-auto"></div>
+                        <p className="text-gray-600 mt-2">Loading users...</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {(allUsers as any[])?.map((user: any) => (
+                          <div key={user.id} className="p-3 border rounded">
+                            <h3 className="font-medium">
+                              {user.firstName} {user.lastName}
+                            </h3>
+                            <p className="text-sm text-gray-600">{user.email}</p>
+                          </div>
+                        )) || <p className="text-gray-500">No users found</p>}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </>
           )}
         </Tabs>
       </div>
