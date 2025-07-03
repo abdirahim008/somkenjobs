@@ -932,46 +932,107 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          {/* First row of tabs - Main functions */}
-          <div className="space-y-3">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="my-jobs" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                My Jobs
-              </TabsTrigger>
-              <TabsTrigger value="create-job" className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Create Job
-              </TabsTrigger>
-              <TabsTrigger value="invoices" className="flex items-center gap-2">
-                <Receipt className="h-4 w-4" />
-                Invoices
-              </TabsTrigger>
-              <TabsTrigger value="profile" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Profile
-              </TabsTrigger>
-            </TabsList>
-            
-            {/* Second row - Admin functions */}
-            {isAdmin && (
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="manage-users" className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  User Approvals
-                </TabsTrigger>
-                <TabsTrigger value="manage-all-jobs" className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  All Jobs
-                </TabsTrigger>
-                <TabsTrigger value="system-users" className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  All Users
-                </TabsTrigger>
-              </TabsList>
-            )}
+        <div className="flex gap-6">
+          {/* Left Sidebar Navigation */}
+          <div className="w-64 bg-white rounded-lg shadow-sm p-6 h-fit">
+            <nav className="space-y-2">
+              {/* Main Navigation */}
+              <div className="space-y-1">
+                <button
+                  onClick={() => setActiveTab("my-jobs")}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
+                    activeTab === "my-jobs"
+                      ? "bg-[#0077B5] text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <FileText className="h-5 w-5" />
+                  My Jobs
+                </button>
+                <button
+                  onClick={() => setActiveTab("create-job")}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
+                    activeTab === "create-job"
+                      ? "bg-[#0077B5] text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <Plus className="h-5 w-5" />
+                  Create Job
+                </button>
+                <button
+                  onClick={() => setActiveTab("invoices")}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
+                    activeTab === "invoices"
+                      ? "bg-[#0077B5] text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <Receipt className="h-5 w-5" />
+                  Invoices
+                </button>
+                <button
+                  onClick={() => setActiveTab("profile")}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
+                    activeTab === "profile"
+                      ? "bg-[#0077B5] text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <Users className="h-5 w-5" />
+                  Profile
+                </button>
+              </div>
+
+              {/* Admin Navigation */}
+              {isAdmin && (
+                <div className="border-t pt-4 mt-4">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-4">
+                    Admin Functions
+                  </p>
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => setActiveTab("manage-users")}
+                      className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
+                        activeTab === "manage-users"
+                          ? "bg-[#0077B5] text-white"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <CheckCircle className="h-5 w-5" />
+                      User Approvals
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("manage-all-jobs")}
+                      className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
+                        activeTab === "manage-all-jobs"
+                          ? "bg-[#0077B5] text-white"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <FileText className="h-5 w-5" />
+                      All Jobs
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("system-users")}
+                      className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
+                        activeTab === "system-users"
+                          ? "bg-[#0077B5] text-white"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <Users className="h-5 w-5" />
+                      All Users
+                    </button>
+                  </div>
+                </div>
+              )}
+            </nav>
           </div>
+
+          {/* Main Content */}
+          <div className="flex-1">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
 
           <TabsContent value="create-job">
             <Card>
@@ -1924,7 +1985,9 @@ export default function Dashboard() {
                 </Card>
               </TabsContent>
             )}
-        </Tabs>
+            </Tabs>
+          </div>
+        </div>
       </div>
       <Footer />
     </div>
