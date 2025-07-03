@@ -700,17 +700,17 @@ export default function Dashboard() {
       pdf.setFont('helvetica', 'italic');
       pdf.text('Note: Please send a remittance advice by email to billing@somkenjobs.com', margin, currentY);
       
-      currentY += 20;
+      currentY += 15;
       
-      // Digital signature section matching reference (moved up)
+      // Digital signature section matching reference (very compact)
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(14);
       pdf.setTextColor(0, 119, 181); // LinkedIn blue
       pdf.text('DIGITALLY SIGNED & AUTHENTICATED', margin, currentY);
       
-      currentY += 15;
+      currentY += 10;
       
-      // Document details with compact spacing
+      // Document details with very compact spacing
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(9);
       pdf.setTextColor(0, 0, 0);
@@ -721,10 +721,10 @@ export default function Dashboard() {
       const currentTime = new Date().toLocaleTimeString('en-GB', { hour12: false });
       
       pdf.text(`Document ID: ${documentId}`, margin, currentY);
-      pdf.text(`Digital Signature: ${digitalSignature}`, margin, currentY + 10);
-      pdf.text(`Authenticated: ${currentDate}, ${currentTime}`, margin, currentY + 20);
+      pdf.text(`Digital Signature: ${digitalSignature}`, margin, currentY + 8);
+      pdf.text(`Authenticated: ${currentDate}, ${currentTime}`, margin, currentY + 16);
       
-      currentY += 25;
+      currentY += 20;
       
       // Footer branding
       pdf.setFont('helvetica', 'normal');
