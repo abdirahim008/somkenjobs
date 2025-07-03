@@ -594,14 +594,21 @@ export default function Dashboard() {
       pdf.setDrawColor(180, 180, 180);
       pdf.rect(margin, currentY, tableWidth, rowHeight, 'S');
       
-      // Header text
+      // Header text with proper column positioning
       pdf.setTextColor(0, 0, 0);
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
+      
+      // Calculate column widths to fit within table
+      const col1Width = tableWidth * 0.5;  // 50% for Item Description
+      const col2Width = tableWidth * 0.2;  // 20% for Price
+      const col3Width = tableWidth * 0.15; // 15% for Quantity  
+      const col4Width = tableWidth * 0.15; // 15% for Subtotal
+      
       pdf.text('Item Description', margin + 5, currentY + 10);
-      pdf.text('Price ($)', margin + 105, currentY + 10);
-      pdf.text('Quantity', margin + 135, currentY + 10);
-      pdf.text('Subtotal ($)', margin + 165, currentY + 10);
+      pdf.text('Price ($)', margin + col1Width + 5, currentY + 10);
+      pdf.text('Quantity', margin + col1Width + col2Width + 5, currentY + 10);
+      pdf.text('Subtotal ($)', margin + col1Width + col2Width + col3Width + 5, currentY + 10);
       
       currentY += rowHeight;
       
@@ -622,13 +629,18 @@ export default function Dashboard() {
         pdf.setDrawColor(200, 200, 200);
         pdf.rect(margin, currentY, tableWidth, rowHeight, 'S');
         
-        // Row content
+        // Row content using the same column positioning as headers
         pdf.setFont('helvetica', 'normal');
         pdf.setTextColor(0, 0, 0);
-        pdf.text(job.title.length > 50 ? job.title.substring(0, 50) + '...' : job.title, margin + 5, currentY + 10);
-        pdf.text(pricePerJob.toFixed(2), margin + 105, currentY + 10);
-        pdf.text('1', margin + 135, currentY + 10);
-        pdf.text(subtotal.toFixed(2), margin + 165, currentY + 10);
+        
+        // Truncate job title to fit in column
+        const maxTitleLength = Math.floor(col1Width / 3); // Approximate character width
+        const jobTitle = job.title.length > maxTitleLength ? job.title.substring(0, maxTitleLength) + '...' : job.title;
+        
+        pdf.text(jobTitle, margin + 5, currentY + 10);
+        pdf.text(pricePerJob.toFixed(2), margin + col1Width + 5, currentY + 10);
+        pdf.text('1', margin + col1Width + col2Width + 5, currentY + 10);
+        pdf.text(subtotal.toFixed(2), margin + col1Width + col2Width + col3Width + 5, currentY + 10);
         
         currentY += rowHeight;
       });
@@ -640,8 +652,8 @@ export default function Dashboard() {
       pdf.rect(margin, currentY, tableWidth, rowHeight + 3, 'S');
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(11);
-      pdf.text('Total ($)', margin + 135, currentY + 12);
-      pdf.text(totalAmount.toFixed(2), margin + 165, currentY + 12);
+      pdf.text('Total ($)', margin + col1Width + col2Width + 5, currentY + 12);
+      pdf.text(totalAmount.toFixed(2), margin + col1Width + col2Width + col3Width + 5, currentY + 12);
       
       currentY += 30;
       
