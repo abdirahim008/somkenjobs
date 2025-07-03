@@ -524,10 +524,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user!.id;
       
+      // Get selected job IDs to extract organization names
+      const selectedJobIds = JSON.parse(req.body.selectedJobIds || "[]");
+      let clientOrganization = "Humanitarian Organization";
+      
+      if (selectedJobIds.length > 0) {
+        // Get the first job to extract organization name
+        const firstJob = await storage.getJobById(selectedJobIds[0]);
+        if (firstJob && firstJob.organization) {
+          clientOrganization = firstJob.organization;
+        }
+      }
+      
       const invoiceData = {
         ...req.body,
         userId,
-        status: req.body.status || "draft"
+        status: req.body.status || "draft",
+        clientOrganization
       };
       
       const invoice = await storage.createInvoice(invoiceData);
