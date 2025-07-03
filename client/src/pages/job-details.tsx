@@ -140,7 +140,7 @@ export default function JobDetails() {
             ${text.replace(urlRegex, '').trim() || 'Click the button below to apply for this position.'}
           </div>
           <a href="${url}" target="_blank" rel="noopener noreferrer" 
-             class="inline-flex items-center justify-center gap-2 px-6 py-3 text-white font-medium rounded-lg transition-colors duration-200 w-auto max-w-xs no-underline"
+             class="inline-flex items-center justify-center gap-2 px-4 py-2 text-white font-medium rounded-lg transition-colors duration-200 w-auto max-w-fit no-underline"
              style="background-color: #0077B5; border: none; text-decoration: none;"
              onmouseover="this.style.backgroundColor='#005885'"
              onmouseout="this.style.backgroundColor='#0077B5'">
