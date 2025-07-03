@@ -933,25 +933,30 @@ export default function Dashboard() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-7' : 'grid-cols-4'}`}>
-            <TabsTrigger value="my-jobs" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              My Jobs
-            </TabsTrigger>
-            <TabsTrigger value="create-job" className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Create Job
-            </TabsTrigger>
-            <TabsTrigger value="invoices" className="flex items-center gap-2">
-              <Receipt className="h-4 w-4" />
-              Invoices
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Profile
-            </TabsTrigger>
+          {/* First row of tabs - Main functions */}
+          <div className="space-y-3">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="my-jobs" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                My Jobs
+              </TabsTrigger>
+              <TabsTrigger value="create-job" className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Create Job
+              </TabsTrigger>
+              <TabsTrigger value="invoices" className="flex items-center gap-2">
+                <Receipt className="h-4 w-4" />
+                Invoices
+              </TabsTrigger>
+              <TabsTrigger value="profile" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Profile
+              </TabsTrigger>
+            </TabsList>
+            
+            {/* Second row - Admin functions */}
             {isAdmin && (
-              <>
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="manage-users" className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   User Approvals
@@ -964,9 +969,9 @@ export default function Dashboard() {
                   <Users className="h-4 w-4" />
                   All Users
                 </TabsTrigger>
-              </>
+              </TabsList>
             )}
-          </TabsList>
+          </div>
 
           <TabsContent value="create-job">
             <Card>
@@ -1851,8 +1856,6 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </TabsContent>
-
-
           )}
         </Tabs>
       </div>
