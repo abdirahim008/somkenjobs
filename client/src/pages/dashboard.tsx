@@ -914,8 +914,8 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
+      <div className="container mx-auto px-4 lg:px-8 py-4 lg:py-8">
+        <div className="mb-4 lg:mb-8">
           <div className="flex items-center gap-4 mb-4">
             <Link href="/">
               <Button variant="outline" size="sm">
@@ -932,97 +932,97 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="flex gap-6">
-          {/* Left Sidebar Navigation */}
-          <div className="w-64 bg-white rounded-lg shadow-sm p-6 h-fit">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Left Sidebar Navigation - Hidden on mobile, stacked on mobile */}
+          <div className="w-full lg:w-64 bg-white rounded-lg shadow-sm p-4 lg:p-6 h-fit">
             <nav className="space-y-2">
               {/* Main Navigation */}
-              <div className="space-y-1">
+              <div className="grid grid-cols-2 lg:grid-cols-1 gap-1 lg:space-y-1">
                 <button
                   onClick={() => setActiveTab("my-jobs")}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
+                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-lg transition-colors flex items-center gap-2 lg:gap-3 text-sm lg:text-base ${
                     activeTab === "my-jobs"
                       ? "bg-[#0077B5] text-white"
                       : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
-                  <FileText className="h-5 w-5" />
-                  My Jobs
+                  <FileText className="h-4 w-4 lg:h-5 lg:w-5 flex-shrink-0" />
+                  <span className="truncate">My Jobs</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("create-job")}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
+                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-lg transition-colors flex items-center gap-2 lg:gap-3 text-sm lg:text-base ${
                     activeTab === "create-job"
                       ? "bg-[#0077B5] text-white"
                       : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
-                  <Plus className="h-5 w-5" />
-                  Create Job
+                  <Plus className="h-4 w-4 lg:h-5 lg:w-5 flex-shrink-0" />
+                  <span className="truncate">Create Job</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("invoices")}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
+                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-lg transition-colors flex items-center gap-2 lg:gap-3 text-sm lg:text-base ${
                     activeTab === "invoices"
                       ? "bg-[#0077B5] text-white"
                       : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
-                  <Receipt className="h-5 w-5" />
-                  Invoices
+                  <Receipt className="h-4 w-4 lg:h-5 lg:w-5 flex-shrink-0" />
+                  <span className="truncate">Invoices</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("profile")}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
+                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-lg transition-colors flex items-center gap-2 lg:gap-3 text-sm lg:text-base ${
                     activeTab === "profile"
                       ? "bg-[#0077B5] text-white"
                       : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
-                  <Users className="h-5 w-5" />
-                  Profile
+                  <Users className="h-4 w-4 lg:h-5 lg:w-5 flex-shrink-0" />
+                  <span className="truncate">Profile</span>
                 </button>
               </div>
 
               {/* Admin Navigation */}
               {isAdmin && (
                 <div className="border-t pt-4 mt-4">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-4">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-2 lg:px-4">
                     Admin Functions
                   </p>
-                  <div className="space-y-1">
+                  <div className="grid grid-cols-1 lg:grid-cols-1 gap-1 lg:space-y-1">
                     <button
                       onClick={() => setActiveTab("manage-users")}
-                      className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
+                      className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-lg transition-colors flex items-center gap-2 lg:gap-3 text-sm lg:text-base ${
                         activeTab === "manage-users"
                           ? "bg-[#0077B5] text-white"
                           : "text-gray-700 hover:bg-gray-100"
                       }`}
                     >
-                      <CheckCircle className="h-5 w-5" />
-                      User Approvals
+                      <CheckCircle className="h-4 w-4 lg:h-5 lg:w-5 flex-shrink-0" />
+                      <span className="truncate">User Approvals</span>
                     </button>
                     <button
                       onClick={() => setActiveTab("manage-all-jobs")}
-                      className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
+                      className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-lg transition-colors flex items-center gap-2 lg:gap-3 text-sm lg:text-base ${
                         activeTab === "manage-all-jobs"
                           ? "bg-[#0077B5] text-white"
                           : "text-gray-700 hover:bg-gray-100"
                       }`}
                     >
-                      <FileText className="h-5 w-5" />
-                      All Jobs
+                      <FileText className="h-4 w-4 lg:h-5 lg:w-5 flex-shrink-0" />
+                      <span className="truncate">All Jobs</span>
                     </button>
                     <button
                       onClick={() => setActiveTab("system-users")}
-                      className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
+                      className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-lg transition-colors flex items-center gap-2 lg:gap-3 text-sm lg:text-base ${
                         activeTab === "system-users"
                           ? "bg-[#0077B5] text-white"
                           : "text-gray-700 hover:bg-gray-100"
                       }`}
                     >
-                      <Users className="h-5 w-5" />
-                      All Users
+                      <Users className="h-4 w-4 lg:h-5 lg:w-5 flex-shrink-0" />
+                      <span className="truncate">All Users</span>
                     </button>
                   </div>
                 </div>
