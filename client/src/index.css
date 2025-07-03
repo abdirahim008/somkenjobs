@@ -224,9 +224,9 @@
 @media (min-width: 1024px) {
   .desktop-left-sidebar {
     position: sticky;
-    top: 6rem;
-    max-height: calc(100vh - 8rem);
-    overflow-y: auto;
+    top: 4rem;
+    height: calc(100vh - 5rem);
+    overflow-y: visible;
   }
 }
 
