@@ -400,12 +400,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "You can only edit your own jobs" });
       }
 
-      // Validate job data
+      // Validate and transform job data
       const jobData = req.body;
-      const updatedJob = await storage.updateJob(jobId, {
+      
+      // Convert date strings to Date objects if they exist
+      const transformedData = {
         ...jobData,
         updatedAt: new Date()
-      });
+      };
+      
+      // Convert deadline to Date if it's a string
+      if (transformedData.deadline && typeof transformedData.deadline === 'string') {
+        transformedData.deadline = new Date(transformedData.deadline);
+      }
+      
+      // Convert datePosted to Date if it's a string
+      if (transformedData.datePosted && typeof transformedData.datePosted === 'string') {
+        transformedData.datePosted = new Date(transformedData.datePosted);
+      }
+      
+      const updatedJob = await storage.updateJob(jobId, transformedData);
 
       if (!updatedJob) {
         return res.status(404).json({ message: "Job not found" });
@@ -537,12 +551,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const jobId = parseInt(req.params.id);
       
-      // Validate job data
+      // Validate and transform job data
       const jobData = req.body;
-      const updatedJob = await storage.updateJob(jobId, {
+      
+      // Convert date strings to Date objects if they exist
+      const transformedData = {
         ...jobData,
         updatedAt: new Date()
-      });
+      };
+      
+      // Convert deadline to Date if it's a string
+      if (transformedData.deadline && typeof transformedData.deadline === 'string') {
+        transformedData.deadline = new Date(transformedData.deadline);
+      }
+      
+      // Convert datePosted to Date if it's a string
+      if (transformedData.datePosted && typeof transformedData.datePosted === 'string') {
+        transformedData.datePosted = new Date(transformedData.datePosted);
+      }
+      
+      const updatedJob = await storage.updateJob(jobId, transformedData);
 
       if (!updatedJob) {
         return res.status(404).json({ message: "Job not found" });
