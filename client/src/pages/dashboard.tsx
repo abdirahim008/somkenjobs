@@ -593,7 +593,7 @@ export default function Dashboard() {
       // Items table with clean design matching reference
       const tableStartY = currentY;
       const tableWidth = pageWidth - 2 * margin;
-      const rowHeight = 15;
+      const rowHeight = 12;
       
       // Table header with clean background and borders
       pdf.setFillColor(240, 240, 240);
@@ -618,10 +618,10 @@ export default function Dashboard() {
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
       
-      pdf.text('Item Description', margin + 5, currentY + 10);
-      pdf.text('Price ($)', margin + col1Width + 5, currentY + 10);
-      pdf.text('Quantity', margin + col1Width + col2Width + 5, currentY + 10);
-      pdf.text('Subtotal ($)', margin + col1Width + col2Width + col3Width + 5, currentY + 10);
+      pdf.text('Item Description', margin + 5, currentY + 8);
+      pdf.text('Price ($)', margin + col1Width + 5, currentY + 8);
+      pdf.text('Quantity', margin + col1Width + col2Width + 5, currentY + 8);
+      pdf.text('Subtotal ($)', margin + col1Width + col2Width + col3Width + 5, currentY + 8);
       
       currentY += rowHeight;
       
@@ -656,10 +656,10 @@ export default function Dashboard() {
         const maxTitleLength = Math.floor(col1Width / 3); // Approximate character width
         const jobTitle = job.title.length > maxTitleLength ? job.title.substring(0, maxTitleLength) + '...' : job.title;
         
-        pdf.text(jobTitle, margin + 5, currentY + 10);
-        pdf.text(pricePerJob.toFixed(2), margin + col1Width + 5, currentY + 10);
-        pdf.text('1', margin + col1Width + col2Width + 5, currentY + 10);
-        pdf.text(subtotal.toFixed(2), margin + col1Width + col2Width + col3Width + 5, currentY + 10);
+        pdf.text(jobTitle, margin + 5, currentY + 8);
+        pdf.text(pricePerJob.toFixed(2), margin + col1Width + 5, currentY + 8);
+        pdf.text('1', margin + col1Width + col2Width + 5, currentY + 8);
+        pdf.text(subtotal.toFixed(2), margin + col1Width + col2Width + col3Width + 5, currentY + 8);
         
         currentY += rowHeight;
       });
@@ -678,8 +678,8 @@ export default function Dashboard() {
       
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(11);
-      pdf.text('Total ($)', margin + col1Width + col2Width + 5, currentY + 12);
-      pdf.text(totalAmount.toFixed(2), margin + col1Width + col2Width + col3Width + 5, currentY + 12);
+      pdf.text('Total ($)', margin + col1Width + col2Width + 5, currentY + 10);
+      pdf.text(totalAmount.toFixed(2), margin + col1Width + col2Width + col3Width + 5, currentY + 10);
       
       currentY += 30;
       
