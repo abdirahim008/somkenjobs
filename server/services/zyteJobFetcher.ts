@@ -30,7 +30,7 @@ export class ZyteJobFetcher {
       // Test basic Zyte API connectivity first
       const testUrl = country === 'kenya' 
         ? 'https://www.brightermonday.co.ke/jobs' 
-        : 'https://jobs.so/';
+        : 'https://somalijobs.com/';
       
       const response = await axios.post(this.baseUrl, {
         url: testUrl,
@@ -92,6 +92,7 @@ export class ZyteJobFetcher {
       ];
     } else {
       return [
+        'https://somalijobs.com/',
         'https://jobs.so/',
         'https://www.somaliaonlinejobs.com/jobs'
       ];
@@ -124,11 +125,18 @@ export class ZyteJobFetcher {
   private extractJobListings(html: string, sourceUrl: string, country: 'kenya' | 'somalia'): InsertJob[] {
     const jobs: InsertJob[] = [];
     
-    // Look for job title patterns in the HTML
+    // Enhanced job title patterns specifically for somalijobs.com and other Somali job boards
     const jobTitlePatterns = [
-      /<h[1-6][^>]*>([^<]*(?:job|position|vacancy|opportunity|opening)[^<]*)<\/h[1-6]>/gi,
-      /<a[^>]*href="[^"]*job[^"]*"[^>]*>([^<]+)<\/a>/gi,
-      /<div[^>]*class="[^"]*job[^"]*"[^>]*>[\s\S]*?<h[1-6][^>]*>([^<]+)<\/h[1-6]>/gi
+      // Generic job title patterns
+      /<h[1-6][^>]*>([^<]*(?:job|position|vacancy|opportunity|opening|engineer|manager|coordinator|officer|assistant|director|analyst|specialist)[^<]*)<\/h[1-6]>/gi,
+      // Link patterns for job titles
+      /<a[^>]*href="[^"]*(?:job|vacancy|position)[^"]*"[^>]*>([^<]+)<\/a>/gi,
+      // Job cards and listings
+      /<div[^>]*class="[^"]*(?:job|vacancy|position)[^"]*"[^>]*>[\s\S]*?<h[1-6][^>]*>([^<]+)<\/h[1-6]>/gi,
+      // Title attributes and data attributes
+      /<[^>]*(?:title|data-title)="([^"]*(?:job|position|vacancy|engineer|manager|coordinator|officer)[^"]*)"[^>]*>/gi,
+      // Text content with job-related keywords
+      />([^<]*(?:Engineer|Manager|Coordinator|Officer|Assistant|Director|Analyst|Specialist|Developer|Consultant)[^<]*)</gi
     ];
     
     jobTitlePatterns.forEach(pattern => {
@@ -181,6 +189,7 @@ export class ZyteJobFetcher {
       'brightermonday.co.ke': 'BrighterMonday Kenya',
       'jobs.co.ke': 'Jobs.co.ke',
       'myjobmag.co.ke': 'MyJobMag Kenya',
+      'somalijobs.com': 'SomaliJobs.com',
       'jobs.so': 'Jobs.so Somalia',
       'somaliaonlinejobs.com': 'Somalia Online Jobs'
     };
