@@ -169,6 +169,7 @@ The application follows a modern full-stack architecture with clear separation b
 - July 3, 2025: Simplified invoice creation process - removed title field since invoice numbers are auto-generated, streamlined form to only require price per job and job selection, auto-generates "Job Posting Services" as default title, and automatically extracts organization names from selected jobs for professional receiver formatting
 - July 3, 2025: Simplified invoice number format from complex timestamp-based format (INV-1751514022706-1CNM1) to clean professional format (INV-2567845) using last 2 digits of year plus 5-digit random number for better readability and professionalism
 - July 3, 2025: Enhanced invoice UI design - removed square button borders around download, edit, and delete icons for cleaner minimalist appearance, changed edit icon from generic edit to simple pen icon, increased icon sizes to h-5 w-5 for better visibility, and added smooth color transitions on hover
+- July 3, 2025: Created comprehensive Career Resources page with high-quality content including detailed CV writing guide with humanitarian sector best practices, interview preparation strategies with behavioral and technical questions, cover letter excellence framework, career development pathways and networking strategies, professional certifications guide, and additional learning resources - fully integrated with navigation and footer links
 
 ## User Preferences
 

@@ -4,15 +4,15 @@ import { Input } from "@/components/ui/input";
 
 export default function Footer() {
   const quickLinks = [
-    { label: "Browse Jobs", href: "#" },
-    { label: "Organizations", href: "#" },
-    { label: "Career Resources", href: "#" },
+    { label: "Browse Jobs", href: "/" },
+    { label: "Organizations", href: "/organizations" },
+    { label: "Career Resources", href: "/career-resources" },
     { label: "Job Alerts", href: "#" },
   ];
 
   const supportLinks = [
     { label: "Help Center", href: "#" },
-    { label: "Contact Us", href: "#" },
+    { label: "Contact Us", href: "/contact" },
     { label: "Privacy Policy", href: "#" },
     { label: "Terms of Service", href: "#" },
   ];
