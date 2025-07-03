@@ -10,9 +10,12 @@ export interface IStorage {
   updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
   getAllPendingUsers(): Promise<User[]>;
   approveUser(id: number, approvedBy: string): Promise<User | undefined>;
+  deleteUser(id: number): Promise<boolean>;
+  getAllUsers(): Promise<User[]>;
   
   // Job methods
   getAllJobs(): Promise<Job[]>;
+  getAllJobsWithDetails(): Promise<Job[]>;
   getJobById(id: number): Promise<Job | undefined>;
   getJobByExternalId(externalId: string): Promise<Job | undefined>;
   getJobsByUserId(userId: number): Promise<Job[]>;
@@ -164,8 +167,24 @@ export class MemStorage implements IStorage {
     return approvedUser;
   }
 
+  async deleteUser(id: number): Promise<boolean> {
+    return this.users.delete(id);
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values())
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
   // Job methods
   async getAllJobs(): Promise<Job[]> {
+    return Array.from(this.jobs.values()).sort(
+      (a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime()
+    );
+  }
+
+  async getAllJobsWithDetails(): Promise<Job[]> {
+    // Same as getAllJobs for MemStorage, but provides distinct endpoint for admin use
     return Array.from(this.jobs.values()).sort(
       (a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime()
     );
@@ -364,7 +383,25 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
+  async deleteUser(id: number): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .orderBy(desc(users.createdAt));
+  }
+
   async getAllJobs(): Promise<Job[]> {
+    return await db.select().from(jobs).orderBy(desc(jobs.datePosted));
+  }
+
+  async getAllJobsWithDetails(): Promise<Job[]> {
+    // This could include additional joins or enriched data in the future
+    // For now, it's the same as getAllJobs but provides a distinct endpoint for admin use
     return await db.select().from(jobs).orderBy(desc(jobs.datePosted));
   }
 

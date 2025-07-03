@@ -474,10 +474,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/pending-users", authenticate, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const pendingUsers = await storage.getAllPendingUsers();
-      res.json(pendingUsers);
+      // Remove passwords from response for security
+      const sanitizedUsers = pendingUsers.map(({ password, ...user }) => user);
+      res.json(sanitizedUsers);
     } catch (error) {
       console.error("Error fetching pending users:", error);
       res.status(500).json({ message: "Failed to fetch pending users" });
+    }
+  });
+
+  // Reject user registration (admin only)
+  app.post("/api/admin/reject-user/:id", authenticate, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { reason } = req.body;
+      
+      // For now, we'll delete rejected users. In production, you might want to keep them with a 'rejected' status
+      const deleted = await storage.deleteUser(userId);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // In a real app, you'd send an email notification here
+      console.log(`User ${userId} rejected by admin ${req.user!.email}. Reason: ${reason || 'No reason provided'}`);
+      
+      res.json({ 
+        message: "User registration rejected successfully"
+      });
+    } catch (error) {
+      console.error("Error rejecting user:", error);
+      res.status(500).json({ message: "Failed to reject user" });
+    }
+  });
+
+  // Get all users (admin only) - for user management
+  app.get("/api/admin/users", authenticate, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      // Remove passwords from response for security
+      const sanitizedUsers = users.map(({ password, ...user }: User) => user);
+      res.json(sanitizedUsers);
+    } catch (error) {
+      console.error("Error fetching all users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  // Get all jobs (admin only) - for job management
+  app.get("/api/admin/jobs", authenticate, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const jobs = await storage.getAllJobsWithDetails();
+      res.json(jobs);
+    } catch (error) {
+      console.error("Error fetching all jobs for admin:", error);
+      res.status(500).json({ message: "Failed to fetch jobs" });
+    }
+  });
+
+  // Update any job (admin only) - admins can edit any job
+  app.put("/api/admin/jobs/:id", authenticate, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      
+      // Validate job data
+      const jobData = req.body;
+      const updatedJob = await storage.updateJob(jobId, {
+        ...jobData,
+        updatedAt: new Date()
+      });
+
+      if (!updatedJob) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      res.json({ message: "Job updated successfully by admin", job: updatedJob });
+    } catch (error) {
+      console.error("Error updating job as admin:", error);
+      res.status(500).json({ message: "Failed to update job" });
+    }
+  });
+
+  // Delete any job (admin only) - admins can delete any job
+  app.delete("/api/admin/jobs/:id", authenticate, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      
+      const deleted = await storage.deleteJob(jobId);
+      if (!deleted) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      res.json({ message: "Job deleted successfully by admin" });
+    } catch (error) {
+      console.error("Error deleting job as admin:", error);
+      res.status(500).json({ message: "Failed to delete job" });
+    }
+  });
+
+  // Bulk job operations (admin only)
+  app.post("/api/admin/jobs/bulk-action", authenticate, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const { action, jobIds } = req.body;
+      
+      if (!Array.isArray(jobIds) || jobIds.length === 0) {
+        return res.status(400).json({ message: "Invalid job IDs provided" });
+      }
+
+      let results = [];
+      
+      switch (action) {
+        case 'delete':
+          for (const jobId of jobIds) {
+            const deleted = await storage.deleteJob(parseInt(jobId));
+            results.push({ jobId, success: deleted });
+          }
+          break;
+        case 'publish':
+          for (const jobId of jobIds) {
+            const updated = await storage.updateJob(parseInt(jobId), { status: 'published' });
+            results.push({ jobId, success: !!updated });
+          }
+          break;
+        case 'draft':
+          for (const jobId of jobIds) {
+            const updated = await storage.updateJob(parseInt(jobId), { status: 'draft' });
+            results.push({ jobId, success: !!updated });
+          }
+          break;
+        default:
+          return res.status(400).json({ message: "Invalid action specified" });
+      }
+
+      const successCount = results.filter(r => r.success).length;
+      res.json({ 
+        message: `Bulk ${action} completed successfully`,
+        successful: successCount,
+        total: jobIds.length,
+        results 
+      });
+    } catch (error) {
+      console.error("Error performing bulk job action:", error);
+      res.status(500).json({ message: "Failed to perform bulk action" });
     }
   });
 

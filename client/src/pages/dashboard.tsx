@@ -97,6 +97,18 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
+  // Get all users (for super admin)
+  const { data: allUsers = [], isLoading: allUsersLoading } = useQuery({
+    queryKey: ["/api/admin/users"],
+    enabled: (user as any)?.isAdmin === true,
+  });
+
+  // Get all jobs (for super admin)
+  const { data: allJobs = [], isLoading: allJobsLoading } = useQuery({
+    queryKey: ["/api/admin/jobs"],
+    enabled: (user as any)?.isAdmin === true,
+  });
+
   // Invoice form state
   const [invoiceForm, setInvoiceForm] = useState({
     description: "",
@@ -180,6 +192,68 @@ export default function Dashboard() {
       toast({
         title: "Error",
         description: error.message || "Failed to approve user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Reject user mutation
+  const rejectUserMutation = useMutation({
+    mutationFn: async ({ userId, reason }: { userId: number; reason?: string }) => {
+      const response = await fetch(`/api/admin/reject-user/${userId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+        body: JSON.stringify({ reason }),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to reject user: ${response.statusText}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "User registration rejected successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pending-users"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reject user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Admin delete job mutation (for any job)
+  const adminDeleteJobMutation = useMutation({
+    mutationFn: async (jobId: number) => {
+      const response = await fetch(`/api/admin/jobs/${jobId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to delete job: ${response.statusText}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Job deleted successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/jobs"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete job",
         variant: "destructive",
       });
     },
@@ -859,7 +933,7 @@ export default function Dashboard() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'}`}>
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-7' : 'grid-cols-4'}`}>
             <TabsTrigger value="my-jobs" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               My Jobs
@@ -877,10 +951,20 @@ export default function Dashboard() {
               Profile
             </TabsTrigger>
             {isAdmin && (
-              <TabsTrigger value="manage-users" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Manage Users
-              </TabsTrigger>
+              <>
+                <TabsTrigger value="manage-users" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  User Approvals
+                </TabsTrigger>
+                <TabsTrigger value="manage-all-jobs" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  All Jobs
+                </TabsTrigger>
+                <TabsTrigger value="system-users" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  All Users
+                </TabsTrigger>
+              </>
             )}
           </TabsList>
 
@@ -1750,6 +1834,15 @@ export default function Dashboard() {
                               <CheckCircle className="h-4 w-4 mr-1" />
                               Approve
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => rejectUserMutation.mutate({ userId: pendingUser.id, reason: "Admin rejected" })}
+                              disabled={rejectUserMutation.isPending}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Reject
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -1758,6 +1851,8 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+
           )}
         </Tabs>
       </div>
