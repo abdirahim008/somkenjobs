@@ -512,189 +512,131 @@ export default function Dashboard() {
       pdf.text('Professional Job Board Services', margin + 20, currentY + 12);
       pdf.text('Email: info@somkenjobs.com | Web: www.somkenjobs.com', margin + 20, currentY + 16);
       
-      currentY += 35;
+      currentY += 45;
       
-      // Invoice title
-      pdf.setFontSize(24);
+      // Sender information (top right)
+      pdf.setFontSize(10);
       pdf.setTextColor(0, 0, 0);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('INVOICE', pageWidth / 2, currentY, { align: 'center' });
+      pdf.setFont('helvetica', 'normal');
+      pdf.text('Sender: Somken Jobs', pageWidth - 60, currentY);
+      
+      // Draw a line under sender
+      pdf.setDrawColor(0, 0, 0);
+      pdf.line(pageWidth - 60, currentY + 3, pageWidth - 15, currentY + 3);
+      
       currentY += 20;
       
-      // Invoice details section
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'normal');
-      
-      // Left column - Invoice details
+      // Invoice title - large and bold like reference
+      pdf.setFontSize(32);
+      pdf.setTextColor(120, 120, 120);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('Invoice Details:', margin, currentY);
-      pdf.setFont('helvetica', 'normal');
-      currentY += 6;
-      pdf.text(`Invoice #: ${invoice.invoiceNumber}`, margin, currentY);
-      currentY += 5;
-      pdf.text(`Date: ${new Date(invoice.createdAt).toLocaleDateString()}`, margin, currentY);
-      currentY += 5;
-      pdf.text(`Status: ${invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}`, margin, currentY);
-      
-      // Right column - Company details
-      const rightColumnX = pageWidth / 2 + 10;
-      currentY -= 16;
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Bill To:', rightColumnX, currentY);
-      pdf.setFont('helvetica', 'normal');
-      currentY += 6;
-      pdf.text(`${(user as any)?.firstName || ''} ${(user as any)?.lastName || ''}`, rightColumnX, currentY);
-      currentY += 5;
-      pdf.text(`${(user as any)?.companyName || 'Company Name'}`, rightColumnX, currentY);
-      currentY += 5;
-      pdf.text(`${(user as any)?.email || 'email@company.com'}`, rightColumnX, currentY);
-      
+      pdf.text('INVOICE', margin, currentY);
       currentY += 25;
       
-      // Service description
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(12);
-      pdf.text('Service Description:', margin, currentY);
-      currentY += 8;
-      
-      pdf.setFont('helvetica', 'normal');
+      // Invoice details section - two columns like reference
       pdf.setFontSize(10);
-      pdf.text(invoice.title, margin, currentY);
-      currentY += 6;
-      if (invoice.description) {
-        const descriptionLines = pdf.splitTextToSize(invoice.description, pageWidth - 2 * margin);
-        pdf.text(descriptionLines, margin, currentY);
-        currentY += descriptionLines.length * 5;
-      }
-      currentY += 10;
-      
-      // Job details table
+      pdf.setTextColor(0, 0, 0);
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(13);
-      pdf.text('Job Posting Details:', margin, currentY);
-      currentY += 12;
       
-      // Calculate table dimensions (reduced width and centered)
-      const tableWidth = Math.min(pageWidth - 2 * margin, 140); // Reduced from full width
-      const tableStartX = (pageWidth - tableWidth) / 2; // Center the table
-      const colWidth1 = 20; // # column
-      const colWidth2 = tableWidth - colWidth1 - 40; // Job Title column
-      const colWidth3 = 40; // Price column
+      // Left column - Invoice details
+      pdf.text(`Invoice: ${invoice.invoiceNumber}`, margin, currentY);
+      pdf.text(`Date: ${new Date(invoice.createdAt).toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      })}`, margin, currentY + 7);
+      pdf.text(`Payment Due: ${new Date(new Date(invoice.createdAt).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      })}`, margin, currentY + 14);
       
-      // Outer table border
-      pdf.setDrawColor(0, 0, 0);
-      pdf.setLineWidth(0.5);
-      pdf.rect(tableStartX, currentY - 3, tableWidth, 12 + (selectedJobs.length * 14), 'S');
+      // Right column - Customer details
+      pdf.text('Receiver:', pageWidth - 80, currentY);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`${invoice.clientName || (user as any)?.firstName + ' ' + (user as any)?.lastName}`, pageWidth - 80, currentY + 7);
+      pdf.text(`${invoice.clientEmail || (user as any)?.email}`, pageWidth - 80, currentY + 14);
       
-      // Table header
-      pdf.setFillColor(248, 249, 250);
-      pdf.rect(tableStartX, currentY - 3, tableWidth, 12, 'FD');
+      currentY += 35;
+      
+      // Items table with clean design matching reference
+      const tableStartY = currentY;
+      const tableWidth = pageWidth - 2 * margin;
+      const rowHeight = 15;
+      
+      // Table header with clean background
+      pdf.setFillColor(240, 240, 240);
+      pdf.rect(margin, currentY, tableWidth, rowHeight, 'F');
+      pdf.setDrawColor(180, 180, 180);
+      pdf.rect(margin, currentY, tableWidth, rowHeight, 'S');
+      
+      // Header text
+      pdf.setTextColor(0, 0, 0);
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('#', tableStartX + 2, currentY + 5);
-      pdf.text('Job Title', tableStartX + colWidth1 + 2, currentY + 5);
-      pdf.text('Price', tableStartX + tableWidth - 5, currentY + 5, { align: 'right' });
+      pdf.text('Item Description', margin + 5, currentY + 10);
+      pdf.text('Price ($)', margin + 105, currentY + 10);
+      pdf.text('Quantity', margin + 135, currentY + 10);
+      pdf.text('Subtotal ($)', margin + 165, currentY + 10);
       
-      // Header column separators
-      pdf.line(tableStartX + colWidth1, currentY - 3, tableStartX + colWidth1, currentY + 9);
-      pdf.line(tableStartX + colWidth1 + colWidth2, currentY - 3, tableStartX + colWidth1 + colWidth2, currentY + 9);
+      currentY += rowHeight;
       
-      currentY += 12;
-      
-      // Table rows with improved vertical alignment
-      pdf.setFont('helvetica', 'normal');
-      selectedJobs.forEach((job, index) => {
-        const rowHeight = 14; // Increased row height for better spacing
+      // Table rows with clean alternating background like reference
+      let totalAmount = 0;
+      selectedJobs.forEach((job: any, index: number) => {
+        const pricePerJob = parseFloat(invoice.pricePerJob || '0');
+        const subtotal = pricePerJob;
+        totalAmount += subtotal;
         
-        // Alternating row colors
+        // Alternating row background
         if (index % 2 === 0) {
-          pdf.setFillColor(250, 250, 250);
-          pdf.rect(tableStartX, currentY - 2, tableWidth, rowHeight, 'F');
+          pdf.setFillColor(248, 248, 248);
+          pdf.rect(margin, currentY, tableWidth, rowHeight, 'F');
         }
         
-        // Row borders
+        // Row border
         pdf.setDrawColor(200, 200, 200);
-        pdf.setLineWidth(0.3);
-        pdf.line(tableStartX, currentY + rowHeight - 2, tableStartX + tableWidth, currentY + rowHeight - 2);
+        pdf.rect(margin, currentY, tableWidth, rowHeight, 'S');
         
-        // Column separators (full height)
-        pdf.line(tableStartX + colWidth1, currentY - 2, tableStartX + colWidth1, currentY + rowHeight - 2);
-        pdf.line(tableStartX + colWidth1 + colWidth2, currentY - 2, tableStartX + colWidth1 + colWidth2, currentY + rowHeight - 2);
-        
-        const jobTitle = pdf.splitTextToSize(job.title, colWidth2 - 4);
-        
-        // Vertically centered text positioning
-        const textY = currentY + (rowHeight / 2) + 1; // Center text vertically
-        
-        // Row number
+        // Row content
+        pdf.setFont('helvetica', 'normal');
         pdf.setTextColor(0, 0, 0);
-        pdf.text(`${index + 1}`, tableStartX + colWidth1/2, textY, { align: 'center' });
-        // Job title
-        pdf.text(jobTitle[0] + (jobTitle.length > 1 ? '...' : ''), tableStartX + colWidth1 + 3, textY);
-        // Price
-        pdf.text(`$${invoice.pricePerJob}`, tableStartX + tableWidth - 8, textY, { align: 'right' });
+        pdf.text(job.title.length > 50 ? job.title.substring(0, 50) + '...' : job.title, margin + 5, currentY + 10);
+        pdf.text(pricePerJob.toFixed(2), margin + 105, currentY + 10);
+        pdf.text('1', margin + 135, currentY + 10);
+        pdf.text(subtotal.toFixed(2), margin + 165, currentY + 10);
+        
         currentY += rowHeight;
       });
       
-      // Add spacing before totals
-      currentY += 15;
+      // Total row with emphasis like reference
+      pdf.setFillColor(230, 230, 230);
+      pdf.rect(margin, currentY, tableWidth, rowHeight + 3, 'F');
+      pdf.setDrawColor(150, 150, 150);
+      pdf.rect(margin, currentY, tableWidth, rowHeight + 3, 'S');
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(11);
+      pdf.text('Total ($)', margin + 135, currentY + 12);
+      pdf.text(totalAmount.toFixed(2), margin + 165, currentY + 12);
       
-      // Totals section
-      const totalsX = pageWidth - margin - 60;
-      pdf.setFont('helvetica', 'normal');
+      currentY += 30;
+      
+      // Payment information section matching reference style
       pdf.setFontSize(10);
-      pdf.text(`Total Jobs: ${invoice.totalJobs}`, totalsX, currentY);
-      currentY += 6;
-      pdf.text(`Price per Job: $${invoice.pricePerJob}`, totalsX, currentY);
-      currentY += 10;
-      
-      // Total amount - highlighted
-      pdf.setFillColor(0, 119, 181);
-      pdf.rect(totalsX - 5, currentY - 5, 65, 12, 'F');
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(12);
-      pdf.text(`TOTAL: $${invoice.totalAmount}`, totalsX, currentY + 3);
-      
-      // Reset colors
       pdf.setTextColor(0, 0, 0);
-      
-      // Footer with digital signature
-      const footerY = pageHeight - 40;
-      currentY = Math.max(currentY + 30, footerY - 20);
-      
-      // Terms and conditions
       pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(8);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text('Terms & Conditions: Payment due within 30 days. Late payments subject to 1.5% monthly service charge.', margin, currentY);
-      currentY += 5;
-      pdf.text('This invoice is digitally generated and authenticated by Somken Jobs.', margin, currentY);
+      pdf.text('Kindly make your payment to:', margin, currentY);
+      pdf.text('Bank: Somken Jobs Payment Services', margin, currentY + 7);
+      pdf.text('Account: 123-456-7890', margin, currentY + 14);
+      pdf.text('BIC: SOMKEN123', margin, currentY + 21);
       
-      // Digital signature section
-      currentY += 15;
-      pdf.setFont('helvetica', 'bold');
+      currentY += 35;
+      
+      // Notes section like reference
       pdf.setFontSize(9);
-      pdf.setTextColor(0, 119, 181);
-      pdf.text('DIGITALLY SIGNED & AUTHENTICATED', margin, currentY);
-      
-      // Signature details
-      currentY += 6;
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(7);
-      pdf.setTextColor(80, 80, 80);
-      const signatureDate = new Date().toISOString();
-      pdf.text(`Document ID: ${invoice.invoiceNumber}-${Date.now()}`, margin, currentY);
-      currentY += 4;
-      pdf.text(`Digital Signature: SHA256-${btoa(invoice.invoiceNumber + signatureDate).substring(0, 16)}`, margin, currentY);
-      currentY += 4;
-      pdf.text(`Authenticated: ${new Date().toLocaleString()}`, margin, currentY);
-      
-      // Page footer
-      pdf.setFontSize(8);
-      pdf.setTextColor(150, 150, 150);
-      pdf.text('Page 1', pageWidth - margin, pageHeight - 10, { align: 'right' });
-      pdf.text('Somken Jobs - Professional Invoice', margin, pageHeight - 10);
+      pdf.setTextColor(100, 100, 100);
+      pdf.setFont('helvetica', 'italic');
+      pdf.text('Note: Please send a remittance advice by email to billing@somkenjobs.com', margin, currentY);
       
       pdf.save(`invoice-${invoice.invoiceNumber}.pdf`);
       
