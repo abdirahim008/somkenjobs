@@ -24,60 +24,18 @@ export class ZyteJobFetcher {
       return [];
     }
 
-    try {
-      console.log(`Testing Zyte API connection for ${country}...`);
-      
-      // Test basic Zyte API connectivity first
-      const testUrl = country === 'kenya' 
-        ? 'https://www.brightermonday.co.ke/jobs' 
-        : 'https://somalijobs.com/';
-      
-      const response = await axios.post(this.baseUrl, {
-        url: testUrl,
-        httpResponseBody: true
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        auth: {
-          username: this.apiKey,
-          password: ''
-        },
-        timeout: 15000
-      });
-
-      if (response.status === 200) {
-        console.log(`Zyte API connection successful for ${country}! Data size: ${response.data?.httpResponseBody?.length || 0} bytes`);
-        
-        // Parse jobs from the scraped HTML
-        const jobs = await this.parseJobsFromHTML(response.data.httpResponseBody, testUrl, country);
-        
-        if (jobs.length > 0) {
-          console.log(`Successfully extracted ${jobs.length} jobs from ${country} job board`);
-          
-          // Store jobs in database
-          await this.storeJobsInDatabase(jobs);
-          
-          return jobs.slice(0, limit);
-        } else {
-          console.log(`No jobs found in scraped content for ${country}`);
-          return [];
-        }
-      } else {
-        console.log(`Zyte API returned status ${response.status} for ${country}`);
-        return [];
-      }
-      
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        console.error(`Zyte API authentication failed - check API key`);
-      } else if (error.response?.status === 403) {
-        console.error(`Zyte API access forbidden - check plan limits`);
-      } else {
-        console.error(`Zyte API error for ${country}:`, error.response?.data || error.message);
-      }
-      return [];
-    }
+    // Current job boards don't have readily accessible job listings via simple HTML scraping
+    // The sites either use dynamic loading or don't have active job postings
+    console.log(`Zyte API integration available for ${country}, but current job board sources need investigation`);
+    console.log(`Tested URLs like somalijobs.com/jobs don't contain scrapeable job listings - they may require:
+    - Specific search parameters or filters
+    - JavaScript execution for dynamic content
+    - Authentication or registration
+    - Different URL patterns for job listings`);
+    
+    // Until we identify reliable job board URLs with actual listings, return empty array
+    // This prevents storing navigation elements as fake job postings
+    return [];
   }
 
   /**
@@ -92,7 +50,8 @@ export class ZyteJobFetcher {
       ];
     } else {
       return [
-        'https://somalijobs.com/',
+        'https://somalijobs.com/jobs',
+        'https://www.brightermonday.co.ke/jobs?location=somalia',
         'https://jobs.so/',
         'https://www.somaliaonlinejobs.com/jobs'
       ];
@@ -125,18 +84,18 @@ export class ZyteJobFetcher {
   private extractJobListings(html: string, sourceUrl: string, country: 'kenya' | 'somalia'): InsertJob[] {
     const jobs: InsertJob[] = [];
     
-    // Enhanced job title patterns specifically for somalijobs.com and other Somali job boards
+    // Enhanced job title patterns for better extraction
     const jobTitlePatterns = [
-      // Generic job title patterns
-      /<h[1-6][^>]*>([^<]*(?:job|position|vacancy|opportunity|opening|engineer|manager|coordinator|officer|assistant|director|analyst|specialist)[^<]*)<\/h[1-6]>/gi,
-      // Link patterns for job titles
-      /<a[^>]*href="[^"]*(?:job|vacancy|position)[^"]*"[^>]*>([^<]+)<\/a>/gi,
-      // Job cards and listings
-      /<div[^>]*class="[^"]*(?:job|vacancy|position)[^"]*"[^>]*>[\s\S]*?<h[1-6][^>]*>([^<]+)<\/h[1-6]>/gi,
-      // Title attributes and data attributes
-      /<[^>]*(?:title|data-title)="([^"]*(?:job|position|vacancy|engineer|manager|coordinator|officer)[^"]*)"[^>]*>/gi,
-      // Text content with job-related keywords
-      />([^<]*(?:Engineer|Manager|Coordinator|Officer|Assistant|Director|Analyst|Specialist|Developer|Consultant)[^<]*)</gi
+      // Specific job title patterns with professional keywords
+      /<h[1-6][^>]*>([^<]*(?:Engineer|Manager|Coordinator|Officer|Assistant|Director|Analyst|Specialist|Developer|Consultant|Accountant|Teacher|Nurse|Doctor|Driver|Secretary|Technician|Supervisor|Executive|Representative|Administrator)[^<]*)<\/h[1-6]>/gi,
+      // Job title links 
+      /<a[^>]*href="[^"]*job[^"]*"[^>]*>([A-Z][^<]{10,80})<\/a>/gi,
+      // Job cards with titles
+      /<div[^>]*class="[^"]*job[^"]*"[^>]*>[\s\S]*?<h[1-6][^>]*>([A-Z][^<]{10,})<\/h[1-6]>/gi,
+      // Professional role patterns in text
+      />([A-Z][a-z\s]*(Engineer|Manager|Coordinator|Officer|Assistant|Director|Analyst|Specialist|Developer|Consultant|Accountant|Supervisor|Executive|Representative|Administrator)[a-z\s]*)</gi,
+      // Job listing patterns
+      /<li[^>]*>([^<]*(?:Engineer|Manager|Coordinator|Officer|Assistant|Director|Analyst|Specialist|Developer|Consultant)[^<]*)<\/li>/gi
     ];
     
     jobTitlePatterns.forEach(pattern => {
@@ -144,8 +103,20 @@ export class ZyteJobFetcher {
       while ((match = pattern.exec(html)) !== null && jobs.length < 10) {
         const title = match[1].trim();
         
-        // Basic validation - skip if title is too short or looks like navigation
-        if (title.length < 5 || title.toLowerCase().includes('menu') || title.toLowerCase().includes('nav')) {
+        // Enhanced validation - skip navigation, buttons, and generic elements
+        const titleLower = title.toLowerCase();
+        const skipPatterns = [
+          'menu', 'nav', 'find jobs', 'post a job', 'home', 'about', 'contact',
+          'login', 'register', 'search', 'browse', 'explore', 'find now',
+          'apply now', 'view all', 'see more', 'click here', 'read more',
+          'download', 'app', 'mobile', 'follow us', 'social media', 'privacy',
+          'terms', 'conditions', 'cookie', 'subscribe', 'newsletter'
+        ];
+        
+        if (title.length < 10 || 
+            skipPatterns.some(pattern => titleLower.includes(pattern)) ||
+            titleLower === titleLower.toUpperCase() || // Skip all caps text
+            !/[a-zA-Z]/.test(title)) { // Skip if no letters
           continue;
         }
         
@@ -218,6 +189,38 @@ export class ZyteJobFetcher {
     } catch (error: any) {
       console.error('Error storing jobs in database:', error.message);
     }
+  }
+
+  /**
+   * Create sample jobs for testing when scraping doesn't find real listings
+   */
+  private createSampleJobsForTesting(country: 'kenya' | 'somalia', sourceUrl: string): InsertJob[] {
+    if (country !== 'somalia') return []; // Only create samples for Somalia to demonstrate Zyte integration
+    
+    const sampleJobs: InsertJob[] = [
+      {
+        title: "Project Coordinator - Humanitarian Response",
+        organization: "SomaliJobs.com",
+        location: "Mogadishu, Somalia", 
+        country: "Somalia",
+        description: "Seeking experienced Project Coordinator for humanitarian response initiatives in Somalia. Responsible for coordinating relief efforts and managing field operations.",
+        url: sourceUrl,
+        datePosted: new Date(),
+        deadline: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000),
+        sector: "Humanitarian",
+        source: "Zyte",
+        externalId: `zyte_sample_somalia_coordinator_${Date.now()}`,
+        howToApply: `Visit ${sourceUrl} to apply for this position`,
+        experience: "3-5 years",
+        qualifications: "Bachelor's degree in relevant field, experience in humanitarian work",
+        responsibilities: "Coordinate humanitarian response activities, manage field teams, ensure compliance with protocols",
+        bodyHtml: undefined,
+        createdBy: undefined,
+        status: 'published'
+      }
+    ];
+    
+    return sampleJobs;
   }
 
   /**
