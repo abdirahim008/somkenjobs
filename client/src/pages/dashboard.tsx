@@ -720,48 +720,31 @@ export default function Dashboard() {
       const signatureId = `SJ${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
       pdf.text(`Signature ID: ${signatureId}`, margin, signatureY + 30);
       
-      // Right side - Company seal
-      const sealCenterX = pageWidth - 80;
-      const sealCenterY = signatureY + 25;
-      const sealRadius = 35;
+      // Right side - Company seal (smaller and simpler)
+      const sealCenterX = pageWidth - 60;
+      const sealCenterY = signatureY + 20;
+      const sealRadius = 20;
       
       // Outer circle (LinkedIn blue)
       pdf.setDrawColor(0, 119, 181); // LinkedIn blue
-      pdf.setLineWidth(2);
+      pdf.setLineWidth(1.5);
       pdf.circle(sealCenterX, sealCenterY, sealRadius, 'S');
       
       // Inner circle
-      pdf.setLineWidth(1);
-      pdf.circle(sealCenterX, sealCenterY, sealRadius - 8, 'S');
-      
-      // Top curved text "PLATFORM SEAL"
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(8);
-      pdf.setTextColor(0, 119, 181);
-      
-      // Simulate curved text by positioning individual letters
-      const topText = 'PLATFORM SEAL';
-      const angleStep = 0.3;
-      const startAngle = -Math.PI * 0.7;
-      
-      for (let i = 0; i < topText.length; i++) {
-        const angle = startAngle + i * angleStep;
-        const x = sealCenterX + Math.cos(angle) * (sealRadius - 12);
-        const y = sealCenterY + Math.sin(angle) * (sealRadius - 12);
-        pdf.text(topText[i], x - 2, y);
-      }
+      pdf.setLineWidth(0.5);
+      pdf.circle(sealCenterX, sealCenterY, sealRadius - 5, 'S');
       
       // Center text "SOMKENJOBS"
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(10);
+      pdf.setFontSize(7);
       pdf.setTextColor(0, 0, 0);
       pdf.text('SOMKENJOBS', sealCenterX, sealCenterY, { align: 'center' });
       
-      // Stars on left and right
+      // Stars on left and right (smaller)
       pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(12);
-      pdf.text('★', sealCenterX - 25, sealCenterY + 2);
-      pdf.text('★', sealCenterX + 20, sealCenterY + 2);
+      pdf.setFontSize(8);
+      pdf.text('★', sealCenterX - 12, sealCenterY + 1);
+      pdf.text('★', sealCenterX + 10, sealCenterY + 1);
       
       // Reset text color
       pdf.setTextColor(0, 0, 0);
