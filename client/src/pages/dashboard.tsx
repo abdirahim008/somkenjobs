@@ -585,7 +585,7 @@ export default function Dashboard() {
       // Right column - Customer details
       pdf.text('Receiver:', pageWidth - 80, currentY);
       pdf.setFont('helvetica', 'normal');
-      pdf.text(`${invoice.clientName || (user as any)?.firstName + ' ' + (user as any)?.lastName}`, pageWidth - 80, currentY + 7);
+      pdf.text(`${invoice.clientOrganization || 'Humanitarian Organization'}`, pageWidth - 80, currentY + 7);
       pdf.text(`${invoice.clientEmail || (user as any)?.email}`, pageWidth - 80, currentY + 14);
       
       currentY += 35;

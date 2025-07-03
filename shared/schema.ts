@@ -92,6 +92,8 @@ export const invoices = pgTable("invoices", {
   totalAmount: text("total_amount").notNull(), // Store as text to avoid decimal issues
   selectedJobIds: text("selected_job_ids").notNull().default("[]"), // Store as JSON string
   status: text("status").notNull().default("draft"),
+  clientOrganization: text("client_organization").default("Client Organization"),
+  clientEmail: text("client_email"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
