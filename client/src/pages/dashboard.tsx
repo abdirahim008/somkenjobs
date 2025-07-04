@@ -1131,30 +1131,28 @@ export default function Dashboard() {
                         </SelectContent>
                       </Select>
                     </div>
-                    {jobForm.type === "tender" && (
-                      <div>
-                        <Label htmlFor="attachment">Attachment (PDF/Word)</Label>
-                        <Input
-                          id="attachment"
-                          type="file"
-                          accept=".pdf,.doc,.docx"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              // For now, we'll just store the filename
-                              // In a real implementation, you'd upload to a file storage service
-                              setJobForm({ ...jobForm, attachmentUrl: file.name });
-                            }
-                          }}
-                          className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#0077B5] file:text-white hover:file:bg-[#005582]"
-                        />
-                        {jobForm.attachmentUrl && (
-                          <p className="text-sm text-gray-600 mt-1">
-                            Selected: {jobForm.attachmentUrl}
-                          </p>
-                        )}
-                      </div>
-                    )}
+                    <div>
+                      <Label htmlFor="attachment">Attachment (Optional)</Label>
+                      <Input
+                        id="attachment"
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            // For now, we'll just store the filename
+                            // In a real implementation, you'd upload to a file storage service
+                            setJobForm({ ...jobForm, attachmentUrl: file.name });
+                          }
+                        }}
+                        className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#0077B5] file:text-white hover:file:bg-[#005582]"
+                      />
+                      {jobForm.attachmentUrl && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          Selected: {jobForm.attachmentUrl}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid md:grid-cols-3 gap-4">

@@ -434,6 +434,40 @@ export default function JobDetails() {
                 </CardContent>
               </Card>
 
+              {/* Attachment Card - Sidebar */}
+              {job.attachmentUrl && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Attachment</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 bg-[#0077B5] rounded-md flex items-center justify-center">
+                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{job.attachmentUrl}</p>
+                        <p className="text-xs text-muted-foreground">Document</p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="w-full mt-3 bg-[#0077B5] hover:bg-[#005885] text-white"
+                      onClick={() => {
+                        // In a real implementation, this would download the actual file
+                        window.open(`/attachments/${job.attachmentUrl}`, '_blank');
+                      }}
+                    >
+                      Download
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Related Jobs Card */}
               {relatedJobs && relatedJobs.length > 0 && (
                 <Card>
@@ -630,6 +664,41 @@ export default function JobDetails() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Attachment Section */}
+              {job.attachmentUrl ? (
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle>Attachment</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+                      <div className="flex-shrink-0">
+                        <div className="w-10 h-10 bg-[#0077B5] rounded-lg flex items-center justify-center">
+                          <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground">Document Available</p>
+                        <p className="text-sm text-muted-foreground">{job.attachmentUrl}</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-[#0077B5] border-[#0077B5] hover:bg-[#0077B5] hover:text-white"
+                        onClick={() => {
+                          // In a real implementation, this would download the actual file
+                          window.open(`/attachments/${job.attachmentUrl}`, '_blank');
+                        }}
+                      >
+                        Download
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
 
 
 
