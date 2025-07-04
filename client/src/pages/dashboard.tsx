@@ -1115,44 +1115,20 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="type">Type *</Label>
-                      <Select
-                        value={jobForm.type}
-                        onValueChange={(value: "job" | "tender") => setJobForm({ ...jobForm, type: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="job">Job Opportunity</SelectItem>
-                          <SelectItem value="tender">Tender/Procurement</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="attachment">Attachment (Optional)</Label>
-                      <Input
-                        id="attachment"
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            // For now, we'll just store the filename
-                            // In a real implementation, you'd upload to a file storage service
-                            setJobForm({ ...jobForm, attachmentUrl: file.name });
-                          }
-                        }}
-                        className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#0077B5] file:text-white hover:file:bg-[#005582]"
-                      />
-                      {jobForm.attachmentUrl && (
-                        <p className="text-sm text-gray-600 mt-1">
-                          Selected: {jobForm.attachmentUrl}
-                        </p>
-                      )}
-                    </div>
+                  <div>
+                    <Label htmlFor="type">Type *</Label>
+                    <Select
+                      value={jobForm.type}
+                      onValueChange={(value: "job" | "tender") => setJobForm({ ...jobForm, type: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="job">Job Opportunity</SelectItem>
+                        <SelectItem value="tender">Tender/Procurement</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="grid md:grid-cols-3 gap-4">
@@ -1304,6 +1280,29 @@ export default function Dashboard() {
                       rows={3}
                       required
                     />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="attachment">Attachment (Optional)</Label>
+                    <Input
+                      id="attachment"
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          // For now, we'll just store the filename
+                          // In a real implementation, you'd upload to a file storage service
+                          setJobForm({ ...jobForm, attachmentUrl: file.name });
+                        }
+                      }}
+                      className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#0077B5] file:text-white hover:file:bg-[#005582]"
+                    />
+                    {jobForm.attachmentUrl && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        Selected: {jobForm.attachmentUrl}
+                      </p>
+                    )}
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-4">
