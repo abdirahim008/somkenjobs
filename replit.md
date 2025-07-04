@@ -182,6 +182,7 @@ The application follows a modern full-stack architecture with clear separation b
 - July 4, 2025: Updated job creation form field labels to be generic for both jobs and tenders - changed "Job Title" to "Title", "Job Description" to "Description", and "Create New Job Posting" to "Create New Posting" since form is shared between job opportunities and tender postings, maintains proper type badges on cards to distinguish between jobs and tenders
 - July 4, 2025: Enhanced attachment functionality for both jobs and tenders - made attachment field available for all posting types (not just tenders), changed to optional field, added attachment display section below "How to Apply" section in job details page with download button, included attachment section in sidebar with compact design, maintains professional styling with LinkedIn blue color scheme
 - July 4, 2025: Repositioned attachment field in form layout - moved attachment upload field to appear below "How to Apply" field instead of next to the Type selector for better logical flow and improved user experience
+- July 4, 2025: Added small icons to label jobs and tenders throughout application - implemented briefcase icon for jobs (blue) and document icon for tenders (orange) in job cards, related jobs sections, and mobile layouts for better visual distinction and user experience
 
 ## User Preferences
 

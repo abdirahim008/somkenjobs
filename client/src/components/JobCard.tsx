@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Building2, MapPin, Calendar, ExternalLink, Bookmark } from "lucide-react";
+import { Building2, MapPin, Calendar, ExternalLink, Bookmark, Briefcase, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { type Job } from "@shared/schema";
@@ -110,8 +110,18 @@ export default function JobCard({ job }: JobCardProps) {
 
           <div className="flex items-center flex-wrap gap-2">
             {/* Type badge - Job vs Tender */}
-            <Badge className={`badge ${(job as any).type === 'tender' ? 'bg-orange-100 text-orange-800 hover:bg-orange-100' : 'bg-blue-100 text-blue-800 hover:bg-blue-100'} text-sm`}>
-              {(job as any).type === 'tender' ? 'Tender' : 'Job'}
+            <Badge className={`badge ${(job as any).type === 'tender' ? 'bg-orange-100 text-orange-800 hover:bg-orange-100' : 'bg-blue-100 text-blue-800 hover:bg-blue-100'} text-sm flex items-center gap-1`}>
+              {(job as any).type === 'tender' ? (
+                <>
+                  <FileText className="h-3 w-3" />
+                  Tender
+                </>
+              ) : (
+                <>
+                  <Briefcase className="h-3 w-3" />
+                  Job
+                </>
+              )}
             </Badge>
             {job.sector && (
               <Badge className={`badge ${getSectorBadgeColor(job.sector)} text-sm`}>

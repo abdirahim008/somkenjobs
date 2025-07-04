@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { ArrowLeft, Calendar, MapPin, Building2, ExternalLink, Clock, Users, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Building2, ExternalLink, Clock, Users, ChevronDown, ChevronUp, Briefcase, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -481,7 +481,7 @@ export default function JobDetails() {
                           <h4 className="font-medium text-sm mb-2 leading-tight">
                             <Button
                               variant="link"
-                              className="p-0 h-auto text-left font-medium text-blue-600 hover:text-blue-800 break-words hyphens-auto"
+                              className="p-0 h-auto text-left font-medium text-blue-600 hover:text-blue-800 break-words hyphens-auto flex items-start gap-1"
                               onClick={() => {
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                                 setLocation(`/jobs/${relatedJob.id}`);
@@ -491,11 +491,16 @@ export default function JobDetails() {
                                 overflowWrap: 'break-word',
                                 whiteSpace: 'normal',
                                 textAlign: 'left',
-                                display: 'block',
+                                display: 'flex',
                                 width: '100%'
                               }}
                             >
-                              {relatedJob.title}
+                              {(relatedJob as any).type === 'tender' ? (
+                                <FileText className="h-3 w-3 mt-0.5 flex-shrink-0 text-orange-600" />
+                              ) : (
+                                <Briefcase className="h-3 w-3 mt-0.5 flex-shrink-0 text-blue-600" />
+                              )}
+                              <span className="flex-1">{relatedJob.title}</span>
                             </Button>
                           </h4>
                           <p className="text-xs text-muted-foreground mb-1 break-words">
@@ -718,7 +723,7 @@ export default function JobDetails() {
                             <h4 className="font-medium text-sm mb-2 leading-tight">
                               <Button
                                 variant="link"
-                                className="p-0 h-auto text-left font-medium text-blue-600 hover:text-blue-800 break-words hyphens-auto"
+                                className="p-0 h-auto text-left font-medium text-blue-600 hover:text-blue-800 break-words hyphens-auto flex items-start gap-1"
                                 onClick={() => {
                                   window.scrollTo({ top: 0, behavior: 'smooth' });
                                   setLocation(`/jobs/${relatedJob.id}`);
@@ -728,11 +733,16 @@ export default function JobDetails() {
                                   overflowWrap: 'break-word',
                                   whiteSpace: 'normal',
                                   textAlign: 'left',
-                                  display: 'block',
+                                  display: 'flex',
                                   width: '100%'
                                 }}
                               >
-                                {relatedJob.title}
+                                {(relatedJob as any).type === 'tender' ? (
+                                  <FileText className="h-3 w-3 mt-0.5 flex-shrink-0 text-orange-600" />
+                                ) : (
+                                  <Briefcase className="h-3 w-3 mt-0.5 flex-shrink-0 text-blue-600" />
+                                )}
+                                <span className="flex-1">{relatedJob.title}</span>
                               </Button>
                             </h4>
                             <p className="text-xs text-muted-foreground mb-1 break-words">
