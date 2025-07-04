@@ -1055,7 +1055,7 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   {editingJob ? <Edit className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
-                  {editingJob ? 'Edit Job Posting' : 'Create New Job Posting'}
+                  {editingJob ? 'Edit Posting' : 'Create New Posting'}
                 </CardTitle>
                 {editingJob && (
                   <Button
@@ -1091,7 +1091,7 @@ export default function Dashboard() {
                 <form onSubmit={handleJobSubmit} className="space-y-6">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="title">Job Title *</Label>
+                      <Label htmlFor="title">Title *</Label>
                       <Input
                         id="title"
                         value={jobForm.title}
@@ -1263,12 +1263,12 @@ export default function Dashboard() {
                   </div>
 
                   <div>
-                    <Label htmlFor="description">Job Description *</Label>
+                    <Label htmlFor="description">Description *</Label>
                     <Textarea
                       id="description"
                       value={jobForm.description}
                       onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })}
-                      placeholder="Provide a comprehensive job description including background, context, and purpose of the role..."
+                      placeholder="Provide a comprehensive description including background, context, and purpose..."
                       rows={6}
                       required
                     />
