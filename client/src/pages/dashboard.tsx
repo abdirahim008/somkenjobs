@@ -1296,7 +1296,7 @@ export default function Dashboard() {
                           setJobForm({ ...jobForm, attachmentUrl: file.name });
                         }
                       }}
-                      className="h-10 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#0077B5] file:text-white hover:file:bg-[#005582] file:h-full flex items-center file:flex file:items-center file:justify-center"
+                      className="file:mr-4 file:py-2.5 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#0077B5] file:text-white hover:file:bg-[#005582]"
                     />
                     {jobForm.attachmentUrl && (
                       <p className="text-sm text-gray-600 mt-1">
