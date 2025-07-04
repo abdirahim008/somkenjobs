@@ -53,7 +53,9 @@ export default function Dashboard() {
     responsibilities: "",
     deadline: "",
     url: "",
-    status: "published" // Add status field
+    status: "published", // Add status field
+    type: "job" as "job" | "tender", // Add type field
+    attachmentUrl: "" // Add attachment URL field
   });
 
   // Update organization field when user data loads and initialize profile form
@@ -159,7 +161,9 @@ export default function Dashboard() {
         responsibilities: "",
         deadline: "",
         url: "",
-        status: "published"
+        status: "published",
+        type: "job",
+        attachmentUrl: ""
       });
       queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
     },
@@ -859,14 +863,17 @@ export default function Dashboard() {
       qualifications: jobForm.qualifications,
       responsibilities: jobForm.responsibilities,
       status: jobForm.status, // Include status field
+      type: jobForm.type, // Include type field
+      attachmentUrl: jobForm.attachmentUrl, // Include attachment URL
       bodyHtml: `
         <div>
-          <h3>Job Description</h3>
+          <h3>${jobForm.type === 'tender' ? 'Tender Description' : 'Job Description'}</h3>
           <p>${jobForm.description.replace(/\n/g, '<br>')}</p>
           ${jobForm.responsibilities ? `<h3>Key Responsibilities</h3><p>${jobForm.responsibilities.replace(/\n/g, '<br>')}</p>` : ''}
           ${jobForm.qualifications ? `<h3>Qualifications & Requirements</h3><p>${jobForm.qualifications.replace(/\n/g, '<br>')}</p>` : ''}
           ${jobForm.experience ? `<h3>Experience Level</h3><p>${jobForm.experience}</p>` : ''}
           ${jobForm.howToApply ? `<h3>How to Apply</h3><p>${jobForm.howToApply.replace(/\n/g, '<br>')}</p>` : ''}
+          ${jobForm.attachmentUrl ? `<h3>Attachment</h3><p>Document: ${jobForm.attachmentUrl}</p>` : ''}
         </div>
       `.trim()
     };
@@ -1069,7 +1076,9 @@ export default function Dashboard() {
                         responsibilities: "",
                         deadline: "",
                         url: "",
-                        status: "published"
+                        status: "published",
+                        type: "job",
+                        attachmentUrl: ""
                       });
                     }}
                     className="mt-2"
@@ -1104,6 +1113,48 @@ export default function Dashboard() {
                         title={!isAdmin ? "Organization is auto-filled from your profile" : ""}
                       />
                     </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="type">Type *</Label>
+                      <Select
+                        value={jobForm.type}
+                        onValueChange={(value: "job" | "tender") => setJobForm({ ...jobForm, type: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="job">Job Opportunity</SelectItem>
+                          <SelectItem value="tender">Tender/Procurement</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {jobForm.type === "tender" && (
+                      <div>
+                        <Label htmlFor="attachment">Attachment (PDF/Word)</Label>
+                        <Input
+                          id="attachment"
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              // For now, we'll just store the filename
+                              // In a real implementation, you'd upload to a file storage service
+                              setJobForm({ ...jobForm, attachmentUrl: file.name });
+                            }
+                          }}
+                          className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#0077B5] file:text-white hover:file:bg-[#005582]"
+                        />
+                        {jobForm.attachmentUrl && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            Selected: {jobForm.attachmentUrl}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid md:grid-cols-3 gap-4">
@@ -1470,7 +1521,9 @@ export default function Dashboard() {
                                 responsibilities: job.responsibilities || '',
                                 deadline: job.deadline ? new Date(job.deadline).toISOString().split('T')[0] : '',
                                 url: job.url || '',
-                                status: (job as any).status || 'published'
+                                status: (job as any).status || 'published',
+                                type: (job as any).type || 'job',
+                                attachmentUrl: (job as any).attachmentUrl || ''
                               });
                               // Switch to create-job tab
                               setActiveTab("create-job");

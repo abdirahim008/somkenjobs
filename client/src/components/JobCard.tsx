@@ -109,6 +109,10 @@ export default function JobCard({ job }: JobCardProps) {
           </div>
 
           <div className="flex items-center flex-wrap gap-2">
+            {/* Type badge - Job vs Tender */}
+            <Badge className={`badge ${(job as any).type === 'tender' ? 'bg-orange-100 text-orange-800 hover:bg-orange-100' : 'bg-blue-100 text-blue-800 hover:bg-blue-100'} text-sm`}>
+              {(job as any).type === 'tender' ? 'Tender' : 'Job'}
+            </Badge>
             {job.sector && (
               <Badge className={`badge ${getSectorBadgeColor(job.sector)} text-sm`}>
                 {job.sector}

@@ -23,6 +23,8 @@ export const jobs = pgTable("jobs", {
   bodyHtml: text("body_html"),
   createdBy: integer("created_by"), // User ID who created the job (null for scraped jobs)
   status: text("status").notNull().default("published"), // 'draft' or 'published'
+  type: text("type").notNull().default("job"), // 'job' or 'tender'
+  attachmentUrl: text("attachment_url"), // URL to uploaded attachment file for tenders
 });
 
 export const insertJobSchema = createInsertSchema(jobs).omit({
@@ -36,6 +38,10 @@ export const insertJobSchema = createInsertSchema(jobs).omit({
   deadline: z.union([z.date(), z.string().transform((str) => new Date(str)), z.null()]).optional(),
   // Allow bodyHtml to be optional since it's for scraped jobs
   bodyHtml: z.string().optional(),
+  // Add validation for type field
+  type: z.enum(["job", "tender"]).default("job"),
+  // Attachment URL is optional
+  attachmentUrl: z.string().optional(),
 });
 
 export type InsertJob = z.infer<typeof insertJobSchema>;

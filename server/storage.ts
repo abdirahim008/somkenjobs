@@ -69,7 +69,8 @@ export class MemStorage implements IStorage {
         deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
         sector: "Food Security",
         source: "reliefweb",
-        externalId: "sample-wfp-1"
+        externalId: "sample-wfp-1",
+        type: "job" as const
       },
       {
         title: "Health Coordinator",
@@ -82,7 +83,8 @@ export class MemStorage implements IStorage {
         deadline: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000), // 20 days from now
         sector: "Health",
         source: "reliefweb",
-        externalId: "sample-msf-1"
+        externalId: "sample-msf-1",
+        type: "job" as const
       },
 
       {
@@ -96,7 +98,22 @@ export class MemStorage implements IStorage {
         deadline: new Date(Date.now() + 35 * 24 * 60 * 60 * 1000), // 35 days from now
         sector: "WASH",
         source: "reliefweb",
-        externalId: "sample-oxfam-1"
+        externalId: "sample-oxfam-1",
+        type: "job" as const
+      },
+      {
+        title: "Construction Services for Emergency Shelters",
+        organization: "UN-Habitat",
+        location: "Mombasa",
+        country: "Kenya",
+        description: "Tender for construction services to build emergency shelters for displaced populations. Seeking qualified construction companies with experience in humanitarian projects and rapid deployment capabilities.",
+        url: "https://unhabitat.org/tenders/emergency-shelters-kenya",
+        datePosted: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+        deadline: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000), // 21 days from now
+        sector: "Shelter",
+        source: "internal",
+        externalId: "sample-tender-1",
+        type: "tender" as const
       },
 
     ];
@@ -221,6 +238,9 @@ export class MemStorage implements IStorage {
       qualifications: insertJob.qualifications || null,
       responsibilities: insertJob.responsibilities || null,
       bodyHtml: insertJob.bodyHtml || null,
+      status: insertJob.status || "published",
+      type: insertJob.type || "job",
+      attachmentUrl: insertJob.attachmentUrl || null,
       createdBy: insertJob.createdBy ?? null
     };
     this.jobs.set(id, job);

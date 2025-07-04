@@ -194,7 +194,8 @@ export class JobFetcher {
             experience: experience,
             qualifications: null, // Will be extracted from description
             responsibilities: null, // Will be extracted from description
-            bodyHtml: fullHtmlDescription
+            bodyHtml: fullHtmlDescription,
+            type: "job" // ReliefWeb jobs are always job opportunities, not tenders
           };
 
           await storage.createJob(job);
@@ -264,7 +265,8 @@ export class JobFetcher {
           deadline: null,
           sector: "General",
           source: "unjobs",
-          externalId: externalId
+          externalId: externalId,
+          type: "job" // UN Jobs are always job opportunities, not tenders
         };
 
         await storage.createJob(job);
