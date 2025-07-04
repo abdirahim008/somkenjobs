@@ -37,6 +37,7 @@ export interface IStorage {
   createInvoice(invoice: InsertInvoice): Promise<Invoice>;
   updateInvoice(id: number, invoice: Partial<InsertInvoice>): Promise<Invoice | undefined>;
   deleteInvoice(id: number): Promise<boolean>;
+  getBilledJobIds(userId: number): Promise<number[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -331,6 +332,10 @@ export class MemStorage implements IStorage {
   async deleteInvoice(id: number): Promise<boolean> {
     return false;
   }
+
+  async getBilledJobIds(userId: number): Promise<number[]> {
+    return [];
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -592,6 +597,40 @@ export class DatabaseStorage implements IStorage {
   async deleteInvoice(id: number): Promise<boolean> {
     const result = await db.delete(invoices).where(eq(invoices.id, id));
     return (result.rowCount || 0) > 0;
+  }
+
+  async getBilledJobIds(userId: number): Promise<number[]> {
+    // Get all invoices for this user
+    const userInvoices = await db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.userId, userId));
+    
+    // Extract all job IDs from all invoices
+    const billedJobIds: number[] = [];
+    for (const invoice of userInvoices) {
+      try {
+        const jobIds = JSON.parse(invoice.selectedJobIds || '[]');
+        if (Array.isArray(jobIds)) {
+          billedJobIds.push(...jobIds);
+        }
+      } catch (error) {
+        console.error('Error parsing selectedJobIds from invoice:', invoice.id, error);
+      }
+    }
+    
+    // Return unique job IDs using manual deduplication
+    const uniqueJobIds: number[] = [];
+    const seenIds = new Set<number>();
+    
+    for (const jobId of billedJobIds) {
+      if (!seenIds.has(jobId)) {
+        uniqueJobIds.push(jobId);
+        seenIds.add(jobId);
+      }
+    }
+    
+    return uniqueJobIds;
   }
 }
 

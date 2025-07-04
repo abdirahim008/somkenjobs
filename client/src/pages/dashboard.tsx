@@ -119,6 +119,12 @@ export default function Dashboard() {
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<any>(null);
 
+  // Get jobs available for billing (excludes already billed jobs)
+  const { data: availableJobsForBilling = [], isLoading: availableJobsLoading } = useQuery({
+    queryKey: ["/api/user/jobs/available-for-billing"],
+    enabled: !!user && showInvoiceForm,
+  });
+
   // Create job mutation
   const createJobMutation = useMutation({
     mutationFn: async (jobData: any) => {
@@ -425,6 +431,7 @@ export default function Dashboard() {
       });
       setShowInvoiceForm(false);
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/jobs/available-for-billing"] });
     },
     onError: (error: any) => {
       toast({
@@ -459,6 +466,7 @@ export default function Dashboard() {
       setEditingInvoice(null);
       setShowInvoiceForm(false);
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/jobs/available-for-billing"] });
     },
     onError: (error: any) => {
       toast({
@@ -489,6 +497,7 @@ export default function Dashboard() {
         description: "Invoice deleted successfully!",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/jobs/available-for-billing"] });
     },
     onError: (error: any) => {
       toast({
@@ -1716,12 +1725,15 @@ export default function Dashboard() {
                       <div>
                         <Label>Select Jobs to Include *</Label>
                         <div className="mt-2 space-y-2 max-h-60 overflow-y-auto border rounded-md p-4">
-                          {userJobsLoading ? (
-                            <p className="text-center text-gray-500">Loading your jobs...</p>
-                          ) : (userJobs as any[]).length === 0 ? (
-                            <p className="text-center text-gray-500">No jobs available to invoice</p>
+                          {availableJobsLoading ? (
+                            <p className="text-center text-gray-500">Loading available jobs...</p>
+                          ) : (availableJobsForBilling as any[]).length === 0 ? (
+                            <div className="text-center text-gray-500">
+                              <p>No jobs available to invoice</p>
+                              <p className="text-xs mt-1">All your published jobs may have already been billed</p>
+                            </div>
                           ) : (
-                            (userJobs as any[]).map((job: any) => (
+                            (availableJobsForBilling as any[]).map((job: any) => (
                               <div key={job.id} className="flex items-center space-x-3">
                                 <input
                                   type="checkbox"

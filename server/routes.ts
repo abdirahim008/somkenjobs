@@ -388,6 +388,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get jobs that are available for billing (not already billed)
+  app.get("/api/user/jobs/available-for-billing", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const userJobs = await storage.getJobsByUserId(userId);
+      const billedJobIds = await storage.getBilledJobIds(userId);
+      
+      // Filter out already billed jobs
+      const availableJobs = userJobs.filter(job => !billedJobIds.includes(job.id));
+      
+      res.json(availableJobs);
+    } catch (error) {
+      console.error("Error fetching available jobs for billing:", error);
+      res.status(500).json({ message: "Failed to fetch available jobs for billing" });
+    }
+  });
+
   // Update a job (only if user owns it)
   app.put("/api/jobs/:id", authenticate, async (req: AuthRequest, res) => {
     try {
