@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { ArrowLeft, Calendar, MapPin, Building2, ExternalLink, Clock, Users, ChevronDown, ChevronUp, Briefcase, FileText } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Building2, ExternalLink, Clock, Users, ChevronDown, ChevronUp, Briefcase, FileText, Share2 } from "lucide-react";
+import { FaFacebook, FaWhatsapp, FaTwitter, FaLinkedin } from "react-icons/fa";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -145,6 +146,35 @@ export default function JobDetails() {
     });
     
     return processedText;
+  };
+
+  // Social media sharing functions
+  const createShareUrl = (platform: string, jobTitle: string, jobUrl: string) => {
+    const encodedTitle = encodeURIComponent(`${jobTitle} - Somken Jobs`);
+    const encodedUrl = encodeURIComponent(jobUrl);
+    const shareText = encodeURIComponent(`Check out this job opportunity: ${jobTitle}`);
+    
+    switch (platform) {
+      case 'facebook':
+        return `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${shareText}`;
+      case 'whatsapp':
+        return `https://wa.me/?text=${shareText}%20${encodedUrl}`;
+      case 'twitter':
+        return `https://twitter.com/intent/tweet?text=${shareText}&url=${encodedUrl}`;
+      case 'linkedin':
+        return `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
+      default:
+        return '';
+    }
+  };
+
+  const handleShare = (platform: string) => {
+    if (!job) return;
+    
+    const jobUrl = `${window.location.origin}/jobs/${job.id}`;
+    const shareUrl = createShareUrl(platform, job.title, jobUrl);
+    
+    window.open(shareUrl, '_blank', 'noopener,noreferrer');
   };
 
   // Helper function to create Apply Now button for How to Apply section
@@ -586,6 +616,55 @@ export default function JobDetails() {
                     </div>
                   </div>
                 </CardHeader>
+                <CardContent>
+                  {/* Social Media Share Section */}
+                  <div className="border-t pt-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Share2 className="h-4 w-4" />
+                        Share this job:
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleShare('facebook')}
+                          className="h-8 w-8 p-0 hover:bg-blue-50 hover:border-blue-300"
+                          title="Share on Facebook"
+                        >
+                          <FaFacebook className="h-4 w-4 text-blue-600" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleShare('whatsapp')}
+                          className="h-8 w-8 p-0 hover:bg-green-50 hover:border-green-300"
+                          title="Share on WhatsApp"
+                        >
+                          <FaWhatsapp className="h-4 w-4 text-green-600" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleShare('twitter')}
+                          className="h-8 w-8 p-0 hover:bg-blue-50 hover:border-blue-300"
+                          title="Share on Twitter"
+                        >
+                          <FaTwitter className="h-4 w-4 text-blue-500" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleShare('linkedin')}
+                          className="h-8 w-8 p-0 hover:bg-blue-50 hover:border-blue-300"
+                          title="Share on LinkedIn"
+                        >
+                          <FaLinkedin className="h-4 w-4 text-blue-700" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
               </Card>
 
               {/* Job Description */}
