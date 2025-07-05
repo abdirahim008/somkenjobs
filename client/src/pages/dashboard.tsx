@@ -1481,8 +1481,7 @@ export default function Dashboard() {
                       onClick={() => setIsEditingProfile(true)}
                       className="text-[#0077B5] border-[#0077B5] hover:bg-[#0077B5] hover:text-white"
                     >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
+                      <Edit className="h-4 w-4" />
                     </Button>
                   )}
                 </CardTitle>
