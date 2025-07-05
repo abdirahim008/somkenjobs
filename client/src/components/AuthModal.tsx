@@ -66,11 +66,22 @@ export default function AuthModal({ children, open: controlledOpen, onOpenChange
         description: "Welcome back!",
       });
     } catch (error) {
-      toast({
-        title: "Login Failed",
-        description: error instanceof Error ? error.message : "Please check your credentials",
-        variant: "destructive",
-      });
+      const errorMessage = error instanceof Error ? error.message : "Please check your credentials";
+      
+      // Check if the error is specifically about pending approval
+      if (errorMessage.includes("pending approval")) {
+        toast({
+          title: "Account Pending Approval",
+          description: "Your account is awaiting admin approval. You'll be able to login once your account is approved.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -268,7 +279,14 @@ export default function AuthModal({ children, open: controlledOpen, onOpenChange
                         <FormItem>
                           <FormLabel>Phone Number (Optional)</FormLabel>
                           <FormControl>
-                            <Input placeholder="+254 700 000 000" {...field} />
+                            <Input 
+                              placeholder="+254 700 000 000" 
+                              value={field.value || ""} 
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              name={field.name}
+                              ref={field.ref}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
