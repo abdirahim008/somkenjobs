@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { showSuccessToast, showErrorToast } from "@/lib/toast-utils";
 
 export default function Dashboard() {
   const { user, isLoading } = useAuth();
@@ -144,10 +146,7 @@ export default function Dashboard() {
       return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Job created successfully!",
-      });
+      showSuccessToast("Job Created Successfully", "Your job posting has been created and published!");
       setJobForm({
         title: "",
         organization: (user as any)?.companyName || "",
@@ -168,11 +167,7 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create job",
-        variant: "destructive",
-      });
+      showErrorToast("Failed to Create Job", error.message || "Please try again");
     },
   });
 
@@ -192,18 +187,11 @@ export default function Dashboard() {
       return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "User approved successfully!",
-      });
+      showSuccessToast("User Approved Successfully", "The user can now access their dashboard");
       queryClient.invalidateQueries({ queryKey: ["/api/admin/pending-users"] });
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to approve user",
-        variant: "destructive",
-      });
+      showErrorToast("Failed to Approve User", error.message || "Please try again");
     },
   });
 
@@ -224,18 +212,11 @@ export default function Dashboard() {
       return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "User registration rejected successfully!",
-      });
+      showSuccessToast("User Registration Rejected", "The user registration has been rejected");
       queryClient.invalidateQueries({ queryKey: ["/api/admin/pending-users"] });
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to reject user",
-        variant: "destructive",
-      });
+      showErrorToast("Failed to Reject User", error.message || "Please try again");
     },
   });
 
@@ -254,18 +235,11 @@ export default function Dashboard() {
       return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Job deleted successfully!",
-      });
+      showSuccessToast("Job Deleted Successfully", "The job posting has been removed");
       queryClient.invalidateQueries({ queryKey: ["/api/admin/jobs"] });
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete job",
-        variant: "destructive",
-      });
+      showErrorToast("Failed to Delete Job", error.message || "Please try again");
     },
   });
 
@@ -284,20 +258,13 @@ export default function Dashboard() {
       return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Job deleted successfully!",
-      });
+      showSuccessToast("Job Deleted Successfully", "Your job posting has been removed");
       queryClient.invalidateQueries({ queryKey: ["/api/user/jobs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
       setSelectedJobs([]);
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete job",
-        variant: "destructive",
-      });
+      showErrorToast("Failed to Delete Job", error.message || "Please try again");
     },
   });
 
@@ -357,19 +324,12 @@ export default function Dashboard() {
       return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Success", 
-        description: "Profile updated successfully",
-      });
+      showSuccessToast("Profile Updated Successfully", "Your profile information has been saved");
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       setIsEditingProfile(false); // Switch back to view mode
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update profile",
-        variant: "destructive",
-      });
+      showErrorToast("Failed to Update Profile", error.message || "Please try again");
     },
   });
 
@@ -390,20 +350,13 @@ export default function Dashboard() {
       return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Job updated successfully!",
-      });
+      showSuccessToast("Job Updated Successfully", "Your job posting has been updated");
       setEditingJob(null);
       queryClient.invalidateQueries({ queryKey: ["/api/user/jobs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update job",
-        variant: "destructive",
-      });
+      showErrorToast("Failed to Update Job", error.message || "Please try again");
     },
   });
 
@@ -424,10 +377,7 @@ export default function Dashboard() {
       return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Invoice created successfully!",
-      });
+      showSuccessToast("Invoice Created Successfully", "Your invoice has been generated and saved");
       setInvoiceForm({
         description: "",
         pricePerJob: "",
@@ -438,11 +388,7 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/user/jobs/available-for-billing"] });
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create invoice",
-        variant: "destructive",
-      });
+      showErrorToast("Failed to Create Invoice", error.message || "Please try again");
     },
   });
 
@@ -463,21 +409,14 @@ export default function Dashboard() {
       return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Invoice updated successfully!",
-      });
+      showSuccessToast("Invoice Updated Successfully", "Your invoice changes have been saved");
       setEditingInvoice(null);
       setShowInvoiceForm(false);
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/jobs/available-for-billing"] });
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update invoice",
-        variant: "destructive",
-      });
+      showErrorToast("Failed to Update Invoice", error.message || "Please try again");
     },
   });
 
@@ -496,19 +435,12 @@ export default function Dashboard() {
       return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Invoice deleted successfully!",
-      });
+      showSuccessToast("Invoice Deleted Successfully", "The invoice has been removed");
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/jobs/available-for-billing"] });
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete invoice",
-        variant: "destructive",
-      });
+      showErrorToast("Failed to Delete Invoice", error.message || "Please try again");
     },
   });
 
@@ -517,11 +449,7 @@ export default function Dashboard() {
     e.preventDefault();
     
     if (!invoiceForm.pricePerJob || invoiceForm.selectedJobIds.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please fill in price per job and select at least one job",
-        variant: "destructive",
-      });
+      showErrorToast("Form Incomplete", "Please fill in price per job and select at least one job");
       return;
     }
 
@@ -1344,17 +1272,17 @@ export default function Dashboard() {
                   </div>
 
                   <div className="space-y-3">
-                    <Button 
+                    <LoadingButton 
                       type="submit" 
                       className="w-full"
-                      disabled={createJobMutation.isPending || updateJobMutation.isPending}
+                      loading={createJobMutation.isPending || updateJobMutation.isPending}
+                      loadingText={editingJob ? "Updating..." : "Creating..."}
                     >
                       {editingJob 
-                        ? updateJobMutation.isPending ? "Updating..." : "Update Job Posting"
-                        : createJobMutation.isPending ? "Creating..." : 
-                          jobForm.status === 'draft' ? "Save as Draft" : "Create & Publish Job"
+                        ? "Update Job Posting"
+                        : jobForm.status === 'draft' ? "Save as Draft" : "Create & Publish Job"
                       }
-                    </Button>
+                    </LoadingButton>
                     
                     {!editingJob && jobForm.status === 'published' && (
                       <Button 
@@ -1692,13 +1620,14 @@ export default function Dashboard() {
                       />
                     </div>
 
-                    <Button 
+                    <LoadingButton 
                       type="submit" 
                       className="w-full bg-[#0077B5] hover:bg-[#005582]"
-                      disabled={updateProfileMutation.isPending}
+                      loading={updateProfileMutation.isPending}
+                      loadingText="Updating..."
                     >
-                      {updateProfileMutation.isPending ? "Updating..." : "Update Profile"}
-                    </Button>
+                      Update Profile
+                    </LoadingButton>
                   </form>
                 )}
               </CardContent>
@@ -1808,16 +1737,14 @@ export default function Dashboard() {
                         )}
                       </div>
 
-                      <Button 
+                      <LoadingButton 
                         type="submit" 
                         className="w-full bg-[#0077B5] hover:bg-[#005582]"
-                        disabled={createInvoiceMutation.isPending || updateInvoiceMutation.isPending}
+                        loading={createInvoiceMutation.isPending || updateInvoiceMutation.isPending}
+                        loadingText={editingInvoice ? "Updating..." : "Creating..."}
                       >
-                        {editingInvoice 
-                          ? updateInvoiceMutation.isPending ? "Updating..." : "Update Invoice"
-                          : createInvoiceMutation.isPending ? "Creating..." : "Create Invoice"
-                        }
-                      </Button>
+                        {editingInvoice ? "Update Invoice" : "Create Invoice"}
+                      </LoadingButton>
                     </form>
                   </CardContent>
                 </Card>
@@ -1953,24 +1880,26 @@ export default function Dashboard() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button
+                            <LoadingButton
                               size="sm"
                               onClick={() => handleApproveUser(pendingUser.id)}
-                              disabled={approveUserMutation.isPending}
+                              loading={approveUserMutation.isPending}
+                              loadingText="Approving..."
                               className="bg-green-600 hover:bg-green-700"
                             >
                               <CheckCircle className="h-4 w-4 mr-1" />
                               Approve
-                            </Button>
-                            <Button
+                            </LoadingButton>
+                            <LoadingButton
                               size="sm"
                               variant="destructive"
                               onClick={() => rejectUserMutation.mutate({ userId: pendingUser.id, reason: "Admin rejected" })}
-                              disabled={rejectUserMutation.isPending}
+                              loading={rejectUserMutation.isPending}
+                              loadingText="Rejecting..."
                             >
                               <Trash2 className="h-4 w-4 mr-1" />
                               Reject
-                            </Button>
+                            </LoadingButton>
                           </div>
                         </div>
                       ))}

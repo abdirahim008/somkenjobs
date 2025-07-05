@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { insertUserSchema, loginUserSchema, type InsertUser, type LoginUser } from "@shared/schema";
 import { UserPlus, LogIn } from "lucide-react";
+import { showSuccessToast, showErrorToast, showWarningToast } from "@/lib/toast-utils";
 
 interface AuthModalProps {
   children?: React.ReactNode;
@@ -61,26 +63,15 @@ export default function AuthModal({ children, open: controlledOpen, onOpenChange
     try {
       await login.mutateAsync(data);
       setOpen(false);
-      toast({
-        title: "Login Successful",
-        description: "Welcome back!",
-      });
+      showSuccessToast("Login Successful", "Welcome back!");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Please check your credentials";
       
       // Check if the error is specifically about pending approval
       if (errorMessage.includes("pending approval")) {
-        toast({
-          title: "Account Pending Approval",
-          description: "Your account is awaiting admin approval. You'll be able to login once your account is approved.",
-          variant: "destructive",
-        });
+        showWarningToast("Account Pending Approval", "Your account is awaiting admin approval. You'll be able to login once your account is approved.");
       } else {
-        toast({
-          title: "Login Failed",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        showErrorToast("Login Failed", errorMessage);
       }
     }
   };
@@ -88,18 +79,11 @@ export default function AuthModal({ children, open: controlledOpen, onOpenChange
   const onRegister = async (data: InsertUser) => {
     try {
       await register.mutateAsync(data);
-      toast({
-        title: "Registration Successful",
-        description: "Your account is pending admin approval. You'll be notified once approved.",
-      });
+      showSuccessToast("Registration Successful", "Your account is pending admin approval. You'll be notified once approved.");
       registerForm.reset();
       setActiveTab("login");
     } catch (error) {
-      toast({
-        title: "Registration Failed",
-        description: error instanceof Error ? error.message : "Please try again",
-        variant: "destructive",
-      });
+      showErrorToast("Registration Failed", error instanceof Error ? error.message : "Please try again");
     }
   };
 
@@ -164,14 +148,15 @@ export default function AuthModal({ children, open: controlledOpen, onOpenChange
                         </FormItem>
                       )}
                     />
-                    <Button 
+                    <LoadingButton 
                       type="submit" 
                       className="w-full" 
                       style={{ backgroundColor: "#0077B5" }}
-                      disabled={login.isPending}
+                      loading={login.isPending}
+                      loadingText="Signing in..."
                     >
-                      {login.isPending ? "Signing in..." : "Sign In"}
-                    </Button>
+                      Sign In
+                    </LoadingButton>
                   </form>
                 </Form>
               </CardContent>
@@ -292,14 +277,15 @@ export default function AuthModal({ children, open: controlledOpen, onOpenChange
                         </FormItem>
                       )}
                     />
-                    <Button 
+                    <LoadingButton 
                       type="submit" 
                       className="w-full" 
                       style={{ backgroundColor: "#0077B5" }}
-                      disabled={register.isPending}
+                      loading={register.isPending}
+                      loadingText="Registering..."
                     >
-                      {register.isPending ? "Registering..." : "Register Account"}
-                    </Button>
+                      Register Account
+                    </LoadingButton>
                   </form>
                 </Form>
               </CardContent>
