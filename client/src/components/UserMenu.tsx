@@ -11,12 +11,12 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import AuthModal from "./AuthModal";
-import { User, LogOut, Shield, Building, LayoutDashboard } from "lucide-react";
+import { User, LogOut, Shield, Building, LayoutDashboard, Loader2 } from "lucide-react";
 import type { User as UserType } from "@shared/schema";
 import { Link } from "wouter";
 
 export default function UserMenu() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, isLoggingOut } = useAuth();
   const typedUser = user as UserType | undefined;
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authTab, setAuthTab] = useState<"login" | "register">("login");
@@ -114,9 +114,13 @@ export default function UserMenu() {
             <span>Dashboard</span>
           </DropdownMenuItem>
         </Link>
-        <DropdownMenuItem onClick={handleLogout}>
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+        <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut}>
+          {isLoggingOut ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <LogOut className="mr-2 h-4 w-4" />
+          )}
+          <span>{isLoggingOut ? "Logging out..." : "Log out"}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

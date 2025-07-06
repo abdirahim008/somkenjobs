@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { User, LoginUser, InsertUser } from "@shared/schema";
+import { showSuccessToast } from "@/lib/toast-utils";
 
 interface AuthResponse {
   token: string;
@@ -36,13 +37,24 @@ export function useAuth() {
     },
   });
 
-  const logout = () => {
-    localStorage.removeItem("auth_token");
-    queryClient.setQueryData(["/api/auth/user"], null);
-    queryClient.clear();
-    // Redirect to home page after logout
-    window.location.href = "/";
-  };
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      // Simulate a brief delay for loading animation
+      await new Promise(resolve => setTimeout(resolve, 800));
+      localStorage.removeItem("auth_token");
+      queryClient.setQueryData(["/api/auth/user"], null);
+      queryClient.clear();
+    },
+    onSuccess: () => {
+      showSuccessToast("Logged Out Successfully", "You have been logged out of your account");
+      // Redirect to home page after success message
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1000);
+    },
+  });
+
+  const logout = logoutMutation.mutate;
 
   return {
     user,
@@ -51,5 +63,6 @@ export function useAuth() {
     login: loginMutation,
     register: registerMutation,
     logout,
+    isLoggingOut: logoutMutation.isPending,
   };
 }
