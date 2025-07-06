@@ -40,6 +40,8 @@ export function useAuth() {
     localStorage.removeItem("auth_token");
     queryClient.setQueryData(["/api/auth/user"], null);
     queryClient.clear();
+    // Redirect to home page after logout
+    window.location.href = "/";
   };
 
   return {
