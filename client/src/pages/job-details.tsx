@@ -179,54 +179,62 @@ export default function JobDetails() {
 
   // Helper function to create Apply Now button for How to Apply section
   const createApplyButton = (text: string) => {
-    // First, try to extract URL from markdown-style links [text](url)
-    const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-    const markdownMatch = text.match(markdownLinkRegex);
-    
     let url = null;
     let cleanedText = text;
     
-    if (markdownMatch) {
-      for (const match of markdownMatch) {
-        const linkMatch = match.match(/\[([^\]]+)\]\(([^)]+)\)/);
-        if (linkMatch) {
-          const linkText = linkMatch[1];
-          const linkUrl = linkMatch[2];
-          
-          // Skip void(0) links and extract the actual website from link text
-          if (linkUrl.includes('void(0)') && linkText.includes('.')) {
-            // Extract domain from link text (e.g., www.drc.ngo)
-            const domainMatch = linkText.match(/(?:www\.)?([a-zA-Z0-9-]+\.[a-zA-Z]{2,})/);
-            if (domainMatch) {
-              url = `https://${domainMatch[0]}`;
-              cleanedText = text.replace(match, `Visit ${linkText} to apply`);
-              break;
-            }
-          } else if (!linkUrl.includes('void(0)')) {
-            // Use valid URL
-            url = linkUrl.startsWith('http') ? linkUrl : `https://${linkUrl}`;
-            cleanedText = text.replace(match, `Visit ${linkText} to apply`);
+    // First, try to extract URL from markdown-style links [text](url)
+    const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const markdownMatches = [...text.matchAll(markdownLinkRegex)];
+    
+    if (markdownMatches.length > 0) {
+      for (const match of markdownMatches) {
+        const linkText = match[1];
+        const linkUrl = match[2];
+        
+        // Skip void(0) links and extract the actual website from link text
+        if (linkUrl.includes('void(0)') && linkText.includes('.')) {
+          // Extract domain from link text (e.g., www.drc.ngo)
+          const domainMatch = linkText.match(/(?:www\.)?([a-zA-Z0-9-]+\.[a-zA-Z]{2,})/);
+          if (domainMatch) {
+            url = `https://${domainMatch[0]}`;
+            cleanedText = text.replace(match[0], `Visit ${linkText} to apply`);
             break;
           }
+        } else if (!linkUrl.includes('void(0)')) {
+          // Use valid URL
+          url = linkUrl.startsWith('http') ? linkUrl : `https://${linkUrl}`;
+          cleanedText = text.replace(match[0], `Visit the application link to apply`);
+          break;
         }
       }
     }
     
     // If no markdown URL found, try regular URL extraction (excluding void(0))
     if (!url) {
-      const urlRegex = /((?:https?:\/\/|www\.)[^\s\)]+)/gi;
+      const urlRegex = /((?:https?:\/\/|www\.)[^\s\)\[\]]+)/gi;
       const urlMatches = text.match(urlRegex);
       
       if (urlMatches) {
-        // Filter out void(0) URLs
-        const validUrls = urlMatches.filter(foundUrl => !foundUrl.includes('void(0)'));
+        // Filter out void(0) URLs and URLs that are part of markdown links
+        const validUrls = urlMatches.filter(foundUrl => {
+          // Skip void(0) URLs
+          if (foundUrl.includes('void(0)')) return false;
+          
+          // Skip URLs that are part of markdown links (already processed above)
+          const markdownCheck = new RegExp(`\\[([^\\]]+)\\]\\(${foundUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\)`);
+          if (markdownCheck.test(text)) return false;
+          
+          return true;
+        });
+        
         if (validUrls.length > 0) {
           url = validUrls[0];
           // Add https:// if it's missing
           if (!url.startsWith('http://') && !url.startsWith('https://')) {
             url = `https://${url}`;
           }
-          cleanedText = text.replace(urlRegex, '').trim();
+          // Remove the URL from the text but keep the rest
+          cleanedText = text.replace(new RegExp(validUrls[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '').trim();
         }
       }
     }
