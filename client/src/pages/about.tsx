@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Target, Globe, Heart, TrendingUp, Shield } from "lucide-react";
+import { Users, Target, Globe, TrendingUp, Shield } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
@@ -54,9 +54,7 @@ export default function About() {
                 <a href="#features" className="block text-sm text-muted-foreground hover:text-[#0077B5] transition-colors">
                   Key Features
                 </a>
-                <a href="#focus" className="block text-sm text-muted-foreground hover:text-[#0077B5] transition-colors">
-                  Focus Areas
-                </a>
+                
                 <a href="#choose" className="block text-sm text-muted-foreground hover:text-[#0077B5] transition-colors">
                   Why Choose Us
                 </a>
@@ -174,45 +172,7 @@ export default function About() {
               </div>
             </div>
 
-            {/* Focus Areas */}
-            <Card id="focus">
-              <CardHeader>
-                <CardTitle className="flex items-center text-2xl">
-                  <Heart className="h-6 w-6 mr-3 text-primary" />
-                  Focus Areas
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3">Geographic Focus</h3>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      <Badge variant="secondary">Kenya</Badge>
-                      <Badge variant="secondary">Somalia</Badge>
-                      <Badge variant="secondary">East Africa Region</Badge>
-                    </div>
-                    <p className="text-muted-foreground">
-                      Specialized focus on humanitarian opportunities in Kenya and Somalia.
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3">Sector Coverage</h3>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      <Badge variant="outline">Health</Badge>
-                      <Badge variant="outline">Education</Badge>
-                      <Badge variant="outline">Protection</Badge>
-                      <Badge variant="outline">WASH</Badge>
-                      <Badge variant="outline">Food Security</Badge>
-                      <Badge variant="outline">Emergency Response</Badge>
-                    </div>
-                    <p className="text-muted-foreground">
-                      Complete coverage of humanitarian sectors from emergency response to development.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            
 
             {/* Why Choose Us */}
             <Card id="choose">
