@@ -5,6 +5,7 @@ import { z } from "zod";
 export const jobs = pgTable("jobs", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
+  jobNumber: text("job_number"), // Optional job/tender number for user identification
   organization: text("organization").notNull(),
   location: text("location").notNull(),
   country: text("country").notNull(),
@@ -42,6 +43,8 @@ export const insertJobSchema = createInsertSchema(jobs).omit({
   type: z.enum(["job", "tender"]).default("job"),
   // Attachment URL is optional
   attachmentUrl: z.string().optional(),
+  // Job number is optional for user identification
+  jobNumber: z.string().optional(),
 });
 
 export type InsertJob = z.infer<typeof insertJobSchema>;

@@ -44,6 +44,7 @@ export default function Dashboard() {
   // Job creation form state
   const [jobForm, setJobForm] = useState({
     title: "",
+    jobNumber: "", // Add optional job/tender number field
     organization: "",
     location: "",
     country: "",
@@ -149,6 +150,7 @@ export default function Dashboard() {
       showSuccessToast("Job Created Successfully", "Your job posting has been created and published!");
       setJobForm({
         title: "",
+        jobNumber: "",
         organization: (user as any)?.companyName || "",
         location: "",
         country: "",
@@ -776,6 +778,7 @@ export default function Dashboard() {
     // Build comprehensive job data matching ReliefWeb structure
     const jobData = {
       title: jobForm.title,
+      jobNumber: jobForm.jobNumber, // Include optional job/tender number
       organization: jobForm.organization,
       location: jobForm.location,
       country: jobForm.country,
@@ -993,6 +996,7 @@ export default function Dashboard() {
                       setEditingJob(null);
                       setJobForm({
                         title: "",
+                        jobNumber: "",
                         organization: (user as any)?.companyName || "",
                         location: "",
                         country: "",
@@ -1041,6 +1045,21 @@ export default function Dashboard() {
                         title={!isAdmin ? "Organization is auto-filled from your profile" : ""}
                       />
                     </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="jobNumber">
+                      {jobForm.type === 'tender' ? 'Tender Number' : 'Job Number'} (Optional)
+                    </Label>
+                    <Input
+                      id="jobNumber"
+                      value={jobForm.jobNumber}
+                      onChange={(e) => setJobForm({ ...jobForm, jobNumber: e.target.value })}
+                      placeholder={jobForm.type === 'tender' ? 'e.g. TND-2025-001, REF-2025-123' : 'e.g. JOB-2025-001, REF-2025-123'}
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Optional reference number to help distinguish between similar {jobForm.type === 'tender' ? 'tenders' : 'jobs'}
+                    </p>
                   </div>
 
                   <div>
@@ -1435,6 +1454,7 @@ export default function Dashboard() {
                               setEditingJob(job);
                               setJobForm({
                                 title: job.title,
+                                jobNumber: (job as any).jobNumber || '',
                                 organization: job.organization,
                                 location: job.location,
                                 country: job.country,
