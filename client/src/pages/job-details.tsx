@@ -116,7 +116,7 @@ export default function JobDetails() {
     
     // First, replace email addresses
     processedText = processedText.replace(emailRegex, (email) => {
-      return `<a href="mailto:${email}" class="text-blue-600 hover:text-blue-800 font-medium bg-blue-50 px-3 py-0.5 rounded-full border border-blue-200 inline-block">${email}</a>`;
+      return `<a href="mailto:${email}" class="text-blue-600 hover:text-blue-800 font-medium bg-blue-50 px-2 py-0.5 rounded border border-blue-200 inline-block break-all word-break-all max-w-full" style="overflow-wrap: anywhere; word-break: break-all; max-width: 100%;">${email}</a>`;
     });
     
     // Enhanced URL regex to catch various URL formats, but exclude those in parentheses following text
@@ -789,7 +789,8 @@ export default function JobDetails() {
                   <CardContent>
                     <div className="prose prose-gray max-w-none">
                       <div
-                        className="text-foreground leading-relaxed break-words"
+                        className="text-foreground leading-relaxed break-words overflow-wrap-anywhere text-sm md:text-base"
+                        style="word-break: break-word; overflow-wrap: anywhere; max-width: 100%;"
                         dangerouslySetInnerHTML={{
                           __html: createApplyButton(cleanText(job.howToApply))
                         }}
