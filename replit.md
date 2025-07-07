@@ -189,6 +189,7 @@ The application follows a modern full-stack architecture with clear separation b
 - July 6, 2025: Fixed logout functionality to properly redirect users to home page - resolved issue where users logging out from dashboard would remain on dashboard with 404 error, now logout properly redirects to main home page using window.location.href for reliable navigation
 - July 6, 2025: Implemented loading animation and success message system for logout - added circular loading spinner during logout process, shows "Logging out..." text with animated spinner in both desktop dropdown and mobile menu, displays green success toast notification before redirecting to home page, enhanced user experience with visual feedback during logout process
 - July 6, 2025: Fixed remaining logout redirect error - corrected stray redirect to non-existent `/api/login` endpoint in dashboard unauthorized handler to properly redirect to home page `/`, ensuring all logout scenarios now work without 404 errors
+- July 7, 2025: Enhanced job fetching diagnostics and confirmed ReliefWeb API functionality - added comprehensive logging to track job deduplication, verified that ReliefWeb API is working correctly but no new humanitarian jobs have been posted for Kenya/Somalia since July 4th, job fetching system continues to run twice daily and will automatically capture new jobs when they become available on ReliefWeb
 
 ## User Preferences
 

@@ -121,9 +121,23 @@ export class JobFetcher {
 
         const data: ReliefWebResponse = await response.json();
         
+        console.log(`ReliefWeb returned ${data.data.length} jobs for ${country}`);
+        
+        // Log the dates of returned jobs for debugging
+        if (data.data.length > 0) {
+          console.log(`Date range for ${country}: ${data.data[data.data.length - 1].fields.date.created} to ${data.data[0].fields.date.created}`);
+        }
+        
+        let newJobsCount = 0;
+        let skippedJobsCount = 0;
+        
         for (const rwJob of data.data) {
           const existingJob = await storage.getJobByExternalId(`reliefweb-${rwJob.id}`);
-          if (existingJob) continue; // Skip if already exists
+          if (existingJob) {
+            skippedJobsCount++;
+            console.log(`Skipping existing job: ${rwJob.id} - ${rwJob.fields.title} (${rwJob.fields.date.created})`);
+            continue; // Skip if already exists
+          }
 
           // Extract location with enhanced city detection
           const countryName = rwJob.fields.country?.[0]?.name || country;
@@ -199,9 +213,11 @@ export class JobFetcher {
           };
 
           await storage.createJob(job);
+          newJobsCount++;
+          console.log(`Created new job: ${rwJob.id} - ${rwJob.fields.title} (${rwJob.fields.date.created})`);
         }
         
-        console.log(`Fetched ${data.data.length} jobs from ReliefWeb for ${country}`);
+        console.log(`Fetched ${data.data.length} jobs from ReliefWeb for ${country} - ${newJobsCount} new, ${skippedJobsCount} existing`);
       }
     } catch (error) {
       console.error("Error fetching ReliefWeb jobs:", error);
