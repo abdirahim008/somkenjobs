@@ -790,7 +790,7 @@ export default function JobDetails() {
                     <div className="prose prose-gray max-w-none">
                       <div
                         className="text-foreground leading-relaxed break-words overflow-wrap-anywhere text-sm md:text-base"
-                        style="word-break: break-word; overflow-wrap: anywhere; max-width: 100%;"
+                        style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', maxWidth: '100%' }}
                         dangerouslySetInnerHTML={{
                           __html: createApplyButton(cleanText(job.howToApply))
                         }}
