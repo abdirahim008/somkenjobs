@@ -29,8 +29,7 @@ export default function About() {
             About Somken Jobs
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Connecting humanitarian professionals with meaningful career opportunities 
-            across Kenya and Somalia through comprehensive job aggregation and intelligent matching.
+            Your gateway to humanitarian careers in Kenya and Somalia.
           </p>
         </div>
       </section>
@@ -118,10 +117,9 @@ export default function About() {
               </CardHeader>
               <CardContent>
                 <p className="text-lg text-muted-foreground leading-relaxed">
-                  Somken Jobs is dedicated to bridging the gap between humanitarian organizations 
-                  and qualified professionals in Kenya and Somalia. We aggregate job opportunities from 
-                  leading humanitarian sources, providing a centralized platform that makes it easier for 
-                  professionals to find meaningful work that creates positive impact in East African communities.
+                  We connect humanitarian professionals with opportunities in Kenya and Somalia. 
+                  Our platform aggregates jobs from leading sources like ReliefWeb, making it easier 
+                  to find meaningful work in East Africa's humanitarian sector.
                 </p>
               </CardContent>
             </Card>
@@ -140,8 +138,7 @@ export default function About() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-muted-foreground">
-                      We aggregate opportunities from ReliefWeb and other major humanitarian job sources, 
-                      ensuring you never miss relevant positions in Kenya and Somalia.
+                      Jobs from ReliefWeb and major humanitarian sources in one place.
                     </p>
                   </CardContent>
                 </Card>
@@ -155,8 +152,7 @@ export default function About() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-muted-foreground">
-                      Our platform automatically fetches new job postings daily, keeping you informed 
-                      of the latest opportunities as they become available.
+                      Fresh job postings updated daily from trusted humanitarian sources.
                     </p>
                   </CardContent>
                 </Card>
@@ -170,8 +166,7 @@ export default function About() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-muted-foreground">
-                      We focus exclusively on legitimate humanitarian positions with complete job details, 
-                      application instructions, and verified organization information.
+                      Verified humanitarian positions with complete details and clear application instructions.
                     </p>
                   </CardContent>
                 </Card>
@@ -197,8 +192,7 @@ export default function About() {
                       <Badge variant="secondary">East Africa Region</Badge>
                     </div>
                     <p className="text-muted-foreground">
-                      We specialize in opportunities within Kenya and Somalia, understanding the unique 
-                      context and requirements of humanitarian work in these regions.
+                      Specialized focus on humanitarian opportunities in Kenya and Somalia.
                     </p>
                   </div>
                   
@@ -213,8 +207,7 @@ export default function About() {
                       <Badge variant="outline">Emergency Response</Badge>
                     </div>
                     <p className="text-muted-foreground">
-                      From emergency response to long-term development, we cover all major humanitarian 
-                      sectors and specializations.
+                      Complete coverage of humanitarian sectors from emergency response to development.
                     </p>
                   </div>
                 </div>
@@ -234,20 +227,18 @@ export default function About() {
                   <div>
                     <h4 className="font-semibold mb-2">For Job Seekers</h4>
                     <ul className="space-y-2 text-muted-foreground">
-                      <li>• Access to comprehensive job listings from multiple sources</li>
-                      <li>• Advanced filtering by location, organization, and sector</li>
-                      <li>• Complete job details with clear application instructions</li>
-                      <li>• Mobile-optimized platform for job searching on the go</li>
+                      <li>• Comprehensive job listings from multiple sources</li>
+                      <li>• Advanced filtering and search capabilities</li>
+                      <li>• Mobile-optimized for searching on the go</li>
                     </ul>
                   </div>
                   
                   <div>
                     <h4 className="font-semibold mb-2">For Organizations</h4>
                     <ul className="space-y-2 text-muted-foreground">
-                      <li>• Increased visibility for your job postings</li>
-                      <li>• Access to qualified East Africa-focused talent pool</li>
-                      <li>• Streamlined application process</li>
-                      <li>• Support for humanitarian sector recruitment needs</li>
+                      <li>• Increased visibility for job postings</li>
+                      <li>• Access to qualified East Africa talent</li>
+                      <li>• Streamlined recruitment process</li>
                     </ul>
                   </div>
                 </div>
