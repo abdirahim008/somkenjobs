@@ -36,196 +36,253 @@ export default function Contact() {
         </div>
       </section>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         
-        {/* Contact Methods Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        {/* Desktop Layout with Sidebar */}
+        <div className="flex gap-8">
           
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Mail className="h-5 w-5 mr-2 text-primary" />
-                General Inquiries
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                For general questions about our platform and services.
-              </p>
-              <Button variant="outline" className="w-full">
-                <Mail className="h-4 w-4 mr-2" />
-                info@jobconnect-ea.org
-              </Button>
-            </CardContent>
-          </Card>
+          {/* Left Sidebar - Desktop */}
+          <div className="hidden lg:block lg:w-80 space-y-6">
+            
+            {/* Quick Contact */}
+            <Card className="border-l-4 border-l-[#0077B5]">
+              <CardHeader>
+                <CardTitle className="text-lg">Quick Contact</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">General Support</p>
+                  <a href="mailto:info@somkenjobs.com" className="text-sm text-[#0077B5] hover:text-[#005885]">
+                    info@somkenjobs.com
+                  </a>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Partnerships</p>
+                  <a href="mailto:partnerships@somkenjobs.com" className="text-sm text-[#0077B5] hover:text-[#005885]">
+                    partnerships@somkenjobs.com
+                  </a>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Technical Help</p>
+                  <a href="mailto:support@somkenjobs.com" className="text-sm text-[#0077B5] hover:text-[#005885]">
+                    support@somkenjobs.com
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Users className="h-5 w-5 mr-2 text-primary" />
-                Partnership Inquiries
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                For organizations interested in partnering with us.
-              </p>
-              <Button variant="outline" className="w-full">
-                <Mail className="h-4 w-4 mr-2" />
-                partnerships@jobconnect-ea.org
-              </Button>
-            </CardContent>
-          </Card>
+            {/* Response Times */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Response Times</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-center p-3 bg-blue-50 rounded-lg">
+                  <div className="text-lg font-bold text-[#0077B5]">12-24h</div>
+                  <div className="text-xs text-muted-foreground">Technical Support</div>
+                </div>
+                <div className="text-center p-3 bg-green-50 rounded-lg">
+                  <div className="text-lg font-bold text-green-600">24-48h</div>
+                  <div className="text-xs text-muted-foreground">General Inquiries</div>
+                </div>
+                <div className="text-center p-3 bg-purple-50 rounded-lg">
+                  <div className="text-lg font-bold text-purple-600">2-5 days</div>
+                  <div className="text-xs text-muted-foreground">Partnerships</div>
+                </div>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <HelpCircle className="h-5 w-5 mr-2 text-primary" />
-                Technical Support
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                Having trouble with the platform? We're here to help.
-              </p>
-              <Button variant="outline" className="w-full">
-                <Mail className="h-4 w-4 mr-2" />
-                support@jobconnect-ea.org
-              </Button>
-            </CardContent>
-          </Card>
+            {/* Office Hours */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Support Hours</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Mon - Fri:</span>
+                  <span className="font-medium">8AM - 6PM EAT</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Saturday:</span>
+                  <span className="font-medium">9AM - 2PM EAT</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Sunday:</span>
+                  <span className="text-red-600">Closed</span>
+                </div>
+              </CardContent>
+            </Card>
+
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1 lg:max-w-4xl space-y-12">
+            
+            {/* Contact Methods Grid */}
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Get in Touch</h2>
+              <div className="grid md:grid-cols-3 gap-6">
+                
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader className="text-center">
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Mail className="h-8 w-8 text-[#0077B5]" />
+                    </div>
+                    <CardTitle className="text-lg">General Inquiries</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-center">
+                    <p className="text-muted-foreground mb-4 text-sm">
+                      Questions about our platform and services
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-[#0077B5] text-[#0077B5] hover:bg-[#0077B5] hover:text-white"
+                      onClick={() => window.location.href = 'mailto:info@somkenjobs.com'}
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Send Email
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader className="text-center">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Users className="h-8 w-8 text-green-600" />
+                    </div>
+                    <CardTitle className="text-lg">Partnerships</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-center">
+                    <p className="text-muted-foreground mb-4 text-sm">
+                      Organizations interested in collaboration
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                      onClick={() => window.location.href = 'mailto:partnerships@somkenjobs.com'}
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      Partner With Us
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader className="text-center">
+                    <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <HelpCircle className="h-8 w-8 text-orange-600" />
+                    </div>
+                    <CardTitle className="text-lg">Technical Support</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-center">
+                    <p className="text-muted-foreground mb-4 text-sm">
+                      Platform issues and technical help
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white"
+                      onClick={() => window.location.href = 'mailto:support@somkenjobs.com'}
+                    >
+                      <HelpCircle className="h-4 w-4 mr-2" />
+                      Get Help
+                    </Button>
+                  </CardContent>
+                </Card>
+
+              </div>
+            </div>
+
+            {/* FAQ Section */}
+            <Card id="faq">
+              <CardHeader>
+                <CardTitle className="flex items-center text-2xl">
+                  <MessageCircle className="h-6 w-6 mr-3 text-primary" />
+                  Frequently Asked Questions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  
+                  <div className="border-l-4 border-l-blue-200 pl-4">
+                    <h3 className="font-semibold text-lg mb-2">How often are jobs updated?</h3>
+                    <p className="text-muted-foreground">
+                      Fresh job postings are fetched daily from ReliefWeb and other sources, ensuring you see the latest opportunities.
+                    </p>
+                  </div>
+
+                  <div className="border-l-4 border-l-green-200 pl-4">
+                    <h3 className="font-semibold text-lg mb-2">Are there any fees?</h3>
+                    <p className="text-muted-foreground">
+                      Somken Jobs is completely free for job seekers. We believe humanitarian professionals deserve open access to opportunities.
+                    </p>
+                  </div>
+
+                  <div className="border-l-4 border-l-purple-200 pl-4">
+                    <h3 className="font-semibold text-lg mb-2">Can organizations post jobs?</h3>
+                    <p className="text-muted-foreground">
+                      We currently aggregate from major sources. Organizations interested in direct posting can contact our partnerships team.
+                    </p>
+                  </div>
+
+                  <div className="border-l-4 border-l-orange-200 pl-4">
+                    <h3 className="font-semibold text-lg mb-2">How do I apply for jobs?</h3>
+                    <p className="text-muted-foreground">
+                      Each listing includes detailed application instructions and direct links to apply with the hiring organization.
+                    </p>
+                  </div>
+
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Regional Focus */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-2xl">
+                  <MapPin className="h-6 w-6 mr-3 text-primary" />
+                  Our Regional Focus
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-8">
+                  
+                  <div>
+                    <h3 className="font-semibold text-lg mb-3">Kenya & Somalia Expertise</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Deep understanding of humanitarian landscapes in Kenya and Somalia, combining local knowledge with international expertise.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="outline" className="border-[#0077B5] text-[#0077B5]">Nairobi Hub</Badge>
+                      <Badge variant="outline" className="border-green-600 text-green-600">Somalia Network</Badge>
+                      <Badge variant="outline" className="border-purple-600 text-purple-600">Regional Partners</Badge>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-lg mb-3">Coverage Areas</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-3 h-3 bg-[#0077B5] rounded-full"></div>
+                        <span className="text-muted-foreground">Major Cities: Nairobi, Mombasa, Mogadishu</span>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <div className="w-3 h-3 bg-green-600 rounded-full"></div>
+                        <span className="text-muted-foreground">Rural & Remote Areas</span>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+                        <span className="text-muted-foreground">Cross-Border Operations</span>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </CardContent>
+            </Card>
+
+          </div>
 
         </div>
-
-        {/* FAQ Section */}
-        <Card className="mb-12">
-          <CardHeader>
-            <CardTitle className="flex items-center text-2xl">
-              <MessageCircle className="h-6 w-6 mr-3 text-primary" />
-              Frequently Asked Questions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              
-              <div>
-                <h3 className="font-semibold text-lg mb-2">How often are job listings updated?</h3>
-                <p className="text-muted-foreground">
-                  Our platform automatically fetches new job postings daily from ReliefWeb and other sources. 
-                  You'll always see the most current opportunities available for Kenya and Somalia.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-lg mb-2">Do you charge fees for job applications?</h3>
-                <p className="text-muted-foreground">
-                  No, JobConnect East Africa is completely free for job seekers. We believe humanitarian 
-                  professionals should have open access to career opportunities.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-lg mb-2">Can organizations post jobs directly?</h3>
-                <p className="text-muted-foreground">
-                  Currently, we aggregate jobs from established humanitarian job boards like ReliefWeb. 
-                  Organizations interested in direct posting can contact our partnerships team.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-lg mb-2">How do I apply for jobs listed on your platform?</h3>
-                <p className="text-muted-foreground">
-                  Each job listing includes detailed application instructions and links to apply directly 
-                  with the hiring organization. We provide the information you need to submit your application.
-                </p>
-              </div>
-
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Response Times */}
-        <Card className="mb-12">
-          <CardHeader>
-            <CardTitle className="flex items-center text-2xl">
-              <Clock className="h-6 w-6 mr-3 text-primary" />
-              Response Times
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-3 gap-6">
-              
-              <div className="text-center">
-                <Badge variant="secondary" className="mb-2">General Inquiries</Badge>
-                <p className="text-2xl font-bold text-primary">24-48 hours</p>
-                <p className="text-sm text-muted-foreground">Business days</p>
-              </div>
-
-              <div className="text-center">
-                <Badge variant="secondary" className="mb-2">Technical Support</Badge>
-                <p className="text-2xl font-bold text-primary">12-24 hours</p>
-                <p className="text-sm text-muted-foreground">Priority response</p>
-              </div>
-
-              <div className="text-center">
-                <Badge variant="secondary" className="mb-2">Partnership Inquiries</Badge>
-                <p className="text-2xl font-bold text-primary">2-5 days</p>
-                <p className="text-sm text-muted-foreground">Detailed review</p>
-              </div>
-
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Office Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center text-2xl">
-              <MapPin className="h-6 w-6 mr-3 text-primary" />
-              Our Presence
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-8">
-              
-              <div>
-                <h3 className="font-semibold text-lg mb-3">Regional Focus</h3>
-                <p className="text-muted-foreground mb-4">
-                  JobConnect East Africa operates with deep understanding of the humanitarian landscape 
-                  in Kenya and Somalia. Our team combines local knowledge with international humanitarian 
-                  sector expertise.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline">Nairobi Hub</Badge>
-                  <Badge variant="outline">Mogadishu Network</Badge>
-                  <Badge variant="outline">Regional Partners</Badge>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-lg mb-3">Operating Hours</h3>
-                <div className="space-y-2 text-muted-foreground">
-                  <div className="flex justify-between">
-                    <span>Monday - Friday:</span>
-                    <span>8:00 AM - 6:00 PM EAT</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Saturday:</span>
-                    <span>9:00 AM - 2:00 PM EAT</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Sunday:</span>
-                    <span>Closed</span>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground mt-4">
-                  Email responses may be delayed during weekends and holidays.
-                </p>
-              </div>
-
-            </div>
-          </CardContent>
-        </Card>
 
       </main>
 
