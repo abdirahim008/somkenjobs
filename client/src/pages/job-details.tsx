@@ -179,22 +179,64 @@ export default function JobDetails() {
 
   // Helper function to create Apply Now button for How to Apply section
   const createApplyButton = (text: string) => {
-    // Extract URL from the text
-    const urlRegex = /((?:https?:\/\/|www\.)[^\s\)]+)/gi;
-    const urlMatch = text.match(urlRegex);
+    // First, try to extract URL from markdown-style links [text](url)
+    const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const markdownMatch = text.match(markdownLinkRegex);
     
-    if (urlMatch && urlMatch.length > 0) {
-      let url = urlMatch[0];
-      
-      // Add https:// if it's missing
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        url = `https://${url}`;
+    let url = null;
+    let cleanedText = text;
+    
+    if (markdownMatch) {
+      for (const match of markdownMatch) {
+        const linkMatch = match.match(/\[([^\]]+)\]\(([^)]+)\)/);
+        if (linkMatch) {
+          const linkText = linkMatch[1];
+          const linkUrl = linkMatch[2];
+          
+          // Skip void(0) links and extract the actual website from link text
+          if (linkUrl.includes('void(0)') && linkText.includes('.')) {
+            // Extract domain from link text (e.g., www.drc.ngo)
+            const domainMatch = linkText.match(/(?:www\.)?([a-zA-Z0-9-]+\.[a-zA-Z]{2,})/);
+            if (domainMatch) {
+              url = `https://${domainMatch[0]}`;
+              cleanedText = text.replace(match, `Visit ${linkText} to apply`);
+              break;
+            }
+          } else if (!linkUrl.includes('void(0)')) {
+            // Use valid URL
+            url = linkUrl.startsWith('http') ? linkUrl : `https://${linkUrl}`;
+            cleanedText = text.replace(match, `Visit ${linkText} to apply`);
+            break;
+          }
+        }
       }
+    }
+    
+    // If no markdown URL found, try regular URL extraction (excluding void(0))
+    if (!url) {
+      const urlRegex = /((?:https?:\/\/|www\.)[^\s\)]+)/gi;
+      const urlMatches = text.match(urlRegex);
       
+      if (urlMatches) {
+        // Filter out void(0) URLs
+        const validUrls = urlMatches.filter(foundUrl => !foundUrl.includes('void(0)'));
+        if (validUrls.length > 0) {
+          url = validUrls[0];
+          // Add https:// if it's missing
+          if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = `https://${url}`;
+          }
+          cleanedText = text.replace(urlRegex, '').trim();
+        }
+      }
+    }
+    
+    // If we found a valid URL, create the apply button
+    if (url) {
       return `
         <div class="flex flex-col gap-4">
           <div class="text-sm text-gray-700 leading-relaxed">
-            ${convertUrlsToLinks(text.replace(urlRegex, '').trim()) || 'Click the button below to apply for this position.'}
+            ${convertUrlsToLinks(cleanedText) || 'Click the button below to apply for this position.'}
           </div>
           <a href="${url}" target="_blank" rel="noopener noreferrer" 
              class="inline-flex items-center justify-center gap-2 px-4 py-2 text-white font-medium rounded-lg transition-colors duration-200 w-auto max-w-fit no-underline"
@@ -210,7 +252,7 @@ export default function JobDetails() {
       `;
     }
     
-    // If no URL found, just return the text with conversion
+    // If no valid URL found, just return the text with conversion
     return convertUrlsToLinks(text);
   };
 
