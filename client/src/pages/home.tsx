@@ -78,7 +78,7 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="bg-[#0077B5] text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-full mx-auto px-2 sm:px-4 lg:px-6">
           <div className="text-center mb-8">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Find Humanitarian Jobs in East Africa
@@ -109,7 +109,7 @@ export default function Home() {
       </section>
 
       {/* Main Content */}
-      <main className="main-container max-w-5xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
+      <main className="main-container max-w-full mx-auto px-2 sm:px-4 lg:px-6 xl:px-8">
         {/* Left sidebar layout for desktop - Updated July 1, 2025 */}
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           
