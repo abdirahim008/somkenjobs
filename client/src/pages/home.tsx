@@ -81,10 +81,10 @@ export default function Home() {
         <div className="max-w-full mx-auto px-2 sm:px-4 lg:px-6">
           <div className="text-center mb-8">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Find Humanitarian Jobs in East Africa
+              Find Rewarding Career Opportunities in East Africa
             </h2>
             <p className="text-white/90 text-lg max-w-4xl mx-auto">
-              Discover meaningful career opportunities with leading humanitarian organizations in Kenya and Somalia
+              Discover meaningful jobs with leading organizations across Kenya, Somalia, and the region—make your next career move count.
             </p>
           </div>
 
