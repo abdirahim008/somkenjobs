@@ -42,7 +42,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
   }, []);
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-full mx-auto">
       <form onSubmit={handleSubmit}>
         <div className="bg-card rounded-xl shadow-lg p-2 flex items-center">
           <div className="flex-1 flex items-center">

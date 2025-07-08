@@ -83,12 +83,14 @@ export default function Home() {
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Find Humanitarian Jobs in East Africa
             </h2>
-            <p className="text-white/90 text-lg max-w-2xl mx-auto">
+            <p className="text-white/90 text-lg max-w-4xl mx-auto">
               Discover meaningful career opportunities with leading humanitarian organizations in Kenya and Somalia
             </p>
           </div>
 
-          <SearchBar onSearch={handleSearch} />
+          <div className="max-w-6xl mx-auto">
+            <SearchBar onSearch={handleSearch} />
+          </div>
 
           {/* Quick Stats */}
           <div className="flex justify-center space-x-8 mt-8 text-sm">
