@@ -97,8 +97,9 @@ export default function JobDetails() {
       .replace(/\*+/g, '')            // Remove any remaining single or multiple asterisks
       .replace(/^#{1,6}\s*/gm, '')    // Remove markdown headers (# ## ### etc.) at start of lines
       .replace(/^\s*#{1,6}\s*/gm, '') // Remove markdown headers with leading whitespace
-      .replace(/^\s*[\)\]\}]+\s*/g, '') // Remove standalone closing brackets/parentheses at start of lines
-      .replace(/[\)\]\}]+\s*$/g, '')    // Remove standalone closing brackets/parentheses at end of lines
+      .replace(/^\s*[\)\]\}]+\s*$/gm, '') // Remove lines that contain only closing brackets/parentheses
+      .replace(/^\s*[\)\]\}]+(?=\s)/gm, '') // Remove standalone closing brackets/parentheses at start of lines only if followed by space
+      .replace(/(?<=\s)[\)\]\}]+\s*$/gm, '') // Remove standalone closing brackets/parentheses at end of lines only if preceded by space
       .trim();                        // Remove leading/trailing whitespace
   };
 
