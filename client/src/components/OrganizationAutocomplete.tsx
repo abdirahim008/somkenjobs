@@ -33,8 +33,7 @@ export function OrganizationAutocomplete({
     setInputValue(value);
   }, [value]);
 
-  // Debug log to check if component is receiving correct props
-  console.log('OrganizationAutocomplete props:', { value, disabled, placeholder });
+
 
   // Fetch organizations with search
   const { data: organizations = [], isLoading } = useQuery<string[]>({
