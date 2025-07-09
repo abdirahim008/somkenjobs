@@ -11,7 +11,7 @@ export async function seedDatabase(): Promise<void> {
     const existingAdmin = await storage.getUserByEmail(adminEmail);
     
     if (!existingAdmin) {
-      const hashedPassword = await bcrypt.hash("admin123", 10);
+      const hashedPassword = await bcrypt.hash("Sk7@9mQ$nX3!pL8&vB2#wE5*uR4", 10);
       const adminUser: InsertUser = {
         email: adminEmail,
         password: hashedPassword,
@@ -31,7 +31,7 @@ export async function seedDatabase(): Promise<void> {
         approvedBy: "System",
       });
       
-      console.log("Default admin user created: admin@jobconnect.com / admin123");
+      console.log("Default admin user created: admin@jobconnect.com / [SECURE PASSWORD]");
     }
   } catch (error) {
     console.log("Admin user setup skipped (may already exist)")
