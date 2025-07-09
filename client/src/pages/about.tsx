@@ -302,20 +302,21 @@ export default function About() {
               <CardContent>
                 <div className="grid md:grid-cols-2 gap-8">
                   <div>
-                    <h4 className="font-semibold mb-2">For Job Seekers</h4>
-                    <ul className="space-y-2 text-muted-foreground">
-                      <li>• Comprehensive job listings from multiple sources</li>
-                      <li>• Advanced filtering and search capabilities</li>
-                      <li>• Mobile-optimized for searching on the go</li>
+                    <h4 className="font-semibold mb-3 text-lg">For Job Seekers</h4>
+                    <ul className="space-y-3 text-muted-foreground">
+                      <li>• Access to job listings from multiple reputable sources</li>
+                      <li>• Advanced filtering, search tools, and personalized job alerts</li>
+                      <li>• Mobile-friendly platform for easy browsing anywhere, anytime</li>
                     </ul>
                   </div>
                   
                   <div>
-                    <h4 className="font-semibold mb-2">For Organizations</h4>
-                    <ul className="space-y-2 text-muted-foreground">
-                      <li>• Increased visibility for job postings</li>
-                      <li>• Access to qualified East Africa talent</li>
-                      <li>• Streamlined recruitment process</li>
+                    <h4 className="font-semibold mb-3 text-lg">For Employers & Organizations</h4>
+                    <ul className="space-y-3 text-muted-foreground">
+                      <li>• 30% of every job posting fee reinvested into targeted social media ads (Facebook, Instagram, etc.) for maximum reach</li>
+                      <li>• Direct exposure to qualified professionals across East Africa</li>
+                      <li>• Transparent, results-driven recruitment with detailed promotion reports</li>
+                      <li>• Priority homepage and email listings to attract the best talent</li>
                     </ul>
                   </div>
                 </div>
