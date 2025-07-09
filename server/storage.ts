@@ -38,6 +38,9 @@ export interface IStorage {
   updateInvoice(id: number, invoice: Partial<InsertInvoice>): Promise<Invoice | undefined>;
   deleteInvoice(id: number): Promise<boolean>;
   getBilledJobIds(userId: number): Promise<number[]>;
+  
+  // Organization methods
+  getOrganizations(search?: string): Promise<string[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -363,6 +366,20 @@ export class MemStorage implements IStorage {
   async getBilledJobIds(userId: number): Promise<number[]> {
     return [];
   }
+
+  async getOrganizations(search?: string): Promise<string[]> {
+    const allJobs = Array.from(this.jobs.values());
+    const organizations = [...new Set(allJobs.map(job => job.organization))];
+    
+    if (search) {
+      const lowerSearch = search.toLowerCase();
+      return organizations.filter(org => 
+        org.toLowerCase().includes(lowerSearch)
+      ).sort();
+    }
+    
+    return organizations.sort();
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -658,6 +675,18 @@ export class DatabaseStorage implements IStorage {
     }
     
     return uniqueJobIds;
+  }
+
+  async getOrganizations(search?: string): Promise<string[]> {
+    const query = db.selectDistinct({ organization: jobs.organization }).from(jobs);
+    
+    if (search) {
+      const searchCondition = ilike(jobs.organization, `%${search}%`);
+      query.where(searchCondition);
+    }
+    
+    const result = await query.orderBy(jobs.organization);
+    return result.map(row => row.organization);
   }
 }
 

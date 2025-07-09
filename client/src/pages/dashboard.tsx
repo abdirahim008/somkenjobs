@@ -17,6 +17,7 @@ import { Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { showSuccessToast, showErrorToast } from "@/lib/toast-utils";
+import { OrganizationAutocomplete } from "@/components/OrganizationAutocomplete";
 
 export default function Dashboard() {
   const { user, isLoading } = useAuth();
@@ -1034,16 +1035,19 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <Label htmlFor="organization">Organization *</Label>
-                      <Input
-                        id="organization"
+                      <OrganizationAutocomplete
                         value={jobForm.organization}
-                        onChange={(e) => setJobForm({ ...jobForm, organization: e.target.value })}
+                        onChange={(value) => setJobForm({ ...jobForm, organization: value })}
                         placeholder="e.g. UNICEF, WHO, Save the Children"
                         required
-                        readOnly={!isAdmin}
+                        disabled={!isAdmin}
                         className={!isAdmin ? "bg-gray-100" : ""}
-                        title={!isAdmin ? "Organization is auto-filled from your profile" : ""}
                       />
+                      {!isAdmin && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Organization is auto-filled from your profile
+                        </p>
+                      )}
                     </div>
                   </div>
 

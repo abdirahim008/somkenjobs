@@ -376,6 +376,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get organization names for autocomplete
+  app.get("/api/organizations", async (req, res) => {
+    try {
+      const search = req.query.search as string;
+      const organizations = await storage.getOrganizations(search);
+      res.json(organizations);
+    } catch (error) {
+      console.error("Error fetching organizations:", error);
+      res.status(500).json({ message: "Failed to fetch organizations" });
+    }
+  });
+
   // Get jobs created by the current user
   app.get("/api/user/jobs", authenticate, async (req: AuthRequest, res) => {
     try {
