@@ -1035,13 +1035,26 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <Label htmlFor="organization">Organization *</Label>
-                      <OrganizationAutocomplete
-                        value={jobForm.organization}
-                        onChange={(value) => setJobForm({ ...jobForm, organization: value })}
-                        placeholder="e.g. UNICEF, WHO, Save the Children"
-                        required
-                        disabled={false}
-                      />
+                      {isAdmin ? (
+                        <OrganizationAutocomplete
+                          value={jobForm.organization}
+                          onChange={(value) => setJobForm({ ...jobForm, organization: value })}
+                          placeholder="e.g. UNICEF, WHO, Save the Children"
+                          required
+                          disabled={false}
+                        />
+                      ) : (
+                        <Input
+                          id="organization"
+                          value={jobForm.organization}
+                          onChange={(e) => setJobForm({ ...jobForm, organization: e.target.value })}
+                          placeholder="e.g. UNICEF, WHO, Save the Children"
+                          required
+                          readOnly={true}
+                          className="bg-gray-100"
+                          title="Organization is auto-filled from your profile"
+                        />
+                      )}
                       {!isAdmin && (
                         <p className="text-xs text-gray-500 mt-1">
                           Organization is auto-filled from your profile
