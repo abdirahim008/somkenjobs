@@ -80,77 +80,81 @@ export function OrganizationAutocomplete({
 
   return (
     <div className={cn("relative", className)}>
-      <Popover open={open} onOpenChange={setOpen}>
-        <div className="relative">
-          <Input
-            value={inputValue}
-            onChange={(e) => handleInputChange(e.target.value)}
-            placeholder={placeholder}
-            disabled={disabled}
-            required={required}
-            className="pr-10"
-            onFocus={() => setOpen(true)}
-          />
-          <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-              onClick={() => setOpen(!open)}
-              disabled={disabled}
-            >
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </Button>
-          </PopoverTrigger>
-        </div>
-        <PopoverContent className="w-[--radix-popover-trigger-width] min-w-[200px] p-0" align="start">
-          <Command>
-            <CommandList>
-              {isLoading ? (
-                <div className="py-2 px-3 text-sm text-muted-foreground">Loading...</div>
-              ) : (
-                <>
-                  {filteredOrganizations.length > 0 && (
-                    <CommandGroup heading="Existing Organizations">
-                      {filteredOrganizations.map((org) => (
-                        <CommandItem
-                          key={org}
-                          value={org}
-                          onSelect={() => handleSelect(org)}
-                          className="cursor-pointer"
-                        >
-                          <Building2 className="mr-2 h-4 w-4" />
-                          <span>{org}</span>
-                          {value === org && (
-                            <Check className="ml-auto h-4 w-4" />
-                          )}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  )}
-                  
-                  {showAddNew && (
-                    <CommandGroup heading="Add New">
-                      <CommandItem
-                        value={inputValue}
-                        onSelect={() => handleSelect(inputValue)}
-                        className="cursor-pointer text-blue-600"
-                      >
-                        <Building2 className="mr-2 h-4 w-4" />
-                        <span>Add "{inputValue}"</span>
-                      </CommandItem>
-                    </CommandGroup>
-                  )}
-                  
-                  {filteredOrganizations.length === 0 && !showAddNew && inputValue && (
-                    <CommandEmpty>No organizations found.</CommandEmpty>
-                  )}
-                </>
+      <div className="relative">
+        <Input
+          value={inputValue}
+          onChange={(e) => handleInputChange(e.target.value)}
+          placeholder={placeholder}
+          disabled={disabled}
+          required={required}
+          className="pr-10"
+          onFocus={() => setOpen(true)}
+          onBlur={() => {
+            // Delay closing to allow for clicks on suggestions
+            setTimeout(() => setOpen(false), 200);
+          }}
+        />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+          onClick={() => setOpen(!open)}
+          disabled={disabled}
+        >
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        </Button>
+      </div>
+      
+      {/* Dropdown suggestions */}
+      {open && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+          {isLoading ? (
+            <div className="py-2 px-3 text-sm text-gray-500">Loading...</div>
+          ) : (
+            <>
+              {filteredOrganizations.length > 0 && (
+                <div>
+                  <div className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-50">
+                    Existing Organizations
+                  </div>
+                  {filteredOrganizations.slice(0, 10).map((org) => (
+                    <div
+                      key={org}
+                      className="px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 flex items-center"
+                      onClick={() => handleSelect(org)}
+                    >
+                      <Building2 className="mr-2 h-4 w-4 text-gray-400" />
+                      <span>{org}</span>
+                      {value === org && (
+                        <Check className="ml-auto h-4 w-4 text-blue-600" />
+                      )}
+                    </div>
+                  ))}
+                </div>
               )}
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+              
+              {showAddNew && (
+                <div>
+                  <div className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-50">
+                    Add New
+                  </div>
+                  <div
+                    className="px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 flex items-center text-blue-600"
+                    onClick={() => handleSelect(inputValue)}
+                  >
+                    <Building2 className="mr-2 h-4 w-4" />
+                    <span>Add "{inputValue}"</span>
+                  </div>
+                </div>
+              )}
+              
+              {filteredOrganizations.length === 0 && !showAddNew && inputValue && (
+                <div className="px-3 py-2 text-sm text-gray-500">No organizations found.</div>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

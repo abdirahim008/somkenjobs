@@ -1035,11 +1035,12 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <Label htmlFor="organization">Organization *</Label>
-                      <Input
+                      <OrganizationAutocomplete
                         value={jobForm.organization}
-                        onChange={(e) => setJobForm({ ...jobForm, organization: e.target.value })}
+                        onChange={(value) => setJobForm({ ...jobForm, organization: value })}
                         placeholder="e.g. UNICEF, WHO, Save the Children"
                         required
+                        disabled={false}
                       />
                       {!isAdmin && (
                         <p className="text-xs text-gray-500 mt-1">
