@@ -1040,8 +1040,7 @@ export default function Dashboard() {
                         onChange={(value) => setJobForm({ ...jobForm, organization: value })}
                         placeholder="e.g. UNICEF, WHO, Save the Children"
                         required
-                        disabled={!isAdmin}
-                        className={!isAdmin ? "bg-gray-100" : ""}
+                        disabled={false}
                       />
                       {!isAdmin && (
                         <p className="text-xs text-gray-500 mt-1">

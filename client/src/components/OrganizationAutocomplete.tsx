@@ -41,7 +41,11 @@ export function OrganizationAutocomplete({
       if (inputValue) {
         params.append('search', inputValue);
       }
-      const response = await fetch(`/api/organizations?${params}`);
+      const response = await fetch(`/api/organizations?${params}`, {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch organizations');
       }
@@ -96,7 +100,7 @@ export function OrganizationAutocomplete({
             </Button>
           </div>
         </PopoverTrigger>
-        <PopoverContent className="w-full p-0" align="start">
+        <PopoverContent className="w-[--radix-popover-trigger-width] min-w-[200px] p-0" align="start">
           <Command>
             <CommandList>
               {isLoading ? (
