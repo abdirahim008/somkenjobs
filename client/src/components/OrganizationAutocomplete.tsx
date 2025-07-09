@@ -33,6 +33,9 @@ export function OrganizationAutocomplete({
     setInputValue(value);
   }, [value]);
 
+  // Debug log to check if component is receiving correct props
+  console.log('OrganizationAutocomplete props:', { value, disabled, placeholder });
+
   // Fetch organizations with search
   const { data: organizations = [], isLoading } = useQuery<string[]>({
     queryKey: ['/api/organizations', inputValue],
@@ -78,17 +81,17 @@ export function OrganizationAutocomplete({
   return (
     <div className={cn("relative", className)}>
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <div className="relative">
-            <Input
-              value={inputValue}
-              onChange={(e) => handleInputChange(e.target.value)}
-              placeholder={placeholder}
-              disabled={disabled}
-              required={required}
-              className="pr-10"
-              onFocus={() => setOpen(true)}
-            />
+        <div className="relative">
+          <Input
+            value={inputValue}
+            onChange={(e) => handleInputChange(e.target.value)}
+            placeholder={placeholder}
+            disabled={disabled}
+            required={required}
+            className="pr-10"
+            onFocus={() => setOpen(true)}
+          />
+          <PopoverTrigger asChild>
             <Button
               variant="ghost"
               size="sm"
@@ -98,8 +101,8 @@ export function OrganizationAutocomplete({
             >
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </Button>
-          </div>
-        </PopoverTrigger>
+          </PopoverTrigger>
+        </div>
         <PopoverContent className="w-[--radix-popover-trigger-width] min-w-[200px] p-0" align="start">
           <Command>
             <CommandList>
