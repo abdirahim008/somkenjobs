@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
@@ -36,7 +36,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     },
   }), []);
 
-  const formats = [
+  const formats = useMemo(() => [
     'header',
     'bold', 'italic', 'underline', 'strike',
     'list', 'bullet', 'indent',
@@ -44,14 +44,21 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     'link',
     'color', 'background',
     'clean'
-  ];
+  ], []);
+
+  const handleChange = useCallback((content: string) => {
+    // Prevent infinite loops by only calling onChange if content actually changed
+    if (content !== value) {
+      onChange(content);
+    }
+  }, [onChange, value]);
 
   return (
     <div className="rich-text-editor" style={{ marginBottom: '42px' }}>
       <ReactQuill
         theme="snow"
-        value={value}
-        onChange={onChange}
+        value={value || ''}
+        onChange={handleChange}
         modules={modules}
         formats={formats}
         placeholder={placeholder}
