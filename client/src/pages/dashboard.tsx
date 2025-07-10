@@ -20,6 +20,7 @@ import { showSuccessToast, showErrorToast } from "@/lib/toast-utils";
 import { OrganizationAutocomplete } from "@/components/OrganizationAutocomplete";
 import { CountryAutocomplete } from "@/components/CountryAutocomplete";
 import { CityAutocomplete } from "@/components/CityAutocomplete";
+import { SectorAutocomplete } from "@/components/SectorAutocomplete";
 
 export default function Dashboard() {
   const { user, isLoading } = useAuth();
@@ -171,12 +172,32 @@ export default function Dashboard() {
     }
   };
 
+  // Helper function to add new sector to database
+  const addSectorToDatabase = async (sectorName: string) => {
+    try {
+      const response = await fetch("/api/sectors", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+        body: JSON.stringify({ name: sectorName }),
+      });
+      if (!response.ok) {
+        console.log("Sector might already exist or failed to add");
+      }
+    } catch (error) {
+      console.log("Error adding sector:", error);
+    }
+  };
+
   // Create job mutation
   const createJobMutation = useMutation({
     mutationFn: async (jobData: any) => {
-      // Add country and city to database if they don't exist
+      // Add country, city, and sector to database if they don't exist
       await addCountryToDatabase(jobData.country);
       await addCityToDatabase(jobData.location, jobData.country);
+      await addSectorToDatabase(jobData.sector);
       
       const response = await fetch("/api/jobs", {
         method: "POST",
@@ -1183,31 +1204,12 @@ export default function Dashboard() {
 
                   <div>
                     <Label htmlFor="sector">Career Category/Sector</Label>
-                    <Select
+                    <SectorAutocomplete
                       value={jobForm.sector}
-                      onValueChange={(value) => setJobForm({ ...jobForm, sector: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select career category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Health">Health</SelectItem>
-                        <SelectItem value="Education">Education</SelectItem>
-                        <SelectItem value="Protection">Protection</SelectItem>
-                        <SelectItem value="Food Security">Food Security</SelectItem>
-                        <SelectItem value="Water, Sanitation and Hygiene">Water, Sanitation and Hygiene</SelectItem>
-                        <SelectItem value="Shelter">Shelter</SelectItem>
-                        <SelectItem value="Logistics">Logistics</SelectItem>
-                        <SelectItem value="Emergency Response">Emergency Response</SelectItem>
-                        <SelectItem value="Management">Management</SelectItem>
-                        <SelectItem value="Administration">Administration</SelectItem>
-                        <SelectItem value="Finance">Finance</SelectItem>
-                        <SelectItem value="Human Resources">Human Resources</SelectItem>
-                        <SelectItem value="Information Management">Information Management</SelectItem>
-                        <SelectItem value="Coordination">Coordination</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      onChange={(value) => setJobForm({ ...jobForm, sector: value })}
+                      placeholder="e.g. Health, Education, Protection, Food Security"
+                      required={false}
+                    />
                   </div>
 
                   <div>

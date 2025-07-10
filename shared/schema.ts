@@ -150,3 +150,18 @@ export const insertCitySchema = createInsertSchema(cities).omit({
 
 export type InsertCity = z.infer<typeof insertCitySchema>;
 export type City = typeof cities.$inferSelect;
+
+// Sectors table for autocomplete functionality
+export const sectors = pgTable("sectors", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertSectorSchema = createInsertSchema(sectors).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertSector = z.infer<typeof insertSectorSchema>;
+export type Sector = typeof sectors.$inferSelect;

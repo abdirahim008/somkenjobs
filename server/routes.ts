@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { jobFetcher } from "./services/jobFetcher";
 import { seedDatabase } from "./seed";
 import { z } from "zod";
-import { insertUserSchema, loginUserSchema, insertJobSchema, type User } from "@shared/schema";
+import { insertUserSchema, loginUserSchema, insertJobSchema, type User, insertCountrySchema, insertCitySchema, insertSectorSchema } from "@shared/schema";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
@@ -437,6 +437,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error adding city:", error);
       res.status(500).json({ message: "Failed to add city" });
+    }
+  });
+
+  // Sector API routes
+  app.get("/api/sectors", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const search = req.query.search as string || "";
+      const sectors = await storage.getSectors(search);
+      res.json(sectors);
+    } catch (error) {
+      console.error("Error fetching sectors:", error);
+      res.status(500).json({ message: "Failed to fetch sectors" });
+    }
+  });
+
+  app.post("/api/sectors", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const { name } = req.body;
+      if (!name) {
+        return res.status(400).json({ message: "Sector name is required" });
+      }
+      const sector = await storage.addSector(name);
+      res.status(201).json(sector);
+    } catch (error) {
+      console.error("Error adding sector:", error);
+      res.status(500).json({ message: "Failed to add sector" });
     }
   });
 

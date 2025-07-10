@@ -1,4 +1,4 @@
-import { jobs, type Job, type InsertJob, users, type User, type InsertUser, invoices, type Invoice, type InsertInvoice, countries, type Country, type InsertCountry, cities, type City, type InsertCity } from "@shared/schema";
+import { jobs, type Job, type InsertJob, users, type User, type InsertUser, invoices, type Invoice, type InsertInvoice, countries, type Country, type InsertCountry, cities, type City, type InsertCity, sectors, type Sector, type InsertSector } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, gte, ilike } from "drizzle-orm";
 
@@ -47,6 +47,10 @@ export interface IStorage {
   getCities(search?: string, country?: string): Promise<string[]>;
   addCountry(name: string): Promise<Country>;
   addCity(name: string, country: string): Promise<City>;
+  
+  // Sector methods
+  getSectors(search?: string): Promise<string[]>;
+  addSector(name: string): Promise<Sector>;
 }
 
 export class MemStorage implements IStorage {
@@ -401,6 +405,14 @@ export class MemStorage implements IStorage {
 
   async addCity(name: string, country: string): Promise<City> {
     throw new Error("City operations not supported in MemStorage");
+  }
+
+  async getSectors(search?: string): Promise<string[]> {
+    throw new Error("Sector operations not supported in MemStorage");
+  }
+
+  async addSector(name: string): Promise<Sector> {
+    throw new Error("Sector operations not supported in MemStorage");
   }
 }
 
@@ -777,6 +789,37 @@ export class DatabaseStorage implements IStorage {
         .where(and(eq(cities.name, name), eq(cities.country, country)));
       if (existingCity) {
         return existingCity;
+      }
+      throw error;
+    }
+  }
+
+  async getSectors(search?: string): Promise<string[]> {
+    let query = db.select({ name: sectors.name }).from(sectors);
+    
+    if (search) {
+      query = query.where(ilike(sectors.name, `%${search}%`));
+    }
+    
+    const result = await query.orderBy(sectors.name);
+    return result.map(row => row.name);
+  }
+
+  async addSector(name: string): Promise<Sector> {
+    try {
+      const [sector] = await db
+        .insert(sectors)
+        .values({ name })
+        .returning();
+      return sector;
+    } catch (error) {
+      // If sector already exists, return it
+      const [existingSector] = await db
+        .select()
+        .from(sectors)
+        .where(eq(sectors.name, name));
+      if (existingSector) {
+        return existingSector;
       }
       throw error;
     }
