@@ -1,4 +1,4 @@
-import { jobs, type Job, type InsertJob, users, type User, type InsertUser, invoices, type Invoice, type InsertInvoice } from "@shared/schema";
+import { jobs, type Job, type InsertJob, users, type User, type InsertUser, invoices, type Invoice, type InsertInvoice, countries, type Country, type InsertCountry, cities, type City, type InsertCity } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, gte, ilike } from "drizzle-orm";
 
@@ -41,6 +41,12 @@ export interface IStorage {
   
   // Organization methods
   getOrganizations(search?: string): Promise<string[]>;
+  
+  // Location methods
+  getCountries(search?: string): Promise<string[]>;
+  getCities(search?: string, country?: string): Promise<string[]>;
+  addCountry(name: string): Promise<Country>;
+  addCity(name: string, country: string): Promise<City>;
 }
 
 export class MemStorage implements IStorage {
@@ -380,6 +386,22 @@ export class MemStorage implements IStorage {
     
     return organizations.sort();
   }
+
+  async getCountries(search?: string): Promise<string[]> {
+    throw new Error("Country operations not supported in MemStorage");
+  }
+
+  async getCities(search?: string, country?: string): Promise<string[]> {
+    throw new Error("City operations not supported in MemStorage");
+  }
+
+  async addCountry(name: string): Promise<Country> {
+    throw new Error("Country operations not supported in MemStorage");
+  }
+
+  async addCity(name: string, country: string): Promise<City> {
+    throw new Error("City operations not supported in MemStorage");
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -687,6 +709,77 @@ export class DatabaseStorage implements IStorage {
     
     const result = await query.orderBy(jobs.organization);
     return result.map(row => row.organization);
+  }
+
+  async getCountries(search?: string): Promise<string[]> {
+    const query = db.select({ name: countries.name }).from(countries);
+    
+    if (search) {
+      const searchCondition = ilike(countries.name, `%${search}%`);
+      query.where(searchCondition);
+    }
+    
+    const result = await query.orderBy(countries.name);
+    return result.map(row => row.name);
+  }
+
+  async getCities(search?: string, country?: string): Promise<string[]> {
+    const query = db.select({ name: cities.name }).from(cities);
+    
+    const conditions = [];
+    if (search) {
+      conditions.push(ilike(cities.name, `%${search}%`));
+    }
+    if (country) {
+      conditions.push(eq(cities.country, country));
+    }
+    
+    if (conditions.length > 0) {
+      query.where(and(...conditions));
+    }
+    
+    const result = await query.orderBy(cities.name);
+    return result.map(row => row.name);
+  }
+
+  async addCountry(name: string): Promise<Country> {
+    try {
+      const [country] = await db
+        .insert(countries)
+        .values({ name })
+        .returning();
+      return country;
+    } catch (error) {
+      // If country already exists, return it
+      const [existingCountry] = await db
+        .select()
+        .from(countries)
+        .where(eq(countries.name, name));
+      if (existingCountry) {
+        return existingCountry;
+      }
+      throw error;
+    }
+  }
+
+  async addCity(name: string, country: string): Promise<City> {
+    try {
+      const [city] = await db
+        .insert(cities)
+        .values({ name, country })
+        .returning();
+      return city;
+    } catch (error) {
+      // If city already exists, return it
+      const [existingCity] = await db
+        .select()
+        .from(cities)
+        .where(and(eq(cities.name, name), eq(cities.country, country)));
+      if (existingCity) {
+        return existingCity;
+      }
+      throw error;
+    }
   }
 }
 

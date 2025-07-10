@@ -18,6 +18,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { showSuccessToast, showErrorToast } from "@/lib/toast-utils";
 import { OrganizationAutocomplete } from "@/components/OrganizationAutocomplete";
+import { CountryAutocomplete } from "@/components/CountryAutocomplete";
+import { CityAutocomplete } from "@/components/CityAutocomplete";
 
 export default function Dashboard() {
   const { user, isLoading } = useAuth();
@@ -131,9 +133,51 @@ export default function Dashboard() {
     enabled: !!user && showInvoiceForm,
   });
 
+  // Helper function to add new country to database
+  const addCountryToDatabase = async (countryName: string) => {
+    try {
+      const response = await fetch("/api/countries", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+        body: JSON.stringify({ name: countryName }),
+      });
+      if (!response.ok) {
+        console.log("Country might already exist or failed to add");
+      }
+    } catch (error) {
+      console.log("Error adding country:", error);
+    }
+  };
+
+  // Helper function to add new city to database
+  const addCityToDatabase = async (cityName: string, countryName: string) => {
+    try {
+      const response = await fetch("/api/cities", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+        body: JSON.stringify({ name: cityName, country: countryName }),
+      });
+      if (!response.ok) {
+        console.log("City might already exist or failed to add");
+      }
+    } catch (error) {
+      console.log("Error adding city:", error);
+    }
+  };
+
   // Create job mutation
   const createJobMutation = useMutation({
     mutationFn: async (jobData: any) => {
+      // Add country and city to database if they don't exist
+      await addCountryToDatabase(jobData.country);
+      await addCityToDatabase(jobData.location, jobData.country);
+      
       const response = await fetch("/api/jobs", {
         method: "POST",
         headers: {
@@ -1097,57 +1141,24 @@ export default function Dashboard() {
                   <div className="grid md:grid-cols-3 gap-4">
                     <div>
                       <Label htmlFor="country">Country *</Label>
-                      <Select
+                      <CountryAutocomplete
                         value={jobForm.country}
-                        onValueChange={(value) => {
+                        onChange={(value) => {
                           setJobForm({ ...jobForm, country: value, location: "" }); // Reset location when country changes
                         }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select country" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Kenya">Kenya</SelectItem>
-                          <SelectItem value="Somalia">Somalia</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        placeholder="e.g. Kenya, Somalia, Uganda"
+                        required
+                      />
                     </div>
                     <div>
                       <Label htmlFor="location">Location/City *</Label>
-                      <Select
+                      <CityAutocomplete
                         value={jobForm.location}
-                        onValueChange={(value) => setJobForm({ ...jobForm, location: value })}
-                        disabled={!jobForm.country}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={jobForm.country ? "Select location" : "Select country first"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {jobForm.country === "Kenya" && (
-                            <>
-                              <SelectItem value="Nairobi">Nairobi</SelectItem>
-                              <SelectItem value="Mombasa">Mombasa</SelectItem>
-                              <SelectItem value="Kisumu">Kisumu</SelectItem>
-                              <SelectItem value="Garissa">Garissa</SelectItem>
-                              <SelectItem value="Eldoret">Eldoret</SelectItem>
-                              <SelectItem value="Nakuru">Nakuru</SelectItem>
-                              <SelectItem value="Machakos">Machakos</SelectItem>
-                              <SelectItem value="Multiple locations (Kenya)">Multiple locations (Kenya)</SelectItem>
-                            </>
-                          )}
-                          {jobForm.country === "Somalia" && (
-                            <>
-                              <SelectItem value="Mogadishu">Mogadishu</SelectItem>
-                              <SelectItem value="Hargeisa">Hargeisa</SelectItem>
-                              <SelectItem value="Baidoa">Baidoa</SelectItem>
-                              <SelectItem value="Kismayo">Kismayo</SelectItem>
-                              <SelectItem value="Galkayo">Galkayo</SelectItem>
-                              <SelectItem value="Bosaso">Bosaso</SelectItem>
-                              <SelectItem value="Multiple locations (Somalia)">Multiple locations (Somalia)</SelectItem>
-                            </>
-                          )}
-                        </SelectContent>
-                      </Select>
+                        onChange={(value) => setJobForm({ ...jobForm, location: value })}
+                        country={jobForm.country}
+                        placeholder="e.g. Nairobi, Mogadishu, Kampala"
+                        required
+                      />
                     </div>
                     <div>
                       <Label htmlFor="experience">Experience Level</Label>

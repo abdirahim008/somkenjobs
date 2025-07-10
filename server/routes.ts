@@ -388,6 +388,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Location API routes
+  app.get("/api/countries", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const search = req.query.search as string || "";
+      const countries = await storage.getCountries(search);
+      res.json(countries);
+    } catch (error) {
+      console.error("Error fetching countries:", error);
+      res.status(500).json({ message: "Failed to fetch countries" });
+    }
+  });
+
+  app.get("/api/cities", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const search = req.query.search as string || "";
+      const country = req.query.country as string || "";
+      const cities = await storage.getCities(search, country);
+      res.json(cities);
+    } catch (error) {
+      console.error("Error fetching cities:", error);
+      res.status(500).json({ message: "Failed to fetch cities" });
+    }
+  });
+
+  app.post("/api/countries", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const { name } = req.body;
+      if (!name) {
+        return res.status(400).json({ message: "Country name is required" });
+      }
+      const country = await storage.addCountry(name);
+      res.status(201).json(country);
+    } catch (error) {
+      console.error("Error adding country:", error);
+      res.status(500).json({ message: "Failed to add country" });
+    }
+  });
+
+  app.post("/api/cities", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const { name, country } = req.body;
+      if (!name || !country) {
+        return res.status(400).json({ message: "City name and country are required" });
+      }
+      const city = await storage.addCity(name, country);
+      res.status(201).json(city);
+    } catch (error) {
+      console.error("Error adding city:", error);
+      res.status(500).json({ message: "Failed to add city" });
+    }
+  });
+
   // Get jobs created by the current user
   app.get("/api/user/jobs", authenticate, async (req: AuthRequest, res) => {
     try {

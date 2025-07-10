@@ -119,3 +119,34 @@ export const insertInvoiceSchema = createInsertSchema(invoices).omit({
 
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
 export type Invoice = typeof invoices.$inferSelect;
+
+// Countries table for autocomplete functionality
+export const countries = pgTable("countries", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCountrySchema = createInsertSchema(countries).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertCountry = z.infer<typeof insertCountrySchema>;
+export type Country = typeof countries.$inferSelect;
+
+// Cities table for autocomplete functionality
+export const cities = pgTable("cities", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  country: text("country").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCitySchema = createInsertSchema(cities).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertCity = z.infer<typeof insertCitySchema>;
+export type City = typeof cities.$inferSelect;
