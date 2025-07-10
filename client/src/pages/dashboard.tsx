@@ -21,6 +21,7 @@ import { OrganizationAutocomplete } from "@/components/OrganizationAutocomplete"
 import { CountryAutocomplete } from "@/components/CountryAutocomplete";
 import { CityAutocomplete } from "@/components/CityAutocomplete";
 import { SectorAutocomplete } from "@/components/SectorAutocomplete";
+import { RichTextEditor } from "@/components/RichTextEditor";
 
 export default function Dashboard() {
   const { user, isLoading } = useAuth();
@@ -1214,47 +1215,43 @@ export default function Dashboard() {
 
                   <div>
                     <Label htmlFor="description">Description *</Label>
-                    <Textarea
-                      id="description"
+                    <RichTextEditor
                       value={jobForm.description}
-                      onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })}
+                      onChange={(value) => setJobForm({ ...jobForm, description: value })}
                       placeholder="Provide a comprehensive description including background, context, and purpose..."
-                      rows={6}
                       required
+                      height="200px"
                     />
                   </div>
 
                   <div>
                     <Label htmlFor="responsibilities">Key Responsibilities</Label>
-                    <Textarea
-                      id="responsibilities"
+                    <RichTextEditor
                       value={jobForm.responsibilities}
-                      onChange={(e) => setJobForm({ ...jobForm, responsibilities: e.target.value })}
+                      onChange={(value) => setJobForm({ ...jobForm, responsibilities: value })}
                       placeholder="List the main duties and responsibilities for this position..."
-                      rows={4}
+                      height="150px"
                     />
                   </div>
 
                   <div>
                     <Label htmlFor="qualifications">Qualifications & Requirements</Label>
-                    <Textarea
-                      id="qualifications"
+                    <RichTextEditor
                       value={jobForm.qualifications}
-                      onChange={(e) => setJobForm({ ...jobForm, qualifications: e.target.value })}
+                      onChange={(value) => setJobForm({ ...jobForm, qualifications: value })}
                       placeholder="List required education, skills, certifications, and other qualifications..."
-                      rows={4}
+                      height="150px"
                     />
                   </div>
 
                   <div>
                     <Label htmlFor="howToApply">How to Apply *</Label>
-                    <Textarea
-                      id="howToApply"
+                    <RichTextEditor
                       value={jobForm.howToApply}
-                      onChange={(e) => setJobForm({ ...jobForm, howToApply: e.target.value })}
+                      onChange={(value) => setJobForm({ ...jobForm, howToApply: value })}
                       placeholder="Please provide detailed application instructions including required documents, email address, and any specific requirements..."
-                      rows={3}
                       required
+                      height="150px"
                     />
                   </div>
 
