@@ -1,14 +1,44 @@
 User-agent: *
 Allow: /
 
-# Priority pages
-Allow: /jobs/*
+# Main sitemap
+Sitemap: https://somkenjobs.com/sitemap.xml
+
+# Crawl delay (be respectful)
+Crawl-delay: 1
+
+# Specific rules for search engines
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+# Block unwanted bots
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+# Allow social media crawlers
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+# Important pages for crawling
+Allow: /jobs/
+Allow: /organizations
+Allow: /career-resources
 Allow: /about
 Allow: /contact
-Allow: /organizations
-
-# Sitemap location
-Sitemap: https://jobconnect-eastafrica.replit.app/sitemap.xml
-
-# Crawl delay (be respectful to search engines)
-Crawl-delay: 1

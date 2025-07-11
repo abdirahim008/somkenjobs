@@ -6,6 +6,7 @@ import Sidebar from "@/components/Sidebar";
 import JobCard from "@/components/JobCard";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
+import JobStructuredData from "@/components/JobStructuredData";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Grid, List, RefreshCw } from "lucide-react";
@@ -67,11 +68,13 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead 
-        title="Humanitarian Jobs in Kenya & Somalia | JobConnect East Africa"
-        description={`Find ${data?.stats.totalJobs || '80+'} humanitarian job opportunities in Kenya and Somalia. Browse positions from ${data?.stats.organizations || '50+'} leading NGOs, UN agencies, and development organizations. Updated daily.`}
-        keywords="humanitarian jobs Kenya, humanitarian jobs Somalia, NGO careers East Africa, UN jobs Kenya, development jobs Somalia, aid worker positions, international development careers"
-        canonicalUrl="https://jobconnect-eastafrica.replit.app/"
+        title="Jobs in Somalia & Kenya | Somken Jobs - Humanitarian Careers"
+        description={`Find ${data?.stats.totalJobs || '100+'} jobs in Somalia and Kenya with leading humanitarian organizations. Browse NGO positions, UN jobs, and development careers from ${data?.stats.organizations || '50+'} employers. Updated daily from ReliefWeb.`}
+        keywords="jobs in Somalia, jobs in Kenya, humanitarian jobs Somalia, NGO jobs Kenya, UN careers Somalia, development jobs Kenya, aid worker positions, international jobs East Africa, ReliefWeb jobs"
+        canonicalUrl="https://somkenjobs.com/"
       />
+      {/* Add structured data for job postings */}
+      <JobStructuredData jobs={displayedJobs} />
       <Header />
       
 
@@ -80,11 +83,11 @@ export default function Home() {
       <section className="bg-[#0077B5] text-white py-12">
         <div className="max-w-full mx-auto px-2 sm:px-4 lg:px-6">
           <div className="text-center mb-8">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Find Rewarding Career Opportunities in East Africa
-            </h2>
+            <h1 className="text-3xl md:text-4xl font-bold mb-4">
+              Jobs in Somalia & Kenya - Humanitarian Careers
+            </h1>
             <p className="text-white/90 text-lg max-w-4xl mx-auto">
-              Discover meaningful jobs with leading organizations across Kenya, Somalia, and the region—make your next career move count.
+              Find jobs in Somalia and Kenya with leading NGOs, UN agencies, and humanitarian organizations. Browse {data?.stats.totalJobs || '100+'} current opportunities updated daily from ReliefWeb.
             </p>
           </div>
 
@@ -222,6 +225,41 @@ export default function Home() {
           </div>
         </div>
       </main>
+
+      {/* SEO Content Section */}
+      <section className="bg-gray-50 py-12">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Leading Job Board for Somalia & Kenya
+            </h2>
+            <p className="text-gray-600 max-w-3xl mx-auto">
+              Somken Jobs is the premier platform for finding humanitarian and development opportunities in Somalia and Kenya. We aggregate positions from top NGOs, UN agencies, and international organizations.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Jobs in Somalia</h3>
+              <p className="text-gray-600 text-sm">
+                Find the latest humanitarian jobs in Somalia including positions in Mogadishu, Hargeisa, and other major cities. We feature opportunities from UNHCR, WHO, Save the Children, and more.
+              </p>
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Jobs in Kenya</h3>
+              <p className="text-gray-600 text-sm">
+                Discover career opportunities in Kenya with international NGOs and development organizations. Browse jobs in Nairobi, Mombasa, Kisumu, and across the country.
+              </p>
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Updated Daily</h3>
+              <p className="text-gray-600 text-sm">
+                Our job listings are updated twice daily from ReliefWeb and other trusted sources, ensuring you never miss new opportunities in the humanitarian sector.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <Footer />
     </div>

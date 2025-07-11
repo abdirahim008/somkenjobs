@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEOHead from "@/components/SEOHead";
 import { type Job } from "@shared/schema";
 
 export default function JobDetails() {
@@ -455,8 +456,65 @@ export default function JobDetails() {
     );
   }
 
+  // Generate structured data for the job
+  const jobStructuredData = job ? {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    "title": job.title,
+    "description": job.description || `Join ${job.organization} in their humanitarian mission in ${job.location}, ${job.country}.`,
+    "identifier": {
+      "@type": "PropertyValue",
+      "name": job.source,
+      "value": job.externalId
+    },
+    "datePosted": new Date(job.datePosted).toISOString(),
+    "validThrough": job.deadline ? new Date(job.deadline).toISOString() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    "employmentType": job.experience?.includes("Full-time") ? "FULL_TIME" : "CONTRACTOR",
+    "hiringOrganization": {
+      "@type": "Organization",
+      "name": job.organization,
+      "sameAs": job.url?.includes("reliefweb.int") ? job.url : `https://somkenjobs.com/organizations/${encodeURIComponent(job.organization)}`
+    },
+    "jobLocation": {
+      "@type": "Place",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": job.location,
+        "addressCountry": job.country
+      }
+    },
+    "url": `https://somkenjobs.com/jobs/${job.id}`,
+    "industry": job.sector || "Humanitarian Aid",
+    "occupationalCategory": job.sector || "Humanitarian Work",
+    "workHours": job.experience?.includes("Full-time") ? "40 hours per week" : "Contract basis",
+    "qualifications": job.qualifications || "Relevant experience in humanitarian work",
+    "responsibilities": job.responsibilities || "Support humanitarian operations in East Africa",
+    "skills": job.sector ? [job.sector, "Humanitarian Aid", "Development Work"] : ["Humanitarian Aid", "Development Work"],
+    "applicationContact": {
+      "@type": "ContactPoint",
+      "contactType": "HR",
+      "url": job.url || `https://somkenjobs.com/jobs/${job.id}`
+    }
+  } : null;
+
   return (
     <div className="min-h-screen bg-background">
+      {job && (
+        <SEOHead 
+          title={`${job.title} - ${job.organization} | Jobs in ${job.country} | Somken Jobs`}
+          description={`${job.title} job opportunity with ${job.organization} in ${job.location}, ${job.country}. Apply now for this ${job.sector || 'humanitarian'} position. ${job.deadline ? `Deadline: ${formatDate(job.deadline)}` : ''}`}
+          keywords={`${job.title}, jobs in ${job.country}, ${job.organization}, ${job.sector || 'humanitarian'} jobs, ${job.location} jobs, NGO careers, UN jobs`}
+          canonicalUrl={`https://somkenjobs.com/jobs/${job.id}`}
+        />
+      )}
+      {jobStructuredData && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(jobStructuredData)
+          }}
+        />
+      )}
       <Header />
       
       <main className="main-container max-w-5xl">
