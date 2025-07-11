@@ -46,6 +46,12 @@ export default function Dashboard() {
   // Tab management state
   const [activeTab, setActiveTab] = useState("my-jobs");
 
+  // Helper function to get today's date in YYYY-MM-DD format
+  const getTodaysDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+
   // Job creation form state
   const [jobForm, setJobForm] = useState({
     title: "",
@@ -63,7 +69,8 @@ export default function Dashboard() {
     url: "",
     status: "published", // Add status field
     type: "job" as "job" | "tender", // Add type field
-    attachmentUrl: "" // Add attachment URL field
+    attachmentUrl: "", // Add attachment URL field
+    postingDate: getTodaysDate() // Add posting date field with today's date as default
   });
 
   // Update organization field when user data loads and initialize profile form
@@ -231,7 +238,8 @@ export default function Dashboard() {
         url: "",
         status: "published",
         type: "job",
-        attachmentUrl: ""
+        attachmentUrl: "",
+        postingDate: getTodaysDate()
       });
       queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
     },
@@ -852,7 +860,7 @@ export default function Dashboard() {
       sector: jobForm.sector || "Other",
       description: jobForm.description,
       url: jobForm.url || `https://jobconnect.replit.app/jobs/internal-${Date.now()}`,
-      datePosted: new Date(),
+      datePosted: jobForm.postingDate ? new Date(jobForm.postingDate) : new Date(),
       source: "Internal",
       externalId: `internal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       deadline: jobForm.deadline ? new Date(jobForm.deadline) : null,
@@ -1077,7 +1085,8 @@ export default function Dashboard() {
                         url: "",
                         status: "published",
                         type: "job",
-                        attachmentUrl: ""
+                        attachmentUrl: "",
+                        postingDate: getTodaysDate()
                       });
                     }}
                     className="mt-2"
@@ -1278,7 +1287,20 @@ export default function Dashboard() {
                     )}
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="postingDate">Posting Date *</Label>
+                      <Input
+                        id="postingDate"
+                        type="date"
+                        value={jobForm.postingDate}
+                        onChange={(e) => setJobForm({ ...jobForm, postingDate: e.target.value })}
+                        required
+                      />
+                      <p className="text-sm text-gray-500 mt-1">
+                        Date when this job was posted (can be backdated)
+                      </p>
+                    </div>
                     <div>
                       <Label htmlFor="deadline">Application Deadline</Label>
                       <Input
@@ -1494,7 +1516,8 @@ export default function Dashboard() {
                                 url: job.url || '',
                                 status: (job as any).status || 'published',
                                 type: (job as any).type || 'job',
-                                attachmentUrl: (job as any).attachmentUrl || ''
+                                attachmentUrl: (job as any).attachmentUrl || '',
+                                postingDate: job.datePosted ? new Date(job.datePosted).toISOString().split('T')[0] : getTodaysDate()
                               });
                               // Switch to create-job tab
                               setActiveTab("create-job");
