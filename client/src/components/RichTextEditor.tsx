@@ -54,7 +54,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   }, [onChange, value]);
 
   return (
-    <div className="rich-text-editor" style={{ marginBottom: '42px' }}>
+    <div className="rich-text-editor mb-6 md:mb-8">
       <ReactQuill
         theme="snow"
         value={value || ''}

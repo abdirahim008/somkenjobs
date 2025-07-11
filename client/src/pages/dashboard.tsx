@@ -1222,7 +1222,7 @@ export default function Dashboard() {
                     />
                   </div>
 
-                  <div>
+                  <div className="space-y-2 mb-8">
                     <Label htmlFor="description">Description *</Label>
                     <RichTextEditor
                       value={jobForm.description}
@@ -1233,7 +1233,7 @@ export default function Dashboard() {
                     />
                   </div>
 
-                  <div>
+                  <div className="space-y-2 mb-8">
                     <Label htmlFor="responsibilities">Key Responsibilities</Label>
                     <RichTextEditor
                       value={jobForm.responsibilities}
@@ -1243,7 +1243,7 @@ export default function Dashboard() {
                     />
                   </div>
 
-                  <div>
+                  <div className="space-y-2 mb-8">
                     <Label htmlFor="qualifications">Qualifications & Requirements</Label>
                     <RichTextEditor
                       value={jobForm.qualifications}
@@ -1253,7 +1253,7 @@ export default function Dashboard() {
                     />
                   </div>
 
-                  <div>
+                  <div className="space-y-2 mb-8">
                     <Label htmlFor="howToApply">How to Apply *</Label>
                     <RichTextEditor
                       value={jobForm.howToApply}

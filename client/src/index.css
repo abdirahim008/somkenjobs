@@ -173,6 +173,41 @@
   stroke: white !important;
 }
 
+/* Mobile responsive styles for rich text editor */
+@media (max-width: 768px) {
+  .rich-text-editor {
+    margin-bottom: 2rem !important;
+  }
+  
+  .ql-toolbar {
+    padding: 8px 12px !important;
+  }
+  
+  .ql-toolbar .ql-formats {
+    margin-right: 12px !important;
+  }
+  
+  .ql-toolbar button,
+  .ql-toolbar .ql-picker-label {
+    padding: 4px 6px !important;
+  }
+  
+  .ql-container {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+  }
+  
+  .ql-editor {
+    font-size: 16px !important;
+    padding: 12px !important;
+    min-height: 120px !important;
+  }
+  
+  /* Add extra spacing between rich text editor sections */
+  .rich-text-editor + .rich-text-editor {
+    margin-top: 2rem !important;
+  }
+}
+
 .ql-snow .ql-toolbar button.ql-active .ql-fill {
   fill: white !important;
 }
