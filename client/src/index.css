@@ -173,10 +173,17 @@
   stroke: white !important;
 }
 
+/* Rich text editor spacing improvements */
+.rich-text-editor {
+  margin-bottom: 2rem !important;
+  padding-bottom: 1rem !important;
+}
+
 /* Mobile responsive styles for rich text editor */
 @media (max-width: 768px) {
   .rich-text-editor {
-    margin-bottom: 2rem !important;
+    margin-bottom: 3rem !important;
+    padding-bottom: 1.5rem !important;
   }
   
   .ql-toolbar {
@@ -204,7 +211,12 @@
   
   /* Add extra spacing between rich text editor sections */
   .rich-text-editor + .rich-text-editor {
-    margin-top: 2rem !important;
+    margin-top: 2.5rem !important;
+  }
+  
+  /* Ensure proper spacing between form sections with rich text editors */
+  form .space-y-8 > div:has(.rich-text-editor) {
+    margin-bottom: 3rem !important;
   }
 }
 

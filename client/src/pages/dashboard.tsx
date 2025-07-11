@@ -1096,7 +1096,7 @@ export default function Dashboard() {
                 )}
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleJobSubmit} className="space-y-6">
+                <form onSubmit={handleJobSubmit} className="space-y-8">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="title">Title *</Label>
@@ -1222,7 +1222,7 @@ export default function Dashboard() {
                     />
                   </div>
 
-                  <div className="space-y-2 mb-8">
+                  <div className="space-y-2 pb-6 border-b border-gray-100">
                     <Label htmlFor="description">Description *</Label>
                     <RichTextEditor
                       value={jobForm.description}
@@ -1233,7 +1233,7 @@ export default function Dashboard() {
                     />
                   </div>
 
-                  <div className="space-y-2 mb-8">
+                  <div className="space-y-2 pb-6 border-b border-gray-100">
                     <Label htmlFor="responsibilities">Key Responsibilities</Label>
                     <RichTextEditor
                       value={jobForm.responsibilities}
@@ -1243,7 +1243,7 @@ export default function Dashboard() {
                     />
                   </div>
 
-                  <div className="space-y-2 mb-8">
+                  <div className="space-y-2 pb-6 border-b border-gray-100">
                     <Label htmlFor="qualifications">Qualifications & Requirements</Label>
                     <RichTextEditor
                       value={jobForm.qualifications}
@@ -1253,7 +1253,7 @@ export default function Dashboard() {
                     />
                   </div>
 
-                  <div className="space-y-2 mb-8">
+                  <div className="space-y-2 pb-6">
                     <Label htmlFor="howToApply">How to Apply *</Label>
                     <RichTextEditor
                       value={jobForm.howToApply}
