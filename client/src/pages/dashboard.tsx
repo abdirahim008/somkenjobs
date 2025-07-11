@@ -64,7 +64,6 @@ export default function Dashboard() {
     howToApply: "",
     experience: "",
     qualifications: "",
-    responsibilities: "",
     deadline: "",
     url: "",
     status: "published", // Add status field
@@ -233,7 +232,6 @@ export default function Dashboard() {
         howToApply: "",
         experience: "",
         qualifications: "",
-        responsibilities: "",
         deadline: "",
         url: "",
         status: "published",
@@ -867,7 +865,6 @@ export default function Dashboard() {
       howToApply: jobForm.howToApply,
       experience: jobForm.experience,
       qualifications: jobForm.qualifications,
-      responsibilities: jobForm.responsibilities,
       status: jobForm.status, // Include status field
       type: jobForm.type, // Include type field
       attachmentUrl: jobForm.attachmentUrl, // Include attachment URL
@@ -875,7 +872,7 @@ export default function Dashboard() {
         <div>
           <h3>${jobForm.type === 'tender' ? 'Tender Description' : 'Job Description'}</h3>
           <p>${jobForm.description.replace(/\n/g, '<br>')}</p>
-          ${jobForm.responsibilities ? `<h3>Key Responsibilities</h3><p>${jobForm.responsibilities.replace(/\n/g, '<br>')}</p>` : ''}
+
           ${jobForm.qualifications ? `<h3>Qualifications & Requirements</h3><p>${jobForm.qualifications.replace(/\n/g, '<br>')}</p>` : ''}
           ${jobForm.experience ? `<h3>Experience Level</h3><p>${jobForm.experience}</p>` : ''}
           ${jobForm.howToApply ? `<h3>How to Apply</h3><p>${jobForm.howToApply.replace(/\n/g, '<br>')}</p>` : ''}
@@ -1080,7 +1077,6 @@ export default function Dashboard() {
                         howToApply: "",
                         experience: "",
                         qualifications: "",
-                        responsibilities: "",
                         deadline: "",
                         url: "",
                         status: "published",
@@ -1233,15 +1229,7 @@ export default function Dashboard() {
                     />
                   </div>
 
-                  <div className="space-y-2 pb-6 border-b border-gray-100">
-                    <Label htmlFor="responsibilities">Key Responsibilities</Label>
-                    <RichTextEditor
-                      value={jobForm.responsibilities}
-                      onChange={(value) => setJobForm({ ...jobForm, responsibilities: value })}
-                      placeholder="List the main duties and responsibilities for this position..."
-                      height="150px"
-                    />
-                  </div>
+
 
                   <div className="space-y-2 pb-6 border-b border-gray-100">
                     <Label htmlFor="qualifications">Qualifications & Requirements</Label>
@@ -1511,7 +1499,6 @@ export default function Dashboard() {
                                 howToApply: job.howToApply || '',
                                 experience: job.experience || '',
                                 qualifications: job.qualifications || '',
-                                responsibilities: job.responsibilities || '',
                                 deadline: job.deadline ? new Date(job.deadline).toISOString().split('T')[0] : '',
                                 url: job.url || '',
                                 status: (job as any).status || 'published',
