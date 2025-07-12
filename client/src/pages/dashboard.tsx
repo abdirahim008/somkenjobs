@@ -52,6 +52,11 @@ export default function Dashboard() {
     return today.toISOString().split('T')[0];
   };
 
+  // Helper function to get current date and time for posting
+  const getCurrentDateTime = () => {
+    return new Date().toISOString();
+  };
+
   // Job creation form state
   const [jobForm, setJobForm] = useState({
     title: "",
@@ -858,7 +863,13 @@ export default function Dashboard() {
       sector: jobForm.sector || "Other",
       description: jobForm.description,
       url: jobForm.url || `https://jobconnect.replit.app/jobs/internal-${Date.now()}`,
-      datePosted: jobForm.postingDate ? new Date(jobForm.postingDate) : new Date(),
+      datePosted: jobForm.postingDate ? (() => {
+        // If user selected a date, combine it with current time
+        const selectedDate = new Date(jobForm.postingDate);
+        const currentTime = new Date();
+        selectedDate.setHours(currentTime.getHours(), currentTime.getMinutes(), currentTime.getSeconds(), currentTime.getMilliseconds());
+        return selectedDate;
+      })() : new Date(),
       source: "Internal",
       externalId: `internal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       deadline: jobForm.deadline ? new Date(jobForm.deadline) : null,

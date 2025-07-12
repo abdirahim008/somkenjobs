@@ -203,6 +203,7 @@ The application follows a modern full-stack architecture with clear separation b
 - July 12, 2025: Completely resolved random string issue in social media previews across all platforms (Facebook, WhatsApp, LinkedIn, Twitter) by removing generateJobOGImageUrl function calls from frontend, updating SEOHead component to actively remove image meta tags, and ensuring clean text-only social media previews with format: "Job Title • Organization • Location, Country • Deadline: X days left • Apply now on Somken Jobs"
 - July 12, 2025: Enhanced social media preview formatting with organized emoji layout (🎯 Job Title, 🏢 Organization, 📍 Location, ⏰ Deadline, 💼 Call to action) using line breaks for better readability and added cache-busting parameters to sharing URLs to force fresh previews and bypass platform caching
 - July 12, 2025: Completely removed "Responsibilities" field from job details display and structured data after field was previously removed from job creation form, ensuring consistency between frontend display and form functionality
+- July 12, 2025: Fixed posting date issue where dashboard-created jobs appeared lower in listings due to midnight timestamp - updated job creation logic to combine selected posting date with current time instead of defaulting to midnight, ensuring newly created jobs appear at top of chronologically sorted list
 
 ## User Preferences
 
