@@ -8,6 +8,9 @@ import { insertUserSchema, loginUserSchema, insertJobSchema, type User, insertCo
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from 'url';
 
 const JWT_SECRET = process.env.JWT_SECRET || "jobconnect-secret-key-change-in-production";
 
@@ -871,6 +874,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting invoice:", error);
       res.status(500).json({ message: "Failed to delete invoice" });
+    }
+  });
+
+  // Server-side rendering route for job pages to inject meta tags
+  app.get('/jobs/:id', async (req, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      if (isNaN(jobId)) {
+        return res.status(404).send('Job not found');
+      }
+
+      const job = await storage.getJobById(jobId);
+      if (!job) {
+        return res.status(404).send('Job not found');
+      }
+
+      // Generate job-specific meta tags
+      const jobTitle = `${job.title} - ${job.organization}`;
+      const deadline = job.deadline ? 
+        ` • Deadline: ${Math.ceil((new Date(job.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left` : 
+        '';
+      const jobDescription = `${job.title} • ${job.organization} • ${job.location}, ${job.country}${deadline} • Apply now on Somken Jobs`;
+      const jobUrl = `https://somkenjobs.com/jobs/${job.id}`;
+
+      // Create dynamic SVG image data URL
+      const svgContent = `
+        <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#0077B5;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#005885;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <rect width="1200" height="630" fill="url(#bgGradient)"/>
+          <g transform="translate(60, 20)">
+            <rect x="0" y="0" width="40" height="40" rx="8" fill="#ffffff"/>
+            <rect x="8" y="8" width="24" height="24" rx="4" fill="#0077B5"/>
+            <text x="55" y="18" fill="#ffffff" font-family="Arial, sans-serif" font-size="18" font-weight="bold">Somken Jobs</text>
+            <text x="55" y="35" fill="#ffffff" font-family="Arial, sans-serif" font-size="12" opacity="0.8">East Africa</text>
+          </g>
+          <g transform="translate(60, 140)">
+            <circle cx="30" cy="30" r="25" fill="#ffffff" fill-opacity="0.15"/>
+            <rect x="20" y="20" width="20" height="14" rx="2" fill="#ffffff"/>
+            <text x="80" y="25" fill="#ffffff" font-family="Arial, sans-serif" font-size="32" font-weight="bold">
+              ${job.title.length > 35 ? job.title.substring(0, 35) + '...' : job.title}
+            </text>
+            <text x="80" y="55" fill="#ffffff" font-family="Arial, sans-serif" font-size="18" opacity="0.9">
+              ${job.organization.length > 45 ? job.organization.substring(0, 45) + '...' : job.organization}
+            </text>
+            <g transform="translate(0, 100)">
+              <circle cx="15" cy="15" r="6" fill="#ffffff"/>
+              <text x="40" y="16" fill="#ffffff" font-family="Arial, sans-serif" font-size="16" font-weight="500">
+                ${job.location}, ${job.country}
+              </text>
+            </g>
+            <g transform="translate(0, 220)">
+              <rect x="0" y="0" width="180" height="50" rx="25" fill="#ffffff" fill-opacity="0.9"/>
+              <text x="90" y="32" fill="#0077B5" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle">Apply Now</text>
+            </g>
+          </g>
+        </svg>
+      `;
+      
+      const encodedSvg = encodeURIComponent(svgContent);
+      const ogImageUrl = `data:image/svg+xml,${encodedSvg}`;
+
+      // Read the HTML template
+      const __dirname = path.dirname(fileURLToPath(import.meta.url));
+      const htmlPath = path.join(__dirname, '../dist/public/index.html');
+      let html = '';
+      
+      try {
+        html = fs.readFileSync(htmlPath, 'utf-8');
+      } catch (err) {
+        // In development, try the client directory
+        const devHtmlPath = path.join(__dirname, '../client/index.html');
+        html = fs.readFileSync(devHtmlPath, 'utf-8');
+      }
+
+      // Replace meta tags with job-specific ones
+      html = html.replace(
+        /<meta name="description" content="[^"]*">/,
+        `<meta name="description" content="${jobDescription.replace(/"/g, '&quot;')}">`
+      );
+      
+      html = html.replace(
+        /<meta property="og:title" content="[^"]*">/,
+        `<meta property="og:title" content="${jobTitle.replace(/"/g, '&quot;')}">`
+      );
+      
+      html = html.replace(
+        /<meta property="og:description" content="[^"]*">/,
+        `<meta property="og:description" content="${jobDescription.replace(/"/g, '&quot;')}">`
+      );
+      
+      html = html.replace(
+        /<meta property="og:url" content="[^"]*">/,
+        `<meta property="og:url" content="${jobUrl}">`
+      );
+      
+      html = html.replace(
+        /<meta property="og:image" content="[^"]*">/,
+        `<meta property="og:image" content="${ogImageUrl.replace(/"/g, '&quot;')}">`
+      );
+
+      // Also update Twitter meta tags
+      html = html.replace(
+        /<meta property="twitter:title" content="[^"]*">/,
+        `<meta property="twitter:title" content="${jobTitle.replace(/"/g, '&quot;')}">`
+      );
+      
+      html = html.replace(
+        /<meta property="twitter:description" content="[^"]*">/,
+        `<meta property="twitter:description" content="${jobDescription.replace(/"/g, '&quot;')}">`
+      );
+      
+      html = html.replace(
+        /<meta property="twitter:image" content="[^"]*">/,
+        `<meta property="twitter:image" content="${ogImageUrl.replace(/"/g, '&quot;')}">`
+      );
+
+      // Update the title tag
+      html = html.replace(
+        /<title>[^<]*<\/title>/,
+        `<title>${jobTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</title>`
+      );
+
+      res.send(html);
+    } catch (error) {
+      console.error('Error serving job page:', error);
+      res.status(500).send('Error loading job page');
     }
   });
 

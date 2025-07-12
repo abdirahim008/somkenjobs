@@ -21,12 +21,17 @@ export default function SEOHead({
       document.title = title;
     }
 
+    // Clear any existing job-specific meta tags to prevent conflicts
+    const existingJobMetas = document.querySelectorAll('meta[data-job-specific]');
+    existingJobMetas.forEach(meta => meta.remove());
+
     // Update meta description
     if (description) {
       let metaDescription = document.querySelector('meta[name="description"]');
       if (!metaDescription) {
         metaDescription = document.createElement('meta');
         metaDescription.setAttribute('name', 'description');
+        metaDescription.setAttribute('data-job-specific', 'true');
         document.head.appendChild(metaDescription);
       }
       metaDescription.setAttribute('content', description);
@@ -36,6 +41,7 @@ export default function SEOHead({
       if (!ogDescription) {
         ogDescription = document.createElement('meta');
         ogDescription.setAttribute('property', 'og:description');
+        ogDescription.setAttribute('data-job-specific', 'true');
         document.head.appendChild(ogDescription);
       }
       ogDescription.setAttribute('content', description);
@@ -45,6 +51,7 @@ export default function SEOHead({
       if (!twitterDescription) {
         twitterDescription = document.createElement('meta');
         twitterDescription.setAttribute('property', 'twitter:description');
+        twitterDescription.setAttribute('data-job-specific', 'true');
         document.head.appendChild(twitterDescription);
       }
       twitterDescription.setAttribute('content', description);
@@ -78,6 +85,7 @@ export default function SEOHead({
       if (!ogTitle) {
         ogTitle = document.createElement('meta');
         ogTitle.setAttribute('property', 'og:title');
+        ogTitle.setAttribute('data-job-specific', 'true');
         document.head.appendChild(ogTitle);
       }
       ogTitle.setAttribute('content', title);
@@ -87,6 +95,7 @@ export default function SEOHead({
       if (!twitterTitle) {
         twitterTitle = document.createElement('meta');
         twitterTitle.setAttribute('property', 'twitter:title');
+        twitterTitle.setAttribute('data-job-specific', 'true');
         document.head.appendChild(twitterTitle);
       }
       twitterTitle.setAttribute('content', title);
@@ -98,6 +107,7 @@ export default function SEOHead({
       if (!ogImageMeta) {
         ogImageMeta = document.createElement('meta');
         ogImageMeta.setAttribute('property', 'og:image');
+        ogImageMeta.setAttribute('data-job-specific', 'true');
         document.head.appendChild(ogImageMeta);
       }
       ogImageMeta.setAttribute('content', ogImage);
@@ -106,6 +116,7 @@ export default function SEOHead({
       if (!twitterImage) {
         twitterImage = document.createElement('meta');
         twitterImage.setAttribute('property', 'twitter:image');
+        twitterImage.setAttribute('data-job-specific', 'true');
         document.head.appendChild(twitterImage);
       }
       twitterImage.setAttribute('content', ogImage);
@@ -116,6 +127,7 @@ export default function SEOHead({
       if (!ogUrl) {
         ogUrl = document.createElement('meta');
         ogUrl.setAttribute('property', 'og:url');
+        ogUrl.setAttribute('data-job-specific', 'true');
         document.head.appendChild(ogUrl);
       }
       ogUrl.setAttribute('content', canonicalUrl);
@@ -125,6 +137,7 @@ export default function SEOHead({
       if (!twitterUrl) {
         twitterUrl = document.createElement('meta');
         twitterUrl.setAttribute('property', 'twitter:url');
+        twitterUrl.setAttribute('data-job-specific', 'true');
         document.head.appendChild(twitterUrl);
       }
       twitterUrl.setAttribute('content', canonicalUrl);
