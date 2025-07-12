@@ -493,7 +493,6 @@ export default function JobDetails() {
     "occupationalCategory": job.sector || "Humanitarian Work",
     "workHours": job.experience?.includes("Full-time") ? "40 hours per week" : "Contract basis",
     "qualifications": job.qualifications || "Relevant experience in humanitarian work",
-    "responsibilities": job.responsibilities || "Support humanitarian operations in East Africa",
     "skills": job.sector ? [job.sector, "Humanitarian Aid", "Development Work"] : ["Humanitarian Aid", "Development Work"],
     "applicationContact": {
       "@type": "ContactPoint",
@@ -825,24 +824,7 @@ export default function JobDetails() {
                 </Card>
               )}
 
-              {/* Responsibilities */}
-              {job.responsibilities && (
-                <Card className="mb-6">
-                  <CardHeader>
-                    <CardTitle>Responsibilities</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="prose prose-gray max-w-none">
-                      <div
-                        className="text-foreground leading-relaxed break-words"
-                        dangerouslySetInnerHTML={{
-                          __html: convertUrlsToLinks(cleanText(job.responsibilities))
-                        }}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+
 
               {/* How to Apply */}
               {job.howToApply && (
