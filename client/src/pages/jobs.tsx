@@ -16,7 +16,7 @@ export default function Jobs() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({
-    country: [],
+    country: ["Kenya", "Somalia"],
     organization: [],
     sector: [],
     datePosted: "",
@@ -24,7 +24,7 @@ export default function Jobs() {
   const [sortBy, setSortBy] = useState("newest");
 
   const { data: jobsData, isLoading } = useQuery({
-    queryKey: ["/api/jobs", filters, searchTerm],
+    queryKey: ["/api/jobs", { ...filters, search: searchTerm }],
     queryFn: async () => {
       const params = new URLSearchParams();
       
@@ -55,6 +55,10 @@ export default function Jobs() {
 
   // Filter jobs to show only job type (not tenders)
   const jobs = jobsData?.jobs?.filter((job: Job) => !(job as any).type || (job as any).type === 'job') || [];
+
+  const handleFilterChange = (newFilters: Partial<typeof filters>) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -137,8 +141,9 @@ export default function Jobs() {
             <div className="sticky top-24">
               <Sidebar 
                 filters={filters} 
-                setFilters={setFilters}
-                title="Filter Jobs"
+                onFilterChange={handleFilterChange}
+                availableFilters={jobsData?.filters}
+                isLoading={isLoading}
               />
             </div>
           </div>
@@ -175,8 +180,9 @@ export default function Jobs() {
               <div className="lg:hidden mb-6">
                 <Sidebar 
                   filters={filters} 
-                  setFilters={setFilters}
-                  title="Filter Jobs"
+                  onFilterChange={handleFilterChange}
+                  availableFilters={jobsData?.filters}
+                  isLoading={isLoading}
                 />
               </div>
 
