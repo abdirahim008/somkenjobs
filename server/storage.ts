@@ -724,7 +724,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCountries(search?: string): Promise<string[]> {
-    const query = db.select({ name: countries.name }).from(countries);
+    const query = db.selectDistinct({ name: countries.name }).from(countries);
     
     if (search) {
       const searchCondition = ilike(countries.name, `%${search}%`);
@@ -736,7 +736,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCities(search?: string, country?: string): Promise<string[]> {
-    const query = db.select({ name: cities.name }).from(cities);
+    const query = db.selectDistinct({ name: cities.name }).from(cities);
     
     const conditions = [];
     if (search) {
@@ -795,7 +795,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSectors(search?: string): Promise<string[]> {
-    let query = db.select({ name: sectors.name }).from(sectors);
+    let query = db.selectDistinct({ name: sectors.name }).from(sectors);
     
     if (search) {
       query = query.where(ilike(sectors.name, `%${search}%`));

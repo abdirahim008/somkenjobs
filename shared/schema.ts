@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, integer, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -141,7 +141,10 @@ export const cities = pgTable("cities", {
   name: text("name").notNull(),
   country: text("country").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  // Unique constraint on city name + country combination
+  uniqueCityCountry: unique("unique_city_country").on(table.name, table.country)
+}));
 
 export const insertCitySchema = createInsertSchema(cities).omit({
   id: true,
