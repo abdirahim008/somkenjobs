@@ -974,9 +974,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `<meta property="og:url" content="${jobUrl}">`
       );
       
+      // Remove og:image meta tag
       html = html.replace(
         /<meta property="og:image" content="[^"]*">/,
-        `<meta property="og:image" content="${ogImageUrl.replace(/"/g, '&quot;')}">`
+        ``
       );
 
       // Also update Twitter meta tags
@@ -990,9 +991,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `<meta property="twitter:description" content="${jobDescription.replace(/"/g, '&quot;')}">`
       );
       
+      // Remove twitter:image meta tag
       html = html.replace(
         /<meta property="twitter:image" content="[^"]*">/,
-        `<meta property="twitter:image" content="${ogImageUrl.replace(/"/g, '&quot;')}">`
+        ``
       );
 
       // Update the title tag
