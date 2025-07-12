@@ -101,25 +101,15 @@ export default function SEOHead({
       twitterTitle.setAttribute('content', title);
     }
 
-    // Update Open Graph image
-    if (ogImage) {
-      let ogImageMeta = document.querySelector('meta[property="og:image"]');
-      if (!ogImageMeta) {
-        ogImageMeta = document.createElement('meta');
-        ogImageMeta.setAttribute('property', 'og:image');
-        ogImageMeta.setAttribute('data-job-specific', 'true');
-        document.head.appendChild(ogImageMeta);
-      }
-      ogImageMeta.setAttribute('content', ogImage);
+    // Remove any existing image meta tags to prevent unwanted images in social media previews
+    const existingOgImage = document.querySelector('meta[property="og:image"]');
+    if (existingOgImage) {
+      existingOgImage.remove();
+    }
 
-      let twitterImage = document.querySelector('meta[property="twitter:image"]');
-      if (!twitterImage) {
-        twitterImage = document.createElement('meta');
-        twitterImage.setAttribute('property', 'twitter:image');
-        twitterImage.setAttribute('data-job-specific', 'true');
-        document.head.appendChild(twitterImage);
-      }
-      twitterImage.setAttribute('content', ogImage);
+    const existingTwitterImage = document.querySelector('meta[property="twitter:image"]');
+    if (existingTwitterImage) {
+      existingTwitterImage.remove();
     }
     // Update Open Graph URL
     if (canonicalUrl) {
@@ -181,34 +171,20 @@ export default function SEOHead({
     }
     ogLocale.setAttribute('content', 'en_US');
 
-    // Add image dimensions for better social media display
-    if (ogImage) {
-      // Add og:image:width
-      let ogImageWidth = document.querySelector('meta[property="og:image:width"]');
-      if (!ogImageWidth) {
-        ogImageWidth = document.createElement('meta');
-        ogImageWidth.setAttribute('property', 'og:image:width');
-        document.head.appendChild(ogImageWidth);
-      }
-      ogImageWidth.setAttribute('content', '1200');
+    // Remove any existing image-related meta tags
+    const existingOgImageWidth = document.querySelector('meta[property="og:image:width"]');
+    if (existingOgImageWidth) {
+      existingOgImageWidth.remove();
+    }
 
-      // Add og:image:height
-      let ogImageHeight = document.querySelector('meta[property="og:image:height"]');
-      if (!ogImageHeight) {
-        ogImageHeight = document.createElement('meta');
-        ogImageHeight.setAttribute('property', 'og:image:height');
-        document.head.appendChild(ogImageHeight);
-      }
-      ogImageHeight.setAttribute('content', '630');
+    const existingOgImageHeight = document.querySelector('meta[property="og:image:height"]');
+    if (existingOgImageHeight) {
+      existingOgImageHeight.remove();
+    }
 
-      // Add og:image:alt
-      let ogImageAlt = document.querySelector('meta[property="og:image:alt"]');
-      if (!ogImageAlt) {
-        ogImageAlt = document.createElement('meta');
-        ogImageAlt.setAttribute('property', 'og:image:alt');
-        document.head.appendChild(ogImageAlt);
-      }
-      ogImageAlt.setAttribute('content', title || 'Somken Jobs - Humanitarian Career Opportunities');
+    const existingOgImageAlt = document.querySelector('meta[property="og:image:alt"]');
+    if (existingOgImageAlt) {
+      existingOgImageAlt.remove();
     }
 
     // Add WhatsApp specific meta tags
@@ -235,7 +211,7 @@ export default function SEOHead({
         title,
         description,
         canonicalUrl,
-        ogImage: ogImage?.substring(0, 100) + '...' || 'none'
+        ogImage: 'removed - no images in social media previews'
       });
     }
   }, [title, description, keywords, canonicalUrl, ogImage]);
