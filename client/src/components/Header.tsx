@@ -15,7 +15,7 @@ export default function Header() {
   const { isAuthenticated, logout, isLoggingOut } = useAuth();
   
   const navItems = [
-    { label: "Jobs", href: "/", active: true },
+    { label: "Home", href: "/", active: true },
     { label: "Organizations", href: "/organizations" },
     { label: "About", href: "/about" },
     { label: "Contact", href: "/contact" },
