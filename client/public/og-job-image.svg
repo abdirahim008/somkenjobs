@@ -1,0 +1,34 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0077B5"/>
+  
+  <!-- Grid pattern -->
+  <defs>
+    <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#ffffff" stroke-width="0.5" opacity="0.1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  
+  <!-- Main Content -->
+  <g transform="translate(60, 150)">
+    <!-- Logo/Icon -->
+    <rect x="0" y="0" width="60" height="60" rx="12" fill="#ffffff"/>
+    <rect x="15" y="15" width="30" height="30" rx="6" fill="#0077B5"/>
+    
+    <!-- Site Name -->
+    <text x="80" y="25" fill="#ffffff" font-family="Arial, sans-serif" font-size="28" font-weight="bold">Somken Jobs</text>
+    <text x="80" y="50" fill="#ffffff" font-family="Arial, sans-serif" font-size="16" opacity="0.8">East Africa</text>
+    
+    <!-- Job Title Placeholder -->
+    <text x="0" y="130" fill="#ffffff" font-family="Arial, sans-serif" font-size="48" font-weight="bold">Humanitarian Jobs</text>
+    <text x="0" y="180" fill="#ffffff" font-family="Arial, sans-serif" font-size="24" opacity="0.9">Somalia • Kenya • East Africa</text>
+    
+    <!-- Description -->
+    <text x="0" y="240" fill="#ffffff" font-family="Arial, sans-serif" font-size="18" opacity="0.8">Find meaningful career opportunities with</text>
+    <text x="0" y="270" fill="#ffffff" font-family="Arial, sans-serif" font-size="18" opacity="0.8">leading NGOs and humanitarian organizations</text>
+    
+    <!-- Bottom accent -->
+    <rect x="0" y="320" width="200" height="4" fill="#ffffff" opacity="0.6"/>
+  </g>
+</svg>

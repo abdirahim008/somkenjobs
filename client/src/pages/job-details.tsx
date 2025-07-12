@@ -11,6 +11,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import { type Job } from "@shared/schema";
+import { generateJobOGImageUrl, generateJobOGTitle, generateJobOGDescription } from "@/utils/generateJobOGImage";
 
 export default function JobDetails() {
   const [match, params] = useRoute("/jobs/:id");
@@ -501,10 +502,11 @@ export default function JobDetails() {
     <div className="min-h-screen bg-background">
       {job && (
         <SEOHead 
-          title={`${job.title} - ${job.organization} | Jobs in ${job.country} | Somken Jobs`}
-          description={`${job.title} job opportunity with ${job.organization} in ${job.location}, ${job.country}. Apply now for this ${job.sector || 'humanitarian'} position. ${job.deadline ? `Deadline: ${formatDate(job.deadline)}` : ''}`}
-          keywords={`${job.title}, jobs in ${job.country}, ${job.organization}, ${job.sector || 'humanitarian'} jobs, ${job.location} jobs, NGO careers, UN jobs`}
+          title={generateJobOGTitle(job)}
+          description={generateJobOGDescription(job)}
+          keywords={`${job.title}, jobs in ${job.country}, ${job.organization}, ${job.sector || 'humanitarian'} jobs, ${job.location} jobs, NGO careers, UN jobs, ReliefWeb, ${job.country} humanitarian jobs`}
           canonicalUrl={`https://somkenjobs.com/jobs/${job.id}`}
+          ogImage={generateJobOGImageUrl(job)}
         />
       )}
       {jobStructuredData && (
