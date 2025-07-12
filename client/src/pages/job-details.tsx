@@ -153,8 +153,12 @@ export default function JobDetails() {
 
   // Social media sharing functions
   const createShareUrl = (platform: string, jobTitle: string, jobUrl: string) => {
+    // Add cache-busting parameter to force fresh previews
+    const cacheBuster = `v=${Date.now()}`;
+    const jobUrlWithCacheBuster = `${jobUrl}?${cacheBuster}`;
+    
     const encodedTitle = encodeURIComponent(`${jobTitle} - Somken Jobs`);
-    const encodedUrl = encodeURIComponent(jobUrl);
+    const encodedUrl = encodeURIComponent(jobUrlWithCacheBuster);
     const shareText = encodeURIComponent(`Check out this job opportunity: ${jobTitle}`);
     
     switch (platform) {

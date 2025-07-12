@@ -9,8 +9,17 @@ export function generateJobOGTitle(job: Job): string {
 
 export function generateJobOGDescription(job: Job): string {
   const deadline = job.deadline ? 
-    ` • Deadline: ${Math.ceil((new Date(job.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left` : 
+    `${Math.ceil((new Date(job.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left` : 
     '';
   
-  return `${job.title} • ${job.organization} • ${job.location}, ${job.country}${deadline} • Apply now on Somken Jobs`;
+  // Format with better organization and structure for social media
+  const parts = [
+    `🎯 ${job.title}`,
+    `🏢 ${job.organization}`,
+    `📍 ${job.location}, ${job.country}`,
+    deadline ? `⏰ Deadline: ${deadline}` : '',
+    `💼 Apply now on Somken Jobs`
+  ].filter(Boolean);
+  
+  return parts.join('\n');
 }
