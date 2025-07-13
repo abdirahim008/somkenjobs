@@ -59,16 +59,7 @@ export default function JobCard({ job }: JobCardProps) {
     }
   };
 
-  const getSourceBadgeColor = (source: string) => {
-    switch (source) {
-      case "reliefweb":
-        return "badge-green";
-      case "unjobs":
-        return "badge-blue";
-      default:
-        return "badge-gray";
-    }
-  };
+
 
   const handleViewDetails = () => {
     // Scroll to top before navigation
@@ -128,9 +119,6 @@ export default function JobCard({ job }: JobCardProps) {
                 {job.sector}
               </Badge>
             )}
-            <Badge className={`badge ${getSourceBadgeColor(job.source)} text-sm`}>
-              {job.source === "reliefweb" ? "ReliefWeb" : "UN Jobs"}
-            </Badge>
             <Badge className="badge badge-green text-sm">
               Full-time
             </Badge>

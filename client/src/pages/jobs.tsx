@@ -98,11 +98,7 @@ export default function Jobs() {
     return colors[sector as keyof typeof colors] || colors.Other;
   };
 
-  const getSourceBadgeColor = (source: string) => {
-    return source === "reliefweb" 
-      ? "bg-blue-100 text-blue-800" 
-      : "bg-green-100 text-green-800";
-  };
+
 
   const handleJobClick = (jobId: number) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });

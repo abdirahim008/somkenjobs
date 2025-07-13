@@ -207,6 +207,7 @@ The application follows a modern full-stack architecture with clear separation b
 - July 12, 2025: Updated navigation header to show "Home" instead of "Jobs" for the landing page - changed navigation label to better reflect that the main page is the home/landing page rather than just a jobs page
 - July 12, 2025: Added dedicated Jobs and Tenders pages with separate filtering sidebars - created /jobs route showing only job opportunities and /tenders route showing only tender opportunities, both with complete filtering functionality including organization, sector, country, and date filters, maintained responsive sidebar design with sticky positioning on desktop and mobile-friendly layout
 - July 13, 2025: Removed Organizations page from navigation and routing - eliminated /organizations route from header navigation, footer links, and App.tsx routing since it was not needed, streamlined navigation to focus on core functionality (Home, Jobs, Tenders, About, Contact)
+- July 13, 2025: Removed job source information display from job cards - eliminated source badges showing "ReliefWeb" or "UN Jobs" from job cards throughout the application including JobCard component, Jobs page, and Tenders page, cleaned up unused getSourceBadgeColor functions, simplified job card badges to show only type (Job/Tender), sector, and employment type
 
 ## User Preferences
 
