@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, MapPin, Calendar, Clock, ArrowRight, Briefcase, FileText } from "lucide-react";
+import { Building2, MapPin, Calendar, Clock, ArrowRight, Briefcase, FileText, Bookmark } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import Header from "@/components/Header";
@@ -199,70 +199,75 @@ export default function Tenders() {
                   </div>
                 ) : (
                   tenders.map((tender: Job) => (
-                    <Card 
-                      key={tender.id} 
-                      className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-orange-500 mobile-job-card"
-                      onClick={() => handleJobClick(tender.id)}
-                    >
-                      <CardHeader className="pb-3">
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-2">
-                              <FileText className="h-4 w-4 text-orange-600 flex-shrink-0" />
-                              <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-800">Tender</Badge>
-                            </div>
-                            <CardTitle className="text-base sm:text-lg md:text-xl font-bold mb-3 line-clamp-2 break-words">
-                              {tender.title}
-                            </CardTitle>
-                            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
-                              <span className="flex items-center break-all">
-                                <Building2 className="mr-2 h-4 w-4 flex-shrink-0" />
-                                <span className="truncate-org">{tender.organization}</span>
-                              </span>
-                              <span className="flex items-center">
-                                <MapPin className="mr-2 h-4 w-4 flex-shrink-0" />
-                                <span className="break-words">{tender.location}, {tender.country}</span>
-                              </span>
-                              <span className="flex items-center">
-                                <Calendar className="mr-2 h-4 w-4 flex-shrink-0" />
-                                <span className="whitespace-nowrap">{formatDate(tender.datePosted)}</span>
-                              </span>
-                            </div>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="sm:ml-4 flex-shrink-0 w-full sm:w-auto"
+                    <div key={tender.id} className="job-card">
+                      <div className="flex items-start justify-between mb-4 gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 
+                            className="text-lg font-semibold text-foreground hover:text-primary cursor-pointer mb-2 break-words leading-tight"
+                            onClick={() => handleJobClick(tender.id)}
                           >
-                            <span className="sm:hidden">View Details</span>
-                            <span className="hidden sm:inline">View Details</span>
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                          <div className="flex flex-wrap items-center gap-2">
+                            {tender.title}
+                          </h3>
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:flex-wrap gap-2 text-base text-muted-foreground mb-3">
+                            <span className="flex items-center min-w-0">
+                              <Building2 className="mr-2 h-5 w-5 flex-shrink-0" />
+                              <span className="truncate-org">{tender.organization}</span>
+                            </span>
+                            <span className="flex items-center flex-shrink-0">
+                              <MapPin className="mr-2 h-5 w-5 flex-shrink-0" />
+                              <span className="whitespace-nowrap">{tender.location}, {tender.country}</span>
+                            </span>
+                            <span className="flex items-center flex-shrink-0">
+                              <Calendar className="mr-2 h-5 w-5 flex-shrink-0" />
+                              <span className="whitespace-nowrap">{formatDate(tender.datePosted)}</span>
+                            </span>
+                          </div>
+
+                          <div className="flex items-center flex-wrap gap-2">
+                            {/* Type badge - Job vs Tender */}
+                            <Badge className={`badge bg-orange-100 text-orange-800 hover:bg-orange-100 text-sm flex items-center gap-1`}>
+                              <FileText className="h-3 w-3" />
+                              Tender
+                            </Badge>
                             {tender.sector && (
-                              <Badge className={`badge ${getSectorBadgeColor(tender.sector)}`}>
+                              <Badge className={`badge ${getSectorBadgeColor(tender.sector)} text-sm`}>
                                 {tender.sector}
                               </Badge>
                             )}
-                            <Badge className={`badge ${getSourceBadgeColor(tender.source)}`}>
+                            <Badge className={`badge ${getSourceBadgeColor(tender.source)} text-sm`}>
                               {tender.source === "reliefweb" ? "ReliefWeb" : "Internal"}
                             </Badge>
+                            <Badge className="badge badge-green text-sm">
+                              Full-time
+                            </Badge>
                           </div>
+                        </div>
+                        <div className="flex-shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-2 hover:bg-muted rounded-lg transition-colors"
+                            title="Bookmark this tender"
+                          >
+                            <Bookmark className="h-4 w-4 stroke-muted-foreground hover:stroke-primary" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-border">
+                        <div className="text-base text-muted-foreground">
                           {tender.deadline && (
-                            <div className="flex items-center text-sm">
-                              <Clock className="mr-1 h-4 w-4 text-muted-foreground flex-shrink-0" />
-                              <span className="font-medium text-red-600 whitespace-nowrap">
-                                {formatDeadline(tender.deadline)}
-                              </span>
-                            </div>
+                            <>
+                              Deadline: <span className="font-medium text-foreground">{formatDeadline(tender.deadline)}</span>
+                            </>
                           )}
                         </div>
-                      </CardContent>
-                    </Card>
+                        <div className="flex space-x-2">
+                          <Button variant="outline" onClick={() => handleJobClick(tender.id)} className="flex-1 sm:flex-initial">
+                            View Details
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
                   ))
                 )}
               </div>
