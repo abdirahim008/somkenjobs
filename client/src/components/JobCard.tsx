@@ -188,12 +188,12 @@ export default function JobCard({ job }: JobCardProps) {
             </>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 text-sm text-muted-foreground mr-2">
+        <div className="flex items-center gap-3 ml-4">
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
             <Share2 className="h-3 w-3" />
             Share:
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
