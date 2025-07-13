@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 export default function Footer() {
   const quickLinks = [
     { label: "Browse Jobs", href: "/" },
-    { label: "Organizations", href: "/organizations" },
     { label: "Career Resources", href: "/career-resources" },
     { label: "Job Alerts", href: "#" },
   ];

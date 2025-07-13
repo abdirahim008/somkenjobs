@@ -206,6 +206,7 @@ The application follows a modern full-stack architecture with clear separation b
 - July 12, 2025: Fixed posting date issue where dashboard-created jobs appeared lower in listings due to midnight timestamp - updated job creation logic to combine selected posting date with current time instead of defaulting to midnight, ensuring newly created jobs appear at top of chronologically sorted list
 - July 12, 2025: Updated navigation header to show "Home" instead of "Jobs" for the landing page - changed navigation label to better reflect that the main page is the home/landing page rather than just a jobs page
 - July 12, 2025: Added dedicated Jobs and Tenders pages with separate filtering sidebars - created /jobs route showing only job opportunities and /tenders route showing only tender opportunities, both with complete filtering functionality including organization, sector, country, and date filters, maintained responsive sidebar design with sticky positioning on desktop and mobile-friendly layout
+- July 13, 2025: Removed Organizations page from navigation and routing - eliminated /organizations route from header navigation, footer links, and App.tsx routing since it was not needed, streamlined navigation to focus on core functionality (Home, Jobs, Tenders, About, Contact)
 
 ## User Preferences
 

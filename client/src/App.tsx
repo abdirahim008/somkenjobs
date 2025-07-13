@@ -10,7 +10,7 @@ import Tenders from "@/pages/tenders";
 import JobDetails from "@/pages/job-details";
 import About from "@/pages/about";
 import Contact from "@/pages/contact";
-import Organizations from "@/pages/organizations";
+
 import CareerResources from "@/pages/career-resources";
 import HelpCenter from "@/pages/help-center";
 import PrivacyPolicy from "@/pages/privacy-policy";
@@ -27,7 +27,7 @@ function Router() {
       <Route path="/jobs/:id" component={JobDetails} />
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
-      <Route path="/organizations" component={Organizations} />
+
       <Route path="/career-resources" component={CareerResources} />
       <Route path="/help-center" component={HelpCenter} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />
