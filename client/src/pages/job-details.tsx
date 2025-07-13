@@ -388,16 +388,7 @@ export default function JobDetails() {
     }
   };
 
-  const getSourceBadgeColor = (source: string) => {
-    switch (source) {
-      case "reliefweb":
-        return "badge-green";
-      case "unjobs":
-        return "badge-blue";
-      default:
-        return "badge-gray";
-    }
-  };
+
 
   if (isLoading) {
     return (
@@ -719,9 +710,6 @@ export default function JobDetails() {
                             {job.sector}
                           </Badge>
                         )}
-                        <Badge className={`badge ${getSourceBadgeColor(job.source)}`}>
-                          {job.source === "reliefweb" ? "ReliefWeb" : "UN Jobs"}
-                        </Badge>
                         <Badge className="badge badge-green">
                           Full-time
                         </Badge>

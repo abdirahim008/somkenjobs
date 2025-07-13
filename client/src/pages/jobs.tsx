@@ -224,9 +224,6 @@ export default function Jobs() {
                                 {job.sector}
                               </Badge>
                             )}
-                            <Badge className={`badge ${getSourceBadgeColor(job.source)} text-sm`}>
-                              {job.source === "reliefweb" ? "ReliefWeb" : "Internal"}
-                            </Badge>
                             <Badge className="badge badge-green text-sm">
                               Full-time
                             </Badge>

@@ -224,9 +224,6 @@ export default function Tenders() {
                                 {tender.sector}
                               </Badge>
                             )}
-                            <Badge className={`badge ${getSourceBadgeColor(tender.source)} text-sm`}>
-                              {tender.source === "reliefweb" ? "ReliefWeb" : "Internal"}
-                            </Badge>
                             <Badge className="badge badge-green text-sm">
                               Full-time
                             </Badge>
