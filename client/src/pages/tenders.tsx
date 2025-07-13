@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, MapPin, Calendar, Clock, ArrowRight, Briefcase, FileText, Bookmark } from "lucide-react";
+import { Building2, MapPin, Calendar, Clock, ArrowRight, Briefcase, FileText, Bookmark, Share2 } from "lucide-react";
+import { FaFacebook, FaWhatsapp, FaTwitter, FaLinkedin } from 'react-icons/fa';
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import Header from "@/components/Header";
@@ -105,6 +106,50 @@ export default function Tenders() {
     setLocation(`/jobs/${jobId}`);
   };
 
+  const handleCardClick = (jobId: number, e: React.MouseEvent) => {
+    // Don't navigate if clicking on interactive elements
+    if ((e.target as HTMLElement).closest('button, a, .share-button')) {
+      return;
+    }
+    handleJobClick(jobId);
+  };
+
+  const createShareUrl = (platform: string, jobTitle: string, jobUrl: string) => {
+    const cacheBuster = `v=${Date.now()}`;
+    const jobUrlWithCacheBuster = `${jobUrl}?${cacheBuster}`;
+    
+    const encodedTitle = encodeURIComponent(`${jobTitle} - Somken Jobs`);
+    const encodedUrl = encodeURIComponent(jobUrlWithCacheBuster);
+    const shareText = encodeURIComponent(`Check out this tender opportunity: ${jobTitle}`);
+    
+    switch (platform) {
+      case 'facebook':
+        return `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${shareText}`;
+      case 'whatsapp':
+        return `https://wa.me/?text=${shareText}%20${encodedUrl}`;
+      case 'twitter':
+        return `https://twitter.com/intent/tweet?text=${shareText}&url=${encodedUrl}`;
+      case 'linkedin':
+        return `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
+      default:
+        return '';
+    }
+  };
+
+  const handleShare = (platform: string, jobId: number, jobTitle: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    const jobUrl = `${window.location.origin}/jobs/${jobId}`;
+    const shareUrl = createShareUrl(platform, jobTitle, jobUrl);
+    
+    window.open(shareUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleBookmark = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Bookmark functionality would go here
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <SEOHead 
@@ -189,13 +234,10 @@ export default function Tenders() {
                   </div>
                 ) : (
                   tenders.map((tender: Job) => (
-                    <div key={tender.id} className="job-card">
+                    <div key={tender.id} className="job-card cursor-pointer hover:shadow-md transition-shadow duration-200" onClick={(e) => handleCardClick(tender.id, e)}>
                       <div className="flex items-start justify-between mb-4 gap-4">
                         <div className="flex-1 min-w-0">
-                          <h3 
-                            className="text-lg font-semibold text-foreground hover:text-primary cursor-pointer mb-2 break-words leading-tight"
-                            onClick={() => handleJobClick(tender.id)}
-                          >
+                          <h3 className="text-lg font-semibold text-foreground hover:text-primary mb-2 break-words leading-tight">
                             {tender.title}
                           </h3>
                           <div className="flex flex-col sm:flex-row sm:items-center sm:flex-wrap gap-2 text-base text-muted-foreground mb-3">
@@ -233,6 +275,7 @@ export default function Tenders() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={handleBookmark}
                             className="p-2 hover:bg-muted rounded-lg transition-colors"
                             title="Bookmark this tender"
                           >
@@ -248,10 +291,49 @@ export default function Tenders() {
                             </>
                           )}
                         </div>
-                        <div className="flex space-x-2">
-                          <Button variant="outline" onClick={() => handleJobClick(tender.id)} className="flex-1 sm:flex-initial">
-                            View Details
-                          </Button>
+                        <div className="flex items-center gap-3 ml-4">
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Share2 className="h-3 w-3" />
+                            Share:
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => handleShare('facebook', tender.id, tender.title, e)}
+                              className="share-button h-7 w-7 p-0 hover:bg-blue-50 hover:text-blue-600"
+                              title="Share on Facebook"
+                            >
+                              <FaFacebook className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => handleShare('whatsapp', tender.id, tender.title, e)}
+                              className="share-button h-7 w-7 p-0 hover:bg-green-50 hover:text-green-600"
+                              title="Share on WhatsApp"
+                            >
+                              <FaWhatsapp className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => handleShare('twitter', tender.id, tender.title, e)}
+                              className="share-button h-7 w-7 p-0 hover:bg-blue-50 hover:text-blue-500"
+                              title="Share on Twitter"
+                            >
+                              <FaTwitter className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => handleShare('linkedin', tender.id, tender.title, e)}
+                              className="share-button h-7 w-7 p-0 hover:bg-blue-50 hover:text-blue-700"
+                              title="Share on LinkedIn"
+                            >
+                              <FaLinkedin className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
