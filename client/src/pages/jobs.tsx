@@ -121,15 +121,9 @@ export default function Jobs() {
       <Header />
       
       <main className="main-container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Hero Section */}
-        <section className="hero-section">
-          <div className="hero-content">
-            <h1 className="hero-title">
-              Find Your Next Job Opportunity
-            </h1>
-            <p className="hero-subtitle">
-              Discover meaningful career opportunities with leading humanitarian organizations across Somalia and Kenya
-            </p>
+        {/* Search Section */}
+        <section className="py-6">
+          <div className="max-w-4xl mx-auto">
             <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
           </div>
         </section>
