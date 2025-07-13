@@ -120,7 +120,7 @@ export default function Jobs() {
       
       <Header />
       
-      <main className="main-container max-w-7xl">
+      <main className="main-container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Hero Section */}
         <section className="hero-section">
           <div className="hero-content">
@@ -135,7 +135,7 @@ export default function Jobs() {
         </section>
 
         {/* Main Content */}
-        <div className="flex gap-8 mt-8">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-8 mt-6 lg:mt-8">
           {/* Sidebar */}
           <div className="hidden lg:block w-80 flex-shrink-0">
             <div className="sticky top-24">
@@ -201,46 +201,47 @@ export default function Jobs() {
                   jobs.map((job: Job) => (
                     <Card 
                       key={job.id} 
-                      className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-primary"
+                      className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-primary mobile-job-card"
                       onClick={() => handleJobClick(job.id)}
                     >
                       <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                          <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-2">
-                              <Briefcase className="h-4 w-4 text-blue-600" />
+                              <Briefcase className="h-4 w-4 text-blue-600 flex-shrink-0" />
                               <Badge variant="secondary" className="text-xs">Job</Badge>
                             </div>
-                            <CardTitle className="text-lg md:text-xl font-bold mb-2 line-clamp-2">
+                            <CardTitle className="text-base sm:text-lg md:text-xl font-bold mb-3 line-clamp-2 break-words">
                               {job.title}
                             </CardTitle>
-                            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                              <span className="flex items-center">
-                                <Building2 className="mr-1 h-4 w-4" />
-                                {job.organization}
+                            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
+                              <span className="flex items-center break-all">
+                                <Building2 className="mr-2 h-4 w-4 flex-shrink-0" />
+                                <span className="truncate-org">{job.organization}</span>
                               </span>
                               <span className="flex items-center">
-                                <MapPin className="mr-1 h-4 w-4" />
-                                {job.location}, {job.country}
+                                <MapPin className="mr-2 h-4 w-4 flex-shrink-0" />
+                                <span className="break-words">{job.location}, {job.country}</span>
                               </span>
                               <span className="flex items-center">
-                                <Calendar className="mr-1 h-4 w-4" />
-                                {formatDate(job.datePosted)}
+                                <Calendar className="mr-2 h-4 w-4 flex-shrink-0" />
+                                <span className="whitespace-nowrap">{formatDate(job.datePosted)}</span>
                               </span>
                             </div>
                           </div>
                           <Button
                             variant="outline"
                             size="sm"
-                            className="ml-4 flex-shrink-0"
+                            className="sm:ml-4 flex-shrink-0 w-full sm:w-auto"
                           >
-                            View Details
+                            <span className="sm:hidden">View Details</span>
+                            <span className="hidden sm:inline">View Details</span>
                             <ArrowRight className="ml-2 h-4 w-4" />
                           </Button>
                         </div>
                       </CardHeader>
                       <CardContent className="pt-0">
-                        <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                           <div className="flex flex-wrap items-center gap-2">
                             {job.sector && (
                               <Badge className={`badge ${getSectorBadgeColor(job.sector)}`}>
@@ -253,8 +254,8 @@ export default function Jobs() {
                           </div>
                           {job.deadline && (
                             <div className="flex items-center text-sm">
-                              <Clock className="mr-1 h-4 w-4 text-muted-foreground" />
-                              <span className="font-medium text-red-600">
+                              <Clock className="mr-1 h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span className="font-medium text-red-600 whitespace-nowrap">
                                 {formatDeadline(job.deadline)}
                               </span>
                             </div>

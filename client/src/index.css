@@ -296,17 +296,55 @@
 
 /* Mobile-first responsive typography */
 @media (max-width: 640px) {
-  .job-card {
+  .job-card, .mobile-job-card {
     @apply p-4;
+    margin-bottom: 1rem;
   }
   
-  .job-card h3 {
+  .job-card h3, .mobile-job-card h3 {
     font-size: 1rem;
     line-height: 1.4;
   }
   
-  .job-card .text-sm {
+  .job-card .text-sm, .mobile-job-card .text-sm {
     font-size: 0.75rem;
+  }
+  
+  /* Ensure mobile job cards have proper spacing and don't overflow */
+  .mobile-job-card {
+    overflow: hidden;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+  
+  /* Better mobile layout for job card content */
+  .mobile-job-card .flex.flex-col {
+    gap: 0.75rem;
+  }
+  
+  .mobile-job-card .flex.items-center {
+    flex-wrap: wrap;
+  }
+  
+  /* Ensure text doesn't overflow on mobile */
+  .mobile-job-card * {
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  /* Mobile-specific button styling */
+  .mobile-job-card button {
+    width: 100%;
+    justify-content: center;
+    margin-top: 0.5rem;
+  }
+  
+  /* Better spacing for mobile badges */
+  .mobile-job-card .badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
   }
 }
 
@@ -320,20 +358,39 @@
 
 /* Responsive container improvements */
 .main-container {
-  @apply mx-auto px-2 py-6;
+  @apply mx-auto py-4;
   max-width: 100%;
   overflow-x: hidden;
 }
 
 @media (min-width: 640px) {
   .main-container {
-    @apply px-4 py-8;
+    @apply py-6;
   }
 }
 
 @media (min-width: 1024px) {
   .main-container {
-    @apply px-6;
+    @apply py-8;
+  }
+}
+
+/* Mobile-specific improvements for job listings */
+@media (max-width: 640px) {
+  .main-container {
+    @apply px-3 py-4;
+  }
+  
+  /* Better spacing for mobile job listings */
+  .space-y-4 > * + * {
+    margin-top: 1rem;
+  }
+  
+  /* Ensure cards don't exceed viewport */
+  .mobile-job-card {
+    margin-left: 0;
+    margin-right: 0;
+    max-width: 100%;
   }
 }
 
