@@ -17,7 +17,7 @@ export default function Tenders() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({
-    country: ["Kenya", "Somalia"],
+    country: [],
     organization: [],
     sector: [],
     datePosted: "",

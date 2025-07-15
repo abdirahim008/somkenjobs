@@ -36,7 +36,7 @@ interface Filters {
 
 export default function Home() {
   const [filters, setFilters] = useState<Filters>({
-    country: ["Kenya", "Somalia"],
+    country: [],
     organization: [],
     sector: [],
   });
