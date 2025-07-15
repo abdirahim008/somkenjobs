@@ -1,4 +1,5 @@
-import { Filter } from "lucide-react";
+import { useState } from "react";
+import { Filter, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,6 +27,20 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ filters, onFilterChange, availableFilters, isLoading }: SidebarProps) {
+  const [expandedSections, setExpandedSections] = useState({
+    country: false,
+    organization: false,
+    sector: false,
+    datePosted: true, // Keep date filter always expanded as it's a dropdown
+  });
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
   const handleCountryChange = (country: string, checked: boolean) => {
     const newCountries = checked
       ? [...filters.country, country]
@@ -62,6 +77,19 @@ export default function Sidebar({ filters, onFilterChange, availableFilters, isL
     if (org.includes("UNICEF")) return "UNICEF";
     if (org.includes("World Food Programme")) return "WFP";
     return org.length > 25 ? org.substring(0, 25) + "..." : org;
+  };
+
+  const getFilterSummary = (filterType: string) => {
+    switch (filterType) {
+      case 'country':
+        return filters.country.length > 0 ? `${filters.country.length} selected` : 'All countries';
+      case 'organization':
+        return filters.organization.length > 0 ? `${filters.organization.length} selected` : 'All organizations';
+      case 'sector':
+        return filters.sector.length > 0 ? `${filters.sector.length} selected` : 'All sectors';
+      default:
+        return '';
+    }
   };
 
   if (isLoading) {
@@ -103,52 +131,80 @@ export default function Sidebar({ filters, onFilterChange, availableFilters, isL
             Filter Jobs
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           {/* Country Filter */}
           <div>
-            <label className="block text-sm font-medium mb-3">Country</label>
-            <div className="space-y-2">
-              {(availableFilters?.countries || ["Kenya", "Somalia"]).map((country) => (
-                <div key={country} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`country-${country}`}
-                    checked={filters.country.includes(country)}
-                    onCheckedChange={(checked) => handleCountryChange(country, !!checked)}
-                    className="filter-checkbox"
-                  />
-                  <label
-                    htmlFor={`country-${country}`}
-                    className="text-sm cursor-pointer"
-                  >
-                    {country}
-                  </label>
-                </div>
-              ))}
-            </div>
+            <Button
+              variant="ghost"
+              onClick={() => toggleSection('country')}
+              className="w-full justify-between p-0 h-auto font-medium text-sm hover:bg-transparent"
+            >
+              <div className="flex items-center">
+                <span>Country</span>
+                <span className="ml-2 text-xs text-muted-foreground">
+                  ({getFilterSummary('country')})
+                </span>
+              </div>
+              {expandedSections.country ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+            {expandedSections.country && (
+              <div className="mt-3 space-y-2">
+                {(availableFilters?.countries || ["Kenya", "Somalia"]).map((country) => (
+                  <div key={country} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`country-${country}`}
+                      checked={filters.country.includes(country)}
+                      onCheckedChange={(checked) => handleCountryChange(country, !!checked)}
+                      className="filter-checkbox"
+                    />
+                    <label
+                      htmlFor={`country-${country}`}
+                      className="text-sm cursor-pointer"
+                    >
+                      {country}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Organization Filter */}
           <div>
-            <label className="block text-sm font-medium mb-3">Organization</label>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
-              {(availableFilters?.organizations || []).slice(0, 10).map((org) => (
-                <div key={org} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`org-${org}`}
-                    checked={filters.organization.includes(org)}
-                    onCheckedChange={(checked) => handleOrganizationChange(org, !!checked)}
-                    className="filter-checkbox"
-                  />
-                  <label
-                    htmlFor={`org-${org}`}
-                    className="text-sm cursor-pointer"
-                    title={org}
-                  >
-                    {getOrgDisplayName(org)}
-                  </label>
-                </div>
-              ))}
-            </div>
+            <Button
+              variant="ghost"
+              onClick={() => toggleSection('organization')}
+              className="w-full justify-between p-0 h-auto font-medium text-sm hover:bg-transparent"
+            >
+              <div className="flex items-center">
+                <span>Organization</span>
+                <span className="ml-2 text-xs text-muted-foreground">
+                  ({getFilterSummary('organization')})
+                </span>
+              </div>
+              {expandedSections.organization ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+            {expandedSections.organization && (
+              <div className="mt-3 space-y-2 max-h-40 overflow-y-auto">
+                {(availableFilters?.organizations || []).slice(0, 10).map((org) => (
+                  <div key={org} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`org-${org}`}
+                      checked={filters.organization.includes(org)}
+                      onCheckedChange={(checked) => handleOrganizationChange(org, !!checked)}
+                      className="filter-checkbox"
+                    />
+                    <label
+                      htmlFor={`org-${org}`}
+                      className="text-sm cursor-pointer"
+                      title={org}
+                    >
+                      {getOrgDisplayName(org)}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Date Filter */}
@@ -172,25 +228,39 @@ export default function Sidebar({ filters, onFilterChange, availableFilters, isL
 
           {/* Sector Filter */}
           <div>
-            <label className="block text-sm font-medium mb-3">Sector</label>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
-              {(availableFilters?.sectors || []).map((sector) => (
-                <div key={sector} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`sector-${sector}`}
-                    checked={filters.sector.includes(sector)}
-                    onCheckedChange={(checked) => handleSectorChange(sector, !!checked)}
-                    className="filter-checkbox"
-                  />
-                  <label
-                    htmlFor={`sector-${sector}`}
-                    className="text-sm cursor-pointer"
-                  >
-                    {sector}
-                  </label>
-                </div>
-              ))}
-            </div>
+            <Button
+              variant="ghost"
+              onClick={() => toggleSection('sector')}
+              className="w-full justify-between p-0 h-auto font-medium text-sm hover:bg-transparent"
+            >
+              <div className="flex items-center">
+                <span>Sector</span>
+                <span className="ml-2 text-xs text-muted-foreground">
+                  ({getFilterSummary('sector')})
+                </span>
+              </div>
+              {expandedSections.sector ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+            {expandedSections.sector && (
+              <div className="mt-3 space-y-2 max-h-40 overflow-y-auto">
+                {(availableFilters?.sectors || []).map((sector) => (
+                  <div key={sector} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`sector-${sector}`}
+                      checked={filters.sector.includes(sector)}
+                      onCheckedChange={(checked) => handleSectorChange(sector, !!checked)}
+                      className="filter-checkbox"
+                    />
+                    <label
+                      htmlFor={`sector-${sector}`}
+                      className="text-sm cursor-pointer"
+                    >
+                      {sector}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Clear Filters */}
