@@ -215,6 +215,7 @@ The application follows a modern full-stack architecture with clear separation b
 - July 17, 2025: Added publish functionality and status column to job list - implemented publish button (upload icon) for draft jobs, reorganized job list with table-like structure showing columns for Job Title, Status, and Actions, added status badges showing "Live" (green) for published jobs and "Draft" (gray) for draft jobs, users can now publish jobs directly from the job list with confirmation dialog
 - July 17, 2025: Fixed "Full-time" employment type display issue - removed hardcoded "Full-time" badge from all job cards, job details pages, and structured data since no employment type field exists in job creation form, cleaned up JobCard, Jobs page, Tenders page, job-details page, and JobStructuredData component to only show relevant badges (Job/Tender type and sector)
 - July 17, 2025: Enhanced job selection functionality - added individual checkboxes for all jobs (both draft and published) in the job list instead of only showing checkboxes for draft jobs, users can now select multiple jobs of any status and delete them using the bulk delete functionality with proper confirmation dialogs
+- July 17, 2025: Added individual delete buttons to job actions column - each job now has a delete button (trash icon) alongside view and edit buttons in the actions column, provides individual job deletion with confirmation dialog, expanded actions column width to accommodate the additional delete button
 
 ## User Preferences
 

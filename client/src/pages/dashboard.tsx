@@ -1452,7 +1452,7 @@ export default function Dashboard() {
                     <div className="w-8">#</div>
                     <div className="flex-1">Job Title</div>
                     <div className="w-24">Status</div>
-                    <div className="w-32">Actions</div>
+                    <div className="w-40">Actions</div>
                   </div>
 
                   {/* Job List - Simple list inside main card */}
@@ -1493,7 +1493,7 @@ export default function Dashboard() {
                         </div>
 
                         {/* Actions column */}
-                        <div className="w-32 flex items-center gap-2">
+                        <div className="w-40 flex items-center gap-2">
                           {/* Publish Button - Only show for draft jobs */}
                           {job.status === 'draft' && (
                             <Button
@@ -1553,6 +1553,19 @@ export default function Dashboard() {
                             title="Edit Job"
                           >
                             <Pen className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              if (confirm('Are you sure you want to delete this job? This action cannot be undone.')) {
+                                deleteJobMutation.mutate(job.id);
+                              }
+                            }}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1"
+                            title="Delete Job"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
