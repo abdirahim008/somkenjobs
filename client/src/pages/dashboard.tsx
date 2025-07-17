@@ -71,7 +71,7 @@ export default function Dashboard() {
     qualifications: "",
     deadline: "",
     url: "",
-    status: "published", // Add status field
+    status: "draft", // Add status field
     type: "job" as "job" | "tender", // Add type field
     attachmentUrl: "", // Add attachment URL field
     postingDate: getTodaysDate() // Add posting date field with today's date as default
@@ -224,8 +224,8 @@ export default function Dashboard() {
       }
       return response.json();
     },
-    onSuccess: () => {
-      showSuccessToast("Job Created Successfully", "Your job posting has been created and published!");
+    onSuccess: (data: any, variables: any) => {
+      showSuccessToast("Job Created Successfully", variables.status === 'draft' ? "Your job posting has been saved as a draft. You can publish it from your job list." : "Your job posting has been created and published!");
       setJobForm({
         title: "",
         jobNumber: "",
@@ -239,7 +239,7 @@ export default function Dashboard() {
         qualifications: "",
         deadline: "",
         url: "",
-        status: "published",
+        status: "draft",
         type: "job",
         attachmentUrl: "",
         postingDate: getTodaysDate()
@@ -1090,7 +1090,7 @@ export default function Dashboard() {
                         qualifications: "",
                         deadline: "",
                         url: "",
-                        status: "published",
+                        status: "draft",
                         type: "job",
                         attachmentUrl: "",
                         postingDate: getTodaysDate()
@@ -1352,17 +1352,17 @@ export default function Dashboard() {
                     >
                       {editingJob 
                         ? "Update Job Posting"
-                        : jobForm.status === 'draft' ? "Save as Draft" : "Create & Publish Job"
+                        : "Create Job"
                       }
                     </LoadingButton>
                     
-                    {!editingJob && jobForm.status === 'published' && (
+                    {!editingJob && jobForm.status === 'draft' && (
                       <Button 
                         type="button"
                         variant="outline"
                         className="w-full"
                         onClick={() => {
-                          setJobForm({ ...jobForm, status: 'draft' });
+                          setJobForm({ ...jobForm, status: 'published' });
                           const form = document.querySelector('form');
                           if (form) {
                             const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
@@ -1371,7 +1371,7 @@ export default function Dashboard() {
                         }}
                         disabled={createJobMutation.isPending}
                       >
-                        Save as Draft Instead
+                        Create & Publish Job
                       </Button>
                     )}
                   </div>
