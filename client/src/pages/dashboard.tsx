@@ -1236,7 +1236,9 @@ export default function Dashboard() {
                       onChange={(value) => setJobForm({ ...jobForm, description: value })}
                       placeholder="Provide a comprehensive description including background, context, and purpose..."
                       required
-                      height="200px"
+                      height="350px"
+                      minHeight="250px"
+                      maxHeight="700px"
                     />
                   </div>
 
@@ -1248,7 +1250,9 @@ export default function Dashboard() {
                       value={jobForm.qualifications}
                       onChange={(value) => setJobForm({ ...jobForm, qualifications: value })}
                       placeholder="List required education, skills, certifications, and other qualifications..."
-                      height="150px"
+                      height="300px"
+                      minHeight="200px"
+                      maxHeight="600px"
                     />
                   </div>
 
@@ -1259,7 +1263,9 @@ export default function Dashboard() {
                       onChange={(value) => setJobForm({ ...jobForm, howToApply: value })}
                       placeholder="Please provide detailed application instructions including required documents, email address, and any specific requirements..."
                       required
-                      height="150px"
+                      height="300px"
+                      minHeight="200px"
+                      maxHeight="600px"
                     />
                   </div>
 
