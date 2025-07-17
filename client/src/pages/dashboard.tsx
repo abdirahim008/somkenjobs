@@ -397,6 +397,27 @@ export default function Dashboard() {
     bio: ""
   });
 
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [organizationFilter, setOrganizationFilter] = useState("");
+
+  // Filter jobs based on search term and organization
+  const filteredJobs = (userJobs as any[])?.filter((job: any) => {
+    const matchesSearch = !searchTerm || 
+      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.organization.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.description.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesOrganization = !organizationFilter || organizationFilter === "all" || 
+      job.organization.toLowerCase().includes(organizationFilter.toLowerCase());
+    
+    return matchesSearch && matchesOrganization;
+  }) || [];
+
+  // Get unique organizations for filter dropdown
+  const uniqueOrganizations = [...new Set((userJobs as any[])?.map((job: any) => job.organization) || [])].sort();
+
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (profileData: any) => {
@@ -568,8 +589,8 @@ export default function Dashboard() {
   };
 
   const selectAllJobs = () => {
-    const allJobIds = (userJobs as any[]).map(job => job.id);
-    setSelectedJobs(selectedJobs.length === allJobIds.length ? [] : allJobIds);
+    const allFilteredJobIds = filteredJobs.map(job => job.id);
+    setSelectedJobs(selectedJobs.length === allFilteredJobIds.length ? [] : allFilteredJobIds);
   };
 
   // Generate PDF with enhanced formatting
@@ -1441,11 +1462,61 @@ export default function Dashboard() {
                 </CardContent>
               ) : (
                 <>
+                  {/* Search and Filter Section */}
+                  <div className="p-4 bg-gray-50 border-b">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      {/* Search Input */}
+                      <div className="flex-1">
+                        <Input
+                          placeholder="Search jobs by title, organization, location, or description..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      {/* Organization Filter */}
+                      <div className="sm:w-64">
+                        <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Filter by organization" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Organizations</SelectItem>
+                            {uniqueOrganizations.map((org) => (
+                              <SelectItem key={org} value={org}>{org}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {/* Clear Filters Button */}
+                      {(searchTerm || (organizationFilter && organizationFilter !== "all")) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSearchTerm("");
+                            setOrganizationFilter("all");
+                          }}
+                          className="whitespace-nowrap"
+                        >
+                          Clear Filters
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {/* Results Count */}
+                    <div className="mt-2 text-sm text-gray-600">
+                      Showing {filteredJobs.length} of {(userJobs as any[]).length} jobs
+                    </div>
+                  </div>
+                  
                   {/* Table Header */}
                   <div className="flex items-center gap-3 p-4 bg-gray-50 border-b font-medium text-sm text-gray-700">
                     <input
                       type="checkbox"
-                      checked={selectedJobs.length === (userJobs as any[]).length && (userJobs as any[]).length > 0}
+                      checked={selectedJobs.length === filteredJobs.length && filteredJobs.length > 0}
                       onChange={selectAllJobs}
                       className="h-4 w-4 text-[#0077B5] focus:ring-[#0077B5] border-gray-300 rounded"
                     />
@@ -1457,7 +1528,28 @@ export default function Dashboard() {
 
                   {/* Job List - Simple list inside main card */}
                   <div className="divide-y divide-gray-100">
-                    {(userJobs as any[]).map((job: any, index: number) => (
+                    {filteredJobs.length === 0 ? (
+                      <div className="p-8 text-center text-gray-500">
+                        {searchTerm || (organizationFilter && organizationFilter !== "all") ? (
+                          <div>
+                            <p className="mb-2">No jobs found matching your search criteria.</p>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSearchTerm("");
+                                setOrganizationFilter("all");
+                              }}
+                            >
+                              Clear Filters
+                            </Button>
+                          </div>
+                        ) : (
+                          "No jobs found"
+                        )}
+                      </div>
+                    ) : (
+                      filteredJobs.map((job: any, index: number) => (
                       <div key={job.id} className="flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors">
                         {/* Show checkbox for all jobs */}
                         <input
@@ -1569,7 +1661,8 @@ export default function Dashboard() {
                           </Button>
                         </div>
                       </div>
-                    ))}
+                    ))
+                    )}
                   </div>
                 </>
               )}
