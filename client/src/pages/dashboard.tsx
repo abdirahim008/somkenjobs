@@ -341,7 +341,9 @@ export default function Dashboard() {
       showSuccessToast("Job Deleted Successfully", "Your job posting has been removed");
       queryClient.invalidateQueries({ queryKey: ["/api/user/jobs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/jobs"] });
       setSelectedJobs([]);
+      setSelectedAdminJobs([]);
     },
     onError: (error: any) => {
       showErrorToast("Failed to Delete Job", error.message || "Please try again");
@@ -366,20 +368,42 @@ export default function Dashboard() {
       }
     },
     onSuccess: (_, jobIds) => {
-      toast({
-        title: "Success",
-        description: `${jobIds.length} job(s) deleted successfully!`,
-      });
+      showSuccessToast("Jobs Deleted Successfully", `${jobIds.length} job(s) deleted successfully!`);
       queryClient.invalidateQueries({ queryKey: ["/api/user/jobs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/jobs"] });
       setSelectedJobs([]);
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete selected jobs",
-        variant: "destructive",
-      });
+      showErrorToast("Failed to Delete Jobs", error.message || "Failed to delete selected jobs");
+    },
+  });
+
+  // Admin bulk delete jobs mutation
+  const adminBulkDeleteJobsMutation = useMutation({
+    mutationFn: async (jobIds: number[]) => {
+      const promises = jobIds.map(jobId => 
+        fetch(`/api/jobs/${jobId}`, {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("auth_token")}`,
+          },
+        })
+      );
+      const responses = await Promise.all(promises);
+      const failedDeletes = responses.filter(response => !response.ok);
+      if (failedDeletes.length > 0) {
+        throw new Error(`Failed to delete ${failedDeletes.length} job(s)`);
+      }
+    },
+    onSuccess: (_, jobIds) => {
+      showSuccessToast("Jobs Deleted Successfully", `${jobIds.length} job(s) deleted successfully!`);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
+      setSelectedAdminJobs([]);
+    },
+    onError: (error: any) => {
+      showErrorToast("Failed to Delete Jobs", error.message || "Failed to delete selected jobs");
     },
   });
 
@@ -400,6 +424,11 @@ export default function Dashboard() {
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState("");
   const [organizationFilter, setOrganizationFilter] = useState("");
+  
+  // Admin search and filter state
+  const [adminSearchTerm, setAdminSearchTerm] = useState("");
+  const [adminOrganizationFilter, setAdminOrganizationFilter] = useState("");
+  const [selectedAdminJobs, setSelectedAdminJobs] = useState<number[]>([]);
 
   // Filter jobs based on search term and organization
   const filteredJobs = (userJobs as any[])?.filter((job: any) => {
@@ -417,6 +446,23 @@ export default function Dashboard() {
 
   // Get unique organizations for filter dropdown
   const uniqueOrganizations = [...new Set((userJobs as any[])?.map((job: any) => job.organization) || [])].sort();
+
+  // Filter admin jobs based on search term and organization
+  const filteredAdminJobs = (allJobs as any[])?.filter((job: any) => {
+    const matchesSearch = !adminSearchTerm || 
+      job.title.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
+      job.organization.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
+      job.location.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
+      job.description.toLowerCase().includes(adminSearchTerm.toLowerCase());
+    
+    const matchesOrganization = !adminOrganizationFilter || adminOrganizationFilter === "all" || 
+      job.organization.toLowerCase().includes(adminOrganizationFilter.toLowerCase());
+    
+    return matchesSearch && matchesOrganization;
+  }) || [];
+
+  // Get unique organizations for admin filter dropdown
+  const uniqueAdminOrganizations = [...new Set((allJobs as any[])?.map((job: any) => job.organization) || [])].sort();
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
@@ -591,6 +637,20 @@ export default function Dashboard() {
   const selectAllJobs = () => {
     const allFilteredJobIds = filteredJobs.map(job => job.id);
     setSelectedJobs(selectedJobs.length === allFilteredJobIds.length ? [] : allFilteredJobIds);
+  };
+
+  // Admin job selection functions
+  const toggleAdminJobForDeletion = (jobId: number) => {
+    setSelectedAdminJobs(prev => 
+      prev.includes(jobId) 
+        ? prev.filter(id => id !== jobId)
+        : [...prev, jobId]
+    );
+  };
+
+  const selectAllAdminJobs = () => {
+    const allFilteredJobIds = filteredAdminJobs.map(job => job.id);
+    setSelectedAdminJobs(selectedAdminJobs.length === allFilteredJobIds.length ? [] : allFilteredJobIds);
   };
 
   // Generate PDF with enhanced formatting
@@ -2115,37 +2175,233 @@ export default function Dashboard() {
           {isAdmin && (
             <TabsContent value="manage-all-jobs">
               <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
                       <FileText className="h-5 w-5" />
                       All Jobs in System
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {allJobsLoading ? (
-                      <div className="text-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0077B5] mx-auto"></div>
-                        <p className="text-gray-600 mt-2">Loading jobs...</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {(allJobs as any[])?.map((job: any) => (
-                          <div 
-                            key={job.id} 
-                            className="p-3 border rounded hover:bg-blue-50 cursor-pointer"
-                            onClick={() => window.open(`/jobs/${job.id}`, '_blank')}
+                    </div>
+                    {(allJobs as any[]).length > 0 && (
+                      <div className="flex items-center gap-2">
+                        {selectedAdminJobs.length > 0 ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              if (confirm(`Are you sure you want to delete ${selectedAdminJobs.length} selected job(s)?`)) {
+                                adminBulkDeleteJobsMutation.mutate(selectedAdminJobs);
+                              }
+                            }}
+                            disabled={adminBulkDeleteJobsMutation.isPending}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1"
                           >
-                            <h3 className="text-blue-600 hover:text-blue-800 font-medium">
-                              {job.title}
-                            </h3>
-                          </div>
-                        )) || <p className="text-gray-500">No jobs found</p>}
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button 
+                            onClick={() => setActiveTab("create-job")}
+                            className="bg-[#0077B5] hover:bg-[#005582]"
+                            size="sm"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            New Job
+                          </Button>
+                        )}
                       </div>
                     )}
+                  </CardTitle>
+                </CardHeader>
+                {allJobsLoading ? (
+                  <CardContent>
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0077B5] mx-auto"></div>
+                      <p className="text-gray-600 mt-2">Loading jobs...</p>
+                    </div>
                   </CardContent>
-                </Card>
-              </TabsContent>
-            )}
+                ) : (allJobs as any[]).length === 0 ? (
+                  <CardContent>
+                    <div className="text-center py-8">
+                      <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 mb-4">No jobs found in system</p>
+                      <Button 
+                        onClick={() => setActiveTab("create-job")}
+                        className="bg-[#0077B5] hover:bg-[#005582]"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create First Job
+                      </Button>
+                    </div>
+                  </CardContent>
+                ) : (
+                  <>
+                    {/* Search and Filter Section */}
+                    <div className="p-4 bg-gray-50 border-b">
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        {/* Search Input */}
+                        <div className="flex-1">
+                          <Input
+                            placeholder="Search jobs by title, organization, location, or description..."
+                            value={adminSearchTerm}
+                            onChange={(e) => setAdminSearchTerm(e.target.value)}
+                            className="w-full"
+                          />
+                        </div>
+                        
+                        {/* Organization Filter */}
+                        <div className="sm:w-64">
+                          <Select value={adminOrganizationFilter} onValueChange={setAdminOrganizationFilter}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Filter by organization" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Organizations</SelectItem>
+                              {uniqueAdminOrganizations.map((org) => (
+                                <SelectItem key={org} value={org}>{org}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {/* Clear Filters Button */}
+                        {(adminSearchTerm || (adminOrganizationFilter && adminOrganizationFilter !== "all")) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setAdminSearchTerm("");
+                              setAdminOrganizationFilter("all");
+                            }}
+                            className="whitespace-nowrap"
+                          >
+                            Clear Filters
+                          </Button>
+                        )}
+                      </div>
+                      
+                      {/* Results Count */}
+                      <div className="mt-2 text-sm text-gray-600">
+                        Showing {filteredAdminJobs.length} of {(allJobs as any[]).length} jobs
+                      </div>
+                    </div>
+                    
+                    {/* Table Header */}
+                    <div className="flex items-center gap-3 p-4 bg-gray-50 border-b font-medium text-sm text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={selectedAdminJobs.length === filteredAdminJobs.length && filteredAdminJobs.length > 0}
+                        onChange={selectAllAdminJobs}
+                        className="h-4 w-4 text-[#0077B5] focus:ring-[#0077B5] border-gray-300 rounded"
+                      />
+                      <div className="w-8">#</div>
+                      <div className="flex-1">Job Title</div>
+                      <div className="w-24">Status</div>
+                      <div className="w-40">Actions</div>
+                    </div>
+
+                    {/* Job List */}
+                    <div className="divide-y divide-gray-100">
+                      {filteredAdminJobs.length === 0 ? (
+                        <div className="p-8 text-center text-gray-500">
+                          {adminSearchTerm || (adminOrganizationFilter && adminOrganizationFilter !== "all") ? (
+                            <div>
+                              <p className="mb-2">No jobs found matching your search criteria.</p>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setAdminSearchTerm("");
+                                  setAdminOrganizationFilter("all");
+                                }}
+                              >
+                                Clear Filters
+                              </Button>
+                            </div>
+                          ) : (
+                            "No jobs found"
+                          )}
+                        </div>
+                      ) : (
+                        filteredAdminJobs.map((job: any, index: number) => (
+                        <div key={job.id} className="flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={selectedAdminJobs.includes(job.id)}
+                            onChange={() => toggleAdminJobForDeletion(job.id)}
+                            className="h-4 w-4 text-[#0077B5] focus:ring-[#0077B5] border-gray-300 rounded"
+                          />
+                          <div className="w-8 text-sm text-gray-500">{index + 1}.</div>
+                          <div className="flex-1">
+                            <h3 className="font-medium text-gray-900">{job.title}</h3>
+                            <p className="text-sm text-gray-600">{job.organization} • {job.location}</p>
+                          </div>
+                          <div className="w-24">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              job.status === 'published' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {job.status === 'published' ? 'Live' : 'Draft'}
+                            </span>
+                          </div>
+                          <div className="w-40 flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => window.open(`/jobs/${job.id}`, '_blank')}
+                              className="text-gray-500 hover:text-[#0077B5] hover:bg-gray-100 p-1"
+                              title="View Job"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setJobForm({
+                                  title: job.title,
+                                  organization: job.organization,
+                                  location: job.location,
+                                  description: job.description,
+                                  qualifications: job.qualifications || '',
+                                  howToApply: job.howToApply || '',
+                                  deadline: job.deadline ? new Date(job.deadline).toISOString().split('T')[0] : getTodaysDate(),
+                                  url: job.url || '',
+                                  status: (job as any).status || 'published',
+                                  type: (job as any).type || 'job',
+                                  attachmentUrl: (job as any).attachmentUrl || '',
+                                  postingDate: job.datePosted ? new Date(job.datePosted).toISOString().split('T')[0] : getTodaysDate()
+                                });
+                                setEditingJob(job);
+                                setActiveTab("create-job");
+                              }}
+                              className="text-gray-500 hover:text-[#0077B5] hover:bg-gray-100 p-1"
+                              title="Edit Job"
+                            >
+                              <Pen className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to delete this job? This action cannot be undone.')) {
+                                  deleteJobMutation.mutate(job.id);
+                                }
+                              }}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1"
+                              title="Delete Job"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                      )}
+                    </div>
+                  </>
+                )}
+              </Card>
+            </TabsContent>
+          )}
 
             {isAdmin && (
               <TabsContent value="system-users">
