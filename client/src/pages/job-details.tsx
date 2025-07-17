@@ -12,6 +12,7 @@ import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import { type Job } from "@shared/schema";
 import { generateJobOGTitle, generateJobOGDescription } from "@/utils/generateJobOGImage";
+import { generateJobSlug } from "@shared/utils";
 
 export default function JobDetails() {
   const [match, params] = useRoute("/jobs/:id");
@@ -178,7 +179,8 @@ export default function JobDetails() {
   const handleShare = (platform: string) => {
     if (!job) return;
     
-    const jobUrl = `${window.location.origin}/jobs/${job.id}`;
+    const slug = generateJobSlug(job.title, job.id);
+    const jobUrl = `${window.location.origin}/jobs/${slug}`;
     const shareUrl = createShareUrl(platform, job.title, jobUrl);
     
     window.open(shareUrl, '_blank', 'noopener,noreferrer');
@@ -479,7 +481,7 @@ export default function JobDetails() {
         "addressCountry": job.country
       }
     },
-    "url": `https://somkenjobs.com/jobs/${job.id}`,
+    "url": `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`,
     "industry": job.sector || "Humanitarian Aid",
     "occupationalCategory": job.sector || "Humanitarian Work",
     "workHours": "Contract basis",
@@ -488,7 +490,7 @@ export default function JobDetails() {
     "applicationContact": {
       "@type": "ContactPoint",
       "contactType": "HR",
-      "url": job.url || `https://somkenjobs.com/jobs/${job.id}`
+      "url": job.url || `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`
     }
   } : null;
 
@@ -499,7 +501,7 @@ export default function JobDetails() {
           title={generateJobOGTitle(job)}
           description={generateJobOGDescription(job)}
           keywords={`${job.title}, jobs in ${job.country}, ${job.organization}, ${job.sector || 'humanitarian'} jobs, ${job.location} jobs, NGO careers, UN jobs, ReliefWeb, ${job.country} humanitarian jobs`}
-          canonicalUrl={`https://somkenjobs.com/jobs/${job.id}`}
+          canonicalUrl={`https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`}
         />
       )}
       {jobStructuredData && (
@@ -624,7 +626,8 @@ export default function JobDetails() {
                               className="p-0 h-auto text-left font-medium text-blue-600 hover:text-blue-800 break-words hyphens-auto flex items-start gap-1"
                               onClick={() => {
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
-                                setLocation(`/jobs/${relatedJob.id}`);
+                                const slug = generateJobSlug(relatedJob.title, relatedJob.id);
+                                setLocation(`/jobs/${slug}`);
                               }}
                               style={{ 
                                 wordBreak: 'break-word',

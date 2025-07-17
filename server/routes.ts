@@ -5,6 +5,7 @@ import { jobFetcher } from "./services/jobFetcher";
 import { seedDatabase } from "./seed";
 import { z } from "zod";
 import { insertUserSchema, loginUserSchema, insertJobSchema, type User, insertCountrySchema, insertCitySchema, insertSectorSchema } from "@shared/schema";
+import { extractJobIdFromSlug } from "@shared/utils";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
@@ -303,10 +304,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get single job by ID
+  // Get single job by ID or slug
   app.get("/api/jobs/:id", async (req, res) => {
     try {
-      const jobId = parseInt(req.params.id);
+      const param = req.params.id;
+      let jobId: number;
+      
+      // Check if it's a numeric ID or a slug
+      if (/^\d+$/.test(param)) {
+        // It's a numeric ID
+        jobId = parseInt(param);
+      } else {
+        // It's a slug, extract the ID
+        const extractedId = extractJobIdFromSlug(param);
+        if (!extractedId) {
+          return res.status(404).json({ message: "Job not found" });
+        }
+        jobId = extractedId;
+      }
+      
       const job = await storage.getJobById(jobId);
       
       if (!job) {
@@ -323,7 +339,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get related jobs for a specific job
   app.get("/api/jobs/:id/related", async (req, res) => {
     try {
-      const jobId = parseInt(req.params.id);
+      const param = req.params.id;
+      let jobId: number;
+      
+      // Check if it's a numeric ID or a slug
+      if (/^\d+$/.test(param)) {
+        // It's a numeric ID
+        jobId = parseInt(param);
+      } else {
+        // It's a slug, extract the ID
+        const extractedId = extractJobIdFromSlug(param);
+        if (!extractedId) {
+          return res.status(404).json({ message: "Job not found" });
+        }
+        jobId = extractedId;
+      }
+      
       const currentJob = await storage.getJobById(jobId);
       
       if (!currentJob) {
@@ -880,9 +911,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Server-side rendering route for job pages to inject meta tags
   app.get('/jobs/:id', async (req, res) => {
     try {
-      const jobId = parseInt(req.params.id);
-      if (isNaN(jobId)) {
-        return res.status(404).send('Job not found');
+      const param = req.params.id;
+      let jobId: number;
+      
+      // Check if it's a numeric ID or a slug
+      if (/^\d+$/.test(param)) {
+        // It's a numeric ID
+        jobId = parseInt(param);
+      } else {
+        // It's a slug, extract the ID
+        const extractedId = extractJobIdFromSlug(param);
+        if (!extractedId) {
+          return res.status(404).send('Job not found');
+        }
+        jobId = extractedId;
       }
 
       const job = await storage.getJobById(jobId);

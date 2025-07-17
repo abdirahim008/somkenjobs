@@ -12,6 +12,7 @@ import SearchBar from "@/components/SearchBar";
 import Sidebar from "@/components/Sidebar";
 import SEOHead from "@/components/SEOHead";
 import { type Job } from "@shared/schema";
+import { generateJobSlug } from "@shared/utils";
 
 export default function Jobs() {
   const [, setLocation] = useLocation();
@@ -101,17 +102,18 @@ export default function Jobs() {
 
 
 
-  const handleJobClick = (jobId: number) => {
+  const handleJobClick = (job: Job) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    setLocation(`/jobs/${jobId}`);
+    const slug = generateJobSlug(job.title, job.id);
+    setLocation(`/jobs/${slug}`);
   };
 
-  const handleCardClick = (jobId: number, e: React.MouseEvent) => {
+  const handleCardClick = (job: Job, e: React.MouseEvent) => {
     // Don't navigate if clicking on interactive elements
     if ((e.target as HTMLElement).closest('button, a, .share-button')) {
       return;
     }
-    handleJobClick(jobId);
+    handleJobClick(job);
   };
 
   const createShareUrl = (platform: string, jobTitle: string, jobUrl: string) => {
@@ -136,11 +138,12 @@ export default function Jobs() {
     }
   };
 
-  const handleShare = (platform: string, jobId: number, jobTitle: string, e: React.MouseEvent) => {
+  const handleShare = (platform: string, job: Job, e: React.MouseEvent) => {
     e.stopPropagation();
     
-    const jobUrl = `${window.location.origin}/jobs/${jobId}`;
-    const shareUrl = createShareUrl(platform, jobTitle, jobUrl);
+    const slug = generateJobSlug(job.title, job.id);
+    const jobUrl = `${window.location.origin}/jobs/${slug}`;
+    const shareUrl = createShareUrl(platform, job.title, jobUrl);
     
     window.open(shareUrl, '_blank', 'noopener,noreferrer');
   };
@@ -234,7 +237,7 @@ export default function Jobs() {
                   </div>
                 ) : (
                   jobs.map((job: Job) => (
-                    <div key={job.id} className="job-card cursor-pointer hover:shadow-md transition-shadow duration-200" onClick={(e) => handleCardClick(job.id, e)}>
+                    <div key={job.id} className="job-card cursor-pointer hover:shadow-md transition-shadow duration-200" onClick={(e) => handleCardClick(job, e)}>
                       <div className="flex items-start justify-between mb-4 gap-4">
                         <div className="flex-1 min-w-0">
                           <h3 className="text-lg font-semibold text-foreground hover:text-primary mb-2 break-words leading-tight">
@@ -297,7 +300,7 @@ export default function Jobs() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={(e) => handleShare('facebook', job.id, job.title, e)}
+                              onClick={(e) => handleShare('facebook', job, e)}
                               className="share-button h-7 w-7 p-0 hover:bg-blue-50 hover:text-blue-600"
                               title="Share on Facebook"
                             >
@@ -306,7 +309,7 @@ export default function Jobs() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={(e) => handleShare('whatsapp', job.id, job.title, e)}
+                              onClick={(e) => handleShare('whatsapp', job, e)}
                               className="share-button h-7 w-7 p-0 hover:bg-green-50 hover:text-green-600"
                               title="Share on WhatsApp"
                             >
@@ -315,7 +318,7 @@ export default function Jobs() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={(e) => handleShare('twitter', job.id, job.title, e)}
+                              onClick={(e) => handleShare('twitter', job, e)}
                               className="share-button h-7 w-7 p-0 hover:bg-blue-50 hover:text-blue-500"
                               title="Share on Twitter"
                             >
@@ -324,7 +327,7 @@ export default function Jobs() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={(e) => handleShare('linkedin', job.id, job.title, e)}
+                              onClick={(e) => handleShare('linkedin', job, e)}
                               className="share-button h-7 w-7 p-0 hover:bg-blue-50 hover:text-blue-700"
                               title="Share on LinkedIn"
                             >

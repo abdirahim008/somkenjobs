@@ -22,6 +22,7 @@ import { CountryAutocomplete } from "@/components/CountryAutocomplete";
 import { CityAutocomplete } from "@/components/CityAutocomplete";
 import { SectorAutocomplete } from "@/components/SectorAutocomplete";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import { generateJobSlug } from "@shared/utils";
 
 export default function Dashboard() {
   const { user, isLoading } = useAuth();
@@ -1669,7 +1670,10 @@ export default function Dashboard() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => window.open(`/jobs/${job.id}`, '_blank')}
+                            onClick={() => {
+                              const slug = generateJobSlug(job.title, job.id);
+                              window.open(`/jobs/${slug}`, '_blank');
+                            }}
                             className="text-gray-500 hover:text-[#0077B5] hover:bg-gray-100 p-1"
                             title="View Job"
                           >
@@ -2347,7 +2351,10 @@ export default function Dashboard() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => window.open(`/jobs/${job.id}`, '_blank')}
+                              onClick={() => {
+                                const slug = generateJobSlug(job.title, job.id);
+                                window.open(`/jobs/${slug}`, '_blank');
+                              }}
                               className="text-gray-500 hover:text-[#0077B5] hover:bg-gray-100 p-1"
                               title="View Job"
                             >

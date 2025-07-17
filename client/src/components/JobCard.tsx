@@ -4,6 +4,7 @@ import { Building2, MapPin, Calendar, ExternalLink, Bookmark, Briefcase, FileTex
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { type Job } from "@shared/schema";
+import { generateJobSlug } from "@shared/utils";
 import { FaFacebook, FaWhatsapp, FaTwitter, FaLinkedin } from 'react-icons/fa';
 
 interface JobCardProps {
@@ -65,7 +66,8 @@ export default function JobCard({ job }: JobCardProps) {
   const handleViewDetails = () => {
     // Scroll to top before navigation
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    setLocation(`/jobs/${job.id}`);
+    const slug = generateJobSlug(job.title, job.id);
+    setLocation(`/jobs/${slug}`);
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -101,7 +103,8 @@ export default function JobCard({ job }: JobCardProps) {
   const handleShare = (platform: string, e: React.MouseEvent) => {
     e.stopPropagation();
     
-    const jobUrl = `${window.location.origin}/jobs/${job.id}`;
+    const slug = generateJobSlug(job.title, job.id);
+    const jobUrl = `${window.location.origin}/jobs/${slug}`;
     const shareUrl = createShareUrl(platform, job.title, jobUrl);
     
     window.open(shareUrl, '_blank', 'noopener,noreferrer');

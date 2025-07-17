@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { type Job } from "@shared/schema";
+import { generateJobSlug } from "@shared/utils";
 
 interface JobStructuredDataProps {
   jobs: Job[];
@@ -39,7 +40,7 @@ export default function JobStructuredData({ jobs }: JobStructuredDataProps) {
             "addressCountry": job.country
           }
         },
-        "url": `https://somkenjobs.com/jobs/${job.id}`,
+        "url": `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`,
         "industry": job.sector || "Humanitarian Aid",
         "occupationalCategory": job.sector || "Humanitarian Work",
         "workHours": "Contract basis",
@@ -49,7 +50,7 @@ export default function JobStructuredData({ jobs }: JobStructuredDataProps) {
         "applicationContact": {
           "@type": "ContactPoint",
           "contactType": "HR",
-          "url": job.url || `https://somkenjobs.com/jobs/${job.id}`
+          "url": job.url || `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`
         }
       };
 
