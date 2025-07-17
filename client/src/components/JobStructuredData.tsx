@@ -25,7 +25,7 @@ export default function JobStructuredData({ jobs }: JobStructuredDataProps) {
         },
         "datePosted": new Date(job.datePosted).toISOString(),
         "validThrough": job.deadline ? new Date(job.deadline).toISOString() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        "employmentType": job.experience?.includes("Full-time") ? "FULL_TIME" : "CONTRACTOR",
+        "employmentType": "CONTRACTOR",
         "hiringOrganization": {
           "@type": "Organization",
           "name": job.organization,
@@ -42,7 +42,7 @@ export default function JobStructuredData({ jobs }: JobStructuredDataProps) {
         "url": `https://somkenjobs.com/jobs/${job.id}`,
         "industry": job.sector || "Humanitarian Aid",
         "occupationalCategory": job.sector || "Humanitarian Work",
-        "workHours": job.experience?.includes("Full-time") ? "40 hours per week" : "Contract basis",
+        "workHours": "Contract basis",
         "qualifications": job.qualifications || "Relevant experience in humanitarian work",
         "responsibilities": job.responsibilities || "Support humanitarian operations in East Africa",
         "skills": job.sector ? [job.sector, "Humanitarian Aid", "Development Work"] : ["Humanitarian Aid", "Development Work"],

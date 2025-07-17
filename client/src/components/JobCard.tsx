@@ -157,9 +157,6 @@ export default function JobCard({ job }: JobCardProps) {
                 {job.sector}
               </Badge>
             )}
-            <Badge className="badge badge-green text-sm">
-              Full-time
-            </Badge>
           </div>
         </div>
         <div className="flex-shrink-0">

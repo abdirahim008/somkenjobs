@@ -465,7 +465,7 @@ export default function JobDetails() {
     },
     "datePosted": new Date(job.datePosted).toISOString(),
     "validThrough": job.deadline ? new Date(job.deadline).toISOString() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    "employmentType": job.experience?.includes("Full-time") ? "FULL_TIME" : "CONTRACTOR",
+    "employmentType": "CONTRACTOR",
     "hiringOrganization": {
       "@type": "Organization",
       "name": job.organization,
@@ -482,7 +482,7 @@ export default function JobDetails() {
     "url": `https://somkenjobs.com/jobs/${job.id}`,
     "industry": job.sector || "Humanitarian Aid",
     "occupationalCategory": job.sector || "Humanitarian Work",
-    "workHours": job.experience?.includes("Full-time") ? "40 hours per week" : "Contract basis",
+    "workHours": "Contract basis",
     "qualifications": job.qualifications || "Relevant experience in humanitarian work",
     "skills": job.sector ? [job.sector, "Humanitarian Aid", "Development Work"] : ["Humanitarian Aid", "Development Work"],
     "applicationContact": {
@@ -716,9 +716,6 @@ export default function JobDetails() {
                             {job.sector}
                           </Badge>
                         )}
-                        <Badge className="badge badge-green">
-                          Full-time
-                        </Badge>
                       </div>
                     </div>
                   </div>

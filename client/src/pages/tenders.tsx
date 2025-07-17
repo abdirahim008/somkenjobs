@@ -266,9 +266,6 @@ export default function Tenders() {
                                 {tender.sector}
                               </Badge>
                             )}
-                            <Badge className="badge badge-green text-sm">
-                              Full-time
-                            </Badge>
                           </div>
                         </div>
                         <div className="flex-shrink-0">
