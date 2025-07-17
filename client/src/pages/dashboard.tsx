@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, FileText, CheckCircle, ArrowLeft, Edit, Trash2, Eye, Receipt, Download, DollarSign, Pen } from "lucide-react";
+import { Plus, Users, FileText, CheckCircle, ArrowLeft, Edit, Trash2, Eye, Receipt, Download, DollarSign, Pen, Upload } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -1441,31 +1441,34 @@ export default function Dashboard() {
                 </CardContent>
               ) : (
                 <>
-                  {/* Select All Header */}
-                  <div className="flex items-center gap-3 p-4 bg-gray-50 border-b">
+                  {/* Table Header */}
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 border-b font-medium text-sm text-gray-700">
                     <input
                       type="checkbox"
                       checked={selectedJobs.length === (userJobs as any[]).length && (userJobs as any[]).length > 0}
                       onChange={selectAllJobs}
                       className="h-4 w-4 text-[#0077B5] focus:ring-[#0077B5] border-gray-300 rounded"
                     />
-                    <span className="text-sm font-medium text-gray-700">
-                      Select All ({(userJobs as any[]).length} jobs)
-                    </span>
+                    <div className="w-8">#</div>
+                    <div className="flex-1">Job Title</div>
+                    <div className="w-24">Status</div>
+                    <div className="w-32">Actions</div>
                   </div>
 
                   {/* Job List - Simple list inside main card */}
                   <div className="divide-y divide-gray-100">
                     {(userJobs as any[]).map((job: any, index: number) => (
                       <div key={job.id} className="flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors">
-                        {/* Only show checkbox for draft jobs */}
-                        {job.status === 'draft' && (
+                        {/* Show checkbox for draft jobs, empty space for published jobs */}
+                        {job.status === 'draft' ? (
                           <input
                             type="checkbox"
                             checked={selectedJobs.includes(job.id)}
                             onChange={() => toggleJobForDeletion(job.id)}
                             className="h-4 w-4 text-[#0077B5] focus:ring-[#0077B5] border-gray-300 rounded"
                           />
+                        ) : (
+                          <div className="w-4 h-4"></div>
                         )}
                         
                         {/* Row number */}
@@ -1473,30 +1476,54 @@ export default function Dashboard() {
                           {index + 1}.
                         </div>
                         
-                        {/* Job title and status */}
+                        {/* Job title and details */}
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-medium text-gray-900">{job.title}</h3>
-                            <Badge 
-                              variant={job.status === 'published' ? 'default' : 'secondary'}
-                              className={
-                                job.status === 'published' 
-                                  ? 'bg-green-100 text-green-800 hover:bg-green-100' 
-                                  : 'bg-gray-100 text-gray-800 hover:bg-gray-100'
-                              }
-                            >
-                              {job.status === 'published' ? 'Live' : 'Draft'}
-                            </Badge>
-                          </div>
+                          <h3 className="font-medium text-gray-900 mb-1">{job.title}</h3>
                           <p className="text-sm text-gray-600">{job.organization} • {job.location}</p>
                         </div>
+                        
+                        {/* Status column */}
+                        <div className="w-24">
+                          <Badge 
+                            variant={job.status === 'published' ? 'default' : 'secondary'}
+                            className={
+                              job.status === 'published' 
+                                ? 'bg-green-100 text-green-800 hover:bg-green-100' 
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-100'
+                            }
+                          >
+                            {job.status === 'published' ? 'Live' : 'Draft'}
+                          </Badge>
+                        </div>
 
-                        <div className="flex items-center gap-2">
+                        {/* Actions column */}
+                        <div className="w-32 flex items-center gap-2">
+                          {/* Publish Button - Only show for draft jobs */}
+                          {job.status === 'draft' && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to publish this job? It will become live and searchable immediately.')) {
+                                  updateJobMutation.mutate({
+                                    id: job.id,
+                                    jobData: { ...job, status: 'published' }
+                                  });
+                                }
+                              }}
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50 p-1"
+                              title="Publish Job"
+                            >
+                              <Upload className="h-4 w-4" />
+                            </Button>
+                          )}
+                          
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => window.open(`/jobs/${job.id}`, '_blank')}
                             className="text-gray-500 hover:text-[#0077B5] hover:bg-gray-100 p-1"
+                            title="View Job"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -1527,6 +1554,7 @@ export default function Dashboard() {
                               setActiveTab("create-job");
                             }}
                             className="text-gray-500 hover:text-[#0077B5] hover:bg-gray-100 p-1"
+                            title="Edit Job"
                           >
                             <Pen className="h-4 w-4" />
                           </Button>
