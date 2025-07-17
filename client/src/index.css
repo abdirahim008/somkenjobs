@@ -188,22 +188,46 @@
 .rich-text-editor .resize-handle {
   position: absolute;
   bottom: -1px;
-  right: -1px;
-  width: 16px;
-  height: 16px;
-  cursor: nw-resize;
-  background: linear-gradient(135deg, transparent 0%, transparent 40%, #9ca3af 40%, #9ca3af 60%, transparent 60%);
-  border-radius: 0 0 0.375rem 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 6px;
+  cursor: ns-resize;
+  background: #d1d5db;
+  border-radius: 3px;
   z-index: 10;
   transition: background 0.2s ease;
 }
 
 .rich-text-editor .resize-handle:hover {
-  background: linear-gradient(135deg, transparent 0%, transparent 40%, #6b7280 40%, #6b7280 60%, transparent 60%);
+  background: #9ca3af;
 }
 
 .rich-text-editor .resize-handle.resizing {
-  background: linear-gradient(135deg, transparent 0%, transparent 40%, #374151 40%, #374151 60%, transparent 60%);
+  background: #6b7280;
+}
+
+.rich-text-editor .resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 2px;
+  background: #9ca3af;
+  border-radius: 1px;
+  box-shadow: 0 -3px 0 #9ca3af, 0 3px 0 #9ca3af;
+}
+
+.rich-text-editor .resize-handle:hover::before {
+  background: #6b7280;
+  box-shadow: 0 -3px 0 #6b7280, 0 3px 0 #6b7280;
+}
+
+.rich-text-editor .resize-handle.resizing::before {
+  background: #374151;
+  box-shadow: 0 -3px 0 #374151, 0 3px 0 #374151;
 }
 
 /* Prevent text selection during resize */
