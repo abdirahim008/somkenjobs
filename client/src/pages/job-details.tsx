@@ -549,6 +549,12 @@ export default function JobDetails() {
                     <label className="text-sm font-medium text-muted-foreground">Sector</label>
                     <p className="text-foreground">{job.sector || "General"}</p>
                   </div>
+                  {job.experience && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Experience Level</label>
+                      <p className="text-foreground">{job.experience}</p>
+                    </div>
+                  )}
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Source</label>
                     <p className="text-foreground">
