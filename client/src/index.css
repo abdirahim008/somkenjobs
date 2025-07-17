@@ -187,14 +187,14 @@
 
 .rich-text-editor .resize-handle {
   position: absolute;
-  bottom: -1px;
+  bottom: 1px;
   left: 50%;
   transform: translateX(-50%);
   width: 60px;
-  height: 6px;
+  height: 4px;
   cursor: ns-resize;
   background: #d1d5db;
-  border-radius: 3px;
+  border-radius: 2px;
   z-index: 10;
   transition: background 0.2s ease;
 }
