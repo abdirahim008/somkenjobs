@@ -1459,17 +1459,13 @@ export default function Dashboard() {
                   <div className="divide-y divide-gray-100">
                     {(userJobs as any[]).map((job: any, index: number) => (
                       <div key={job.id} className="flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors">
-                        {/* Show checkbox for draft jobs, empty space for published jobs */}
-                        {job.status === 'draft' ? (
-                          <input
-                            type="checkbox"
-                            checked={selectedJobs.includes(job.id)}
-                            onChange={() => toggleJobForDeletion(job.id)}
-                            className="h-4 w-4 text-[#0077B5] focus:ring-[#0077B5] border-gray-300 rounded"
-                          />
-                        ) : (
-                          <div className="w-4 h-4"></div>
-                        )}
+                        {/* Show checkbox for all jobs */}
+                        <input
+                          type="checkbox"
+                          checked={selectedJobs.includes(job.id)}
+                          onChange={() => toggleJobForDeletion(job.id)}
+                          className="h-4 w-4 text-[#0077B5] focus:ring-[#0077B5] border-gray-300 rounded"
+                        />
                         
                         {/* Row number */}
                         <div className="w-8 text-sm font-medium text-gray-500">
