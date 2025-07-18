@@ -1143,6 +1143,36 @@ ${jobUrls}
     }
   });
 
+  // Serve robots.txt file
+  app.get('/robots.txt', (req, res) => {
+    res.setHeader('Content-Type', 'text/plain');
+    
+    const robotsTxt = `User-agent: *
+
+# Allow all search engines to crawl public pages
+Allow: /
+Allow: /jobs
+Allow: /tenders
+Allow: /about
+Allow: /contact
+Allow: /career-resources
+Allow: /help
+Allow: /privacy
+Allow: /terms
+
+# Block sensitive and backend routes
+Disallow: /admin
+Disallow: /api
+Disallow: /internal
+Disallow: /dashboard
+Disallow: /preview
+
+# Reference to sitemap
+Sitemap: https://somkenjobs.com/sitemap.xml`;
+
+    res.send(robotsTxt);
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
