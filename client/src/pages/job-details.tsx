@@ -36,6 +36,71 @@ export default function JobDetails() {
     enabled: !!jobId && !!job,
   });
 
+  // Add structured data to head - always run this effect
+  useEffect(() => {
+    // Remove existing job structured data
+    const existingScript = document.querySelector('script[data-job-posting-detail]');
+    if (existingScript) {
+      existingScript.remove();
+    }
+
+    // Add new structured data only if job data exists
+    if (job) {
+      const jobStructuredData = {
+        "@context": "https://schema.org",
+        "@type": "JobPosting",
+        "title": job.title,
+        "description": job.description || `Join ${job.organization} in their humanitarian mission in ${job.location}, ${job.country}.`,
+        "identifier": {
+          "@type": "PropertyValue",
+          "name": job.source,
+          "value": job.externalId
+        },
+        "datePosted": new Date(job.datePosted).toISOString(),
+        "validThrough": job.deadline ? new Date(job.deadline).toISOString() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        "employmentType": "CONTRACTOR",
+        "hiringOrganization": {
+          "@type": "Organization",
+          "name": job.organization,
+          "sameAs": job.url?.includes("reliefweb.int") ? job.url : `https://somkenjobs.com/organizations/${encodeURIComponent(job.organization)}`
+        },
+        "jobLocation": {
+          "@type": "Place",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": job.location,
+            "addressCountry": job.country
+          }
+        },
+        "url": `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`,
+        "industry": job.sector || "Humanitarian Aid",
+        "occupationalCategory": job.sector || "Humanitarian Work",
+        "workHours": "Contract basis",
+        "qualifications": job.qualifications || "Relevant experience in humanitarian work",
+        "skills": job.sector ? [job.sector, "Humanitarian Aid", "Development Work"] : ["Humanitarian Aid", "Development Work"],
+        "applicationContact": {
+          "@type": "ContactPoint",
+          "contactType": "HR",
+          "url": job.url || `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`
+        }
+      };
+
+      const script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.setAttribute('data-job-posting-detail', 'true');
+      script.textContent = JSON.stringify(jobStructuredData);
+      document.head.appendChild(script);
+    }
+
+    // Cleanup function
+    return () => {
+      const script = document.querySelector('script[data-job-posting-detail]');
+      if (script) {
+        script.remove();
+      }
+    };
+  }, [job]);
+
   const formatDate = (date: Date | string) => {
     return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -453,71 +518,6 @@ export default function JobDetails() {
       </div>
     );
   }
-
-  // Add structured data to head - always run this effect
-  useEffect(() => {
-    // Remove existing job structured data
-    const existingScript = document.querySelector('script[data-job-posting-detail]');
-    if (existingScript) {
-      existingScript.remove();
-    }
-
-    // Add new structured data only if job data exists
-    if (job) {
-      const jobStructuredData = {
-        "@context": "https://schema.org",
-        "@type": "JobPosting",
-        "title": job.title,
-        "description": job.description || `Join ${job.organization} in their humanitarian mission in ${job.location}, ${job.country}.`,
-        "identifier": {
-          "@type": "PropertyValue",
-          "name": job.source,
-          "value": job.externalId
-        },
-        "datePosted": new Date(job.datePosted).toISOString(),
-        "validThrough": job.deadline ? new Date(job.deadline).toISOString() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        "employmentType": "CONTRACTOR",
-        "hiringOrganization": {
-          "@type": "Organization",
-          "name": job.organization,
-          "sameAs": job.url?.includes("reliefweb.int") ? job.url : `https://somkenjobs.com/organizations/${encodeURIComponent(job.organization)}`
-        },
-        "jobLocation": {
-          "@type": "Place",
-          "address": {
-            "@type": "PostalAddress",
-            "addressLocality": job.location,
-            "addressCountry": job.country
-          }
-        },
-        "url": `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`,
-        "industry": job.sector || "Humanitarian Aid",
-        "occupationalCategory": job.sector || "Humanitarian Work",
-        "workHours": "Contract basis",
-        "qualifications": job.qualifications || "Relevant experience in humanitarian work",
-        "skills": job.sector ? [job.sector, "Humanitarian Aid", "Development Work"] : ["Humanitarian Aid", "Development Work"],
-        "applicationContact": {
-          "@type": "ContactPoint",
-          "contactType": "HR",
-          "url": job.url || `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`
-        }
-      };
-
-      const script = document.createElement('script');
-      script.type = 'application/ld+json';
-      script.setAttribute('data-job-posting-detail', 'true');
-      script.textContent = JSON.stringify(jobStructuredData);
-      document.head.appendChild(script);
-    }
-
-    // Cleanup function
-    return () => {
-      const script = document.querySelector('script[data-job-posting-detail]');
-      if (script) {
-        script.remove();
-      }
-    };
-  }, [job]);
 
   return (
     <div className="min-h-screen bg-background">
