@@ -454,46 +454,6 @@ export default function JobDetails() {
     );
   }
 
-  // Generate structured data for the job
-  const jobStructuredData = job ? {
-    "@context": "https://schema.org",
-    "@type": "JobPosting",
-    "title": job.title,
-    "description": job.description || `Join ${job.organization} in their humanitarian mission in ${job.location}, ${job.country}.`,
-    "identifier": {
-      "@type": "PropertyValue",
-      "name": job.source,
-      "value": job.externalId
-    },
-    "datePosted": new Date(job.datePosted).toISOString(),
-    "validThrough": job.deadline ? new Date(job.deadline).toISOString() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    "employmentType": "CONTRACTOR",
-    "hiringOrganization": {
-      "@type": "Organization",
-      "name": job.organization,
-      "sameAs": job.url?.includes("reliefweb.int") ? job.url : `https://somkenjobs.com/organizations/${encodeURIComponent(job.organization)}`
-    },
-    "jobLocation": {
-      "@type": "Place",
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": job.location,
-        "addressCountry": job.country
-      }
-    },
-    "url": `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`,
-    "industry": job.sector || "Humanitarian Aid",
-    "occupationalCategory": job.sector || "Humanitarian Work",
-    "workHours": "Contract basis",
-    "qualifications": job.qualifications || "Relevant experience in humanitarian work",
-    "skills": job.sector ? [job.sector, "Humanitarian Aid", "Development Work"] : ["Humanitarian Aid", "Development Work"],
-    "applicationContact": {
-      "@type": "ContactPoint",
-      "contactType": "HR",
-      "url": job.url || `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`
-    }
-  } : null;
-
   // Add structured data to head - always run this effect
   useEffect(() => {
     // Remove existing job structured data
@@ -503,7 +463,46 @@ export default function JobDetails() {
     }
 
     // Add new structured data only if job data exists
-    if (jobStructuredData) {
+    if (job) {
+      const jobStructuredData = {
+        "@context": "https://schema.org",
+        "@type": "JobPosting",
+        "title": job.title,
+        "description": job.description || `Join ${job.organization} in their humanitarian mission in ${job.location}, ${job.country}.`,
+        "identifier": {
+          "@type": "PropertyValue",
+          "name": job.source,
+          "value": job.externalId
+        },
+        "datePosted": new Date(job.datePosted).toISOString(),
+        "validThrough": job.deadline ? new Date(job.deadline).toISOString() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        "employmentType": "CONTRACTOR",
+        "hiringOrganization": {
+          "@type": "Organization",
+          "name": job.organization,
+          "sameAs": job.url?.includes("reliefweb.int") ? job.url : `https://somkenjobs.com/organizations/${encodeURIComponent(job.organization)}`
+        },
+        "jobLocation": {
+          "@type": "Place",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": job.location,
+            "addressCountry": job.country
+          }
+        },
+        "url": `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`,
+        "industry": job.sector || "Humanitarian Aid",
+        "occupationalCategory": job.sector || "Humanitarian Work",
+        "workHours": "Contract basis",
+        "qualifications": job.qualifications || "Relevant experience in humanitarian work",
+        "skills": job.sector ? [job.sector, "Humanitarian Aid", "Development Work"] : ["Humanitarian Aid", "Development Work"],
+        "applicationContact": {
+          "@type": "ContactPoint",
+          "contactType": "HR",
+          "url": job.url || `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`
+        }
+      };
+
       const script = document.createElement('script');
       script.type = 'application/ld+json';
       script.setAttribute('data-job-posting-detail', 'true');
@@ -518,7 +517,7 @@ export default function JobDetails() {
         script.remove();
       }
     };
-  }, [jobStructuredData]);
+  }, [job]);
 
   return (
     <div className="min-h-screen bg-background">
