@@ -494,6 +494,32 @@ export default function JobDetails() {
     }
   } : null;
 
+  // Add structured data to head
+  useEffect(() => {
+    if (jobStructuredData) {
+      // Remove existing job structured data
+      const existingScript = document.querySelector('script[data-job-posting-detail]');
+      if (existingScript) {
+        existingScript.remove();
+      }
+
+      // Add new structured data
+      const script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.setAttribute('data-job-posting-detail', 'true');
+      script.textContent = JSON.stringify(jobStructuredData);
+      document.head.appendChild(script);
+
+      // Cleanup function
+      return () => {
+        const script = document.querySelector('script[data-job-posting-detail]');
+        if (script) {
+          script.remove();
+        }
+      };
+    }
+  }, [jobStructuredData]);
+
   return (
     <div className="min-h-screen bg-background">
       {job && (
@@ -502,14 +528,6 @@ export default function JobDetails() {
           description={generateJobOGDescription(job)}
           keywords={`${job.title}, jobs in ${job.country}, ${job.organization}, ${job.sector || 'humanitarian'} jobs, ${job.location} jobs, NGO careers, UN jobs, ReliefWeb, ${job.country} humanitarian jobs`}
           canonicalUrl={`https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`}
-        />
-      )}
-      {jobStructuredData && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(jobStructuredData)
-          }}
         />
       )}
       <Header />
