@@ -5,7 +5,7 @@ import { jobFetcher } from "./services/jobFetcher";
 import { seedDatabase } from "./seed";
 import { z } from "zod";
 import { insertUserSchema, loginUserSchema, insertJobSchema, type User, insertCountrySchema, insertCitySchema, insertSectorSchema } from "@shared/schema";
-import { extractJobIdFromSlug } from "@shared/utils";
+import { extractJobIdFromSlug, generateJobSlug } from "@shared/utils";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
@@ -1049,6 +1049,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error serving job page:', error);
       res.status(500).send('Error loading job page');
+    }
+  });
+
+  // Dynamic sitemap.xml endpoint
+  app.get('/sitemap.xml', async (req, res) => {
+    try {
+      // Set proper XML content type
+      res.setHeader('Content-Type', 'application/xml');
+      
+      // Get all published jobs from the database
+      const jobs = await storage.getAllJobs();
+      
+      console.log(`Generating sitemap with ${jobs.length} jobs`);
+      
+      // Generate job URLs
+      const jobUrls = jobs.map(job => {
+        const jobSlug = generateJobSlug(job.title, job.id);
+        const lastModified = job.updatedAt ? new Date(job.updatedAt).toISOString() : new Date(job.datePosted).toISOString();
+        
+        return `  <url>
+    <loc>https://somkenjobs.com/jobs/${jobSlug}</loc>
+    <lastmod>${lastModified}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>`;
+      }).join('\n');
+      
+      // Generate sitemap XML
+      const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://somkenjobs.com/</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/jobs</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/tenders</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/about</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/contact</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/career-resources</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/help</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/privacy</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/terms</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+${jobUrls}
+</urlset>`;
+
+      res.send(sitemapXml);
+    } catch (error) {
+      console.error('Error generating sitemap:', error);
+      res.status(500).send('Error generating sitemap');
     }
   });
 
