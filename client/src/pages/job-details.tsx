@@ -494,30 +494,30 @@ export default function JobDetails() {
     }
   } : null;
 
-  // Add structured data to head
+  // Add structured data to head - always run this effect
   useEffect(() => {
-    if (jobStructuredData) {
-      // Remove existing job structured data
-      const existingScript = document.querySelector('script[data-job-posting-detail]');
-      if (existingScript) {
-        existingScript.remove();
-      }
+    // Remove existing job structured data
+    const existingScript = document.querySelector('script[data-job-posting-detail]');
+    if (existingScript) {
+      existingScript.remove();
+    }
 
-      // Add new structured data
+    // Add new structured data only if job data exists
+    if (jobStructuredData) {
       const script = document.createElement('script');
       script.type = 'application/ld+json';
       script.setAttribute('data-job-posting-detail', 'true');
       script.textContent = JSON.stringify(jobStructuredData);
       document.head.appendChild(script);
-
-      // Cleanup function
-      return () => {
-        const script = document.querySelector('script[data-job-posting-detail]');
-        if (script) {
-          script.remove();
-        }
-      };
     }
+
+    // Cleanup function
+    return () => {
+      const script = document.querySelector('script[data-job-posting-detail]');
+      if (script) {
+        script.remove();
+      }
+    };
   }, [jobStructuredData]);
 
   return (
