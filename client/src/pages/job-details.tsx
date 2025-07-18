@@ -46,43 +46,82 @@ export default function JobDetails() {
 
     // Add new structured data only if job data exists
     if (job) {
-      const jobStructuredData = {
+      // Build the structured data object with required fields
+      const jobStructuredData: any = {
         "@context": "https://schema.org",
         "@type": "JobPosting",
-        "title": job.title,
-        "description": job.description || `Join ${job.organization} in their humanitarian mission in ${job.location}, ${job.country}.`,
-        "identifier": {
-          "@type": "PropertyValue",
-          "name": job.source,
-          "value": job.externalId
-        },
+        // Required fields - always include with fallbacks
+        "title": job.title || "Humanitarian Position",
+        "description": job.description || `Join ${job.organization || 'our organization'} in their humanitarian mission in ${job.location || 'the field'}, ${job.country || 'East Africa'}.`,
         "datePosted": new Date(job.datePosted).toISOString(),
-        "validThrough": job.deadline ? new Date(job.deadline).toISOString() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         "employmentType": "CONTRACTOR",
         "hiringOrganization": {
           "@type": "Organization",
-          "name": job.organization,
-          "sameAs": job.url?.includes("reliefweb.int") ? job.url : `https://somkenjobs.com/organizations/${encodeURIComponent(job.organization)}`
+          "name": job.organization || "Humanitarian Organization"
         },
         "jobLocation": {
           "@type": "Place",
           "address": {
             "@type": "PostalAddress",
-            "addressLocality": job.location,
-            "addressCountry": job.country
+            "addressLocality": job.location || "Field Location",
+            "addressCountry": job.country || "East Africa"
           }
-        },
-        "url": `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`,
-        "industry": job.sector || "Humanitarian Aid",
-        "occupationalCategory": job.sector || "Humanitarian Work",
-        "workHours": "Contract basis",
-        "qualifications": job.qualifications || "Relevant experience in humanitarian work",
-        "skills": job.sector ? [job.sector, "Humanitarian Aid", "Development Work"] : ["Humanitarian Aid", "Development Work"],
-        "applicationContact": {
-          "@type": "ContactPoint",
-          "contactType": "HR",
-          "url": job.url || `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`
         }
+      };
+
+      // Add optional fields only if they have valid values
+      if (job.deadline) {
+        jobStructuredData.validThrough = new Date(job.deadline).toISOString();
+      }
+
+      if (job.externalId && job.source) {
+        jobStructuredData.identifier = {
+          "@type": "PropertyValue",
+          "name": job.source,
+          "value": job.externalId
+        };
+      }
+
+      if (job.url) {
+        jobStructuredData.url = job.url;
+        if (job.url.includes("reliefweb.int")) {
+          jobStructuredData.hiringOrganization.sameAs = job.url;
+        }
+      } else {
+        jobStructuredData.url = `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`;
+      }
+
+      if (job.sector) {
+        jobStructuredData.industry = job.sector;
+        jobStructuredData.occupationalCategory = job.sector;
+      }
+
+      if (job.qualifications) {
+        jobStructuredData.qualifications = job.qualifications;
+      }
+
+      if (job.experienceLevel) {
+        jobStructuredData.experienceRequirements = job.experienceLevel;
+      }
+
+      // Add jobLocationType based on job location/type
+      if (job.location && job.location.toLowerCase().includes('remote')) {
+        jobStructuredData.jobLocationType = "TELECOMMUTE";
+      } else {
+        jobStructuredData.jobLocationType = "ON_SITE";
+      }
+
+      // Add skills array if sector is available
+      if (job.sector) {
+        jobStructuredData.skills = [job.sector, "Humanitarian Aid", "Development Work"];
+      }
+
+      // Add application contact information
+      const applicationUrl = job.url || `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`;
+      jobStructuredData.applicationContact = {
+        "@type": "ContactPoint",
+        "contactType": "HR",
+        "url": applicationUrl
       };
 
       const script = document.createElement('script');
