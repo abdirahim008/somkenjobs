@@ -80,54 +80,7 @@ export default function JobCard({ job }: JobCardProps) {
     handleViewDetails();
   };
 
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const slug = generateJobSlug(job.title, job.id);
-    const jobUrl = `${window.location.origin}/jobs/${slug}`;
-    
-    // Copy to clipboard
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(jobUrl).then(() => {
-        toast({
-          title: "Link copied!",
-          description: "Job link has been copied to your clipboard.",
-        });
-        console.log('Job URL copied to clipboard:', jobUrl);
-      }).catch(err => {
-        console.error('Failed to copy to clipboard:', err);
-        // Fallback to the older method
-        fallbackCopyToClipboard(jobUrl);
-      });
-    } else {
-      fallbackCopyToClipboard(jobUrl);
-    }
-  };
-
-  const fallbackCopyToClipboard = (text: string) => {
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-9999px';
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    try {
-      document.execCommand('copy');
-      toast({
-        title: "Link copied!",
-        description: "Job link has been copied to your clipboard.",
-      });
-      console.log('Job URL copied to clipboard (fallback):', text);
-    } catch (err) {
-      console.error('Failed to copy to clipboard (fallback):', err);
-      toast({
-        title: "Copy failed",
-        description: "Unable to copy link to clipboard.",
-        variant: "destructive",
-      });
-    }
-    document.body.removeChild(textArea);
-  };
+  // Remove custom context menu handlers since we want native browser context menu
 
   const createShareUrl = (platform: string, jobTitle: string, jobUrl: string) => {
     const cacheBuster = `v=${Date.now()}`;
@@ -169,12 +122,15 @@ export default function JobCard({ job }: JobCardProps) {
     // In a real app, this would save to user preferences or backend
   };
 
+  const slug = generateJobSlug(job.title, job.id);
+  const jobUrl = `/jobs/${slug}`;
+
   return (
-    <div 
-      className="job-card cursor-pointer hover:shadow-md transition-shadow duration-200" 
+    <a 
+      href={jobUrl}
+      className="job-card cursor-pointer hover:shadow-md transition-shadow duration-200 block no-underline text-inherit" 
       onClick={handleCardClick}
-      onContextMenu={handleContextMenu}
-      title="Right-click to copy job link"
+      title="Click to view job details, right-click for more options"
     >
       <div className="flex items-start justify-between mb-4 gap-4">
         <div className="flex-1 min-w-0">
@@ -289,6 +245,6 @@ export default function JobCard({ job }: JobCardProps) {
           </div>
         </div>
       </div>
-    </div>
+    </a>
   );
 }

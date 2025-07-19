@@ -276,6 +276,33 @@
   }
 }
 
+/* Job card anchor styling - ensures anchor elements look like regular job cards */
+a.job-card {
+  text-decoration: none !important;
+  color: inherit !important;
+  display: block;
+}
+
+a.job-card:hover {
+  text-decoration: none !important;
+  color: inherit !important;
+}
+
+a.job-card:visited {
+  color: inherit !important;
+}
+
+a.job-card:focus {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Ensure hover states work correctly on job card anchors */
+a.job-card:hover h3 {
+  color: hsl(var(--primary)) !important;
+}
+
 .ql-snow .ql-toolbar button.ql-active .ql-fill {
   fill: white !important;
 }
