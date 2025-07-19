@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { Building2, MapPin, Calendar, Clock, ArrowRight, Briefcase, FileText, Bookmark, Share2 } from "lucide-react";
 import { FaFacebook, FaWhatsapp, FaTwitter, FaLinkedin } from 'react-icons/fa';
 import { useQuery } from "@tanstack/react-query";
@@ -17,6 +18,7 @@ import { generateJobSlug } from "@shared/utils";
 export default function Jobs() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
+  const { toast } = useToast();
   const [filters, setFilters] = useState({
     country: [],
     organization: [],
@@ -153,6 +155,55 @@ export default function Jobs() {
     // Bookmark functionality would go here
   };
 
+  const handleContextMenu = (job: Job, e: React.MouseEvent) => {
+    e.preventDefault();
+    const slug = generateJobSlug(job.title, job.id);
+    const jobUrl = `${window.location.origin}/jobs/${slug}`;
+    
+    // Copy to clipboard
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(jobUrl).then(() => {
+        toast({
+          title: "Link copied!",
+          description: "Job link has been copied to your clipboard.",
+        });
+        console.log('Job URL copied to clipboard:', jobUrl);
+      }).catch(err => {
+        console.error('Failed to copy to clipboard:', err);
+        // Fallback to the older method
+        fallbackCopyToClipboard(jobUrl);
+      });
+    } else {
+      fallbackCopyToClipboard(jobUrl);
+    }
+  };
+
+  const fallbackCopyToClipboard = (text: string) => {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      toast({
+        title: "Link copied!",
+        description: "Job link has been copied to your clipboard.",
+      });
+      console.log('Job URL copied to clipboard (fallback):', text);
+    } catch (err) {
+      console.error('Failed to copy to clipboard (fallback):', err);
+      toast({
+        title: "Copy failed",
+        description: "Unable to copy link to clipboard.",
+        variant: "destructive",
+      });
+    }
+    document.body.removeChild(textArea);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <SEOHead 
@@ -237,7 +288,13 @@ export default function Jobs() {
                   </div>
                 ) : (
                   jobs.map((job: Job) => (
-                    <div key={job.id} className="job-card cursor-pointer hover:shadow-md transition-shadow duration-200" onClick={(e) => handleCardClick(job, e)}>
+                    <div 
+                      key={job.id} 
+                      className="job-card cursor-pointer hover:shadow-md transition-shadow duration-200" 
+                      onClick={(e) => handleCardClick(job, e)}
+                      onContextMenu={(e) => handleContextMenu(job, e)}
+                      title="Right-click to copy job link"
+                    >
                       <div className="flex items-start justify-between mb-4 gap-4">
                         <div className="flex-1 min-w-0">
                           <h3 className="text-lg font-semibold text-foreground hover:text-primary mb-2 break-words leading-tight">
