@@ -1045,6 +1045,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `<title>${jobTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</title>`
       );
 
+      // Add job-specific Open Graph properties for richer Facebook previews
+      const additionalMetaTags = `
+    <!-- Job-specific meta tags for enhanced social media previews -->
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="${new Date(job.datePosted).toISOString()}">
+    <meta property="article:section" content="${job.sector || 'Humanitarian'}">
+    <meta property="article:tag" content="${job.sector || 'Humanitarian'}">
+    <meta property="article:author" content="${job.organization}">
+    <meta property="job:location" content="${job.location}, ${job.country}">
+    <meta property="job:company" content="${job.organization}">
+    ${job.deadline ? `<meta property="job:expires" content="${Math.ceil((new Date(job.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left">` : ''}
+    <meta property="job:category" content="${job.sector || 'Humanitarian'}">
+    <meta property="og:site_name" content="Somken Jobs">
+    <meta property="og:locale" content="en_US">`;
+
+      // Insert additional meta tags before the closing head tag
+      html = html.replace(
+        /<\/head>/,
+        `${additionalMetaTags}\n  </head>`
+      );
+
       res.send(html);
     } catch (error) {
       console.error('Error serving job page:', error);

@@ -6,6 +6,13 @@ interface SEOHeadProps {
   keywords?: string;
   canonicalUrl?: string;
   ogImage?: string;
+  // Job-specific properties for richer social media previews
+  jobLocation?: string;
+  jobOrganization?: string;
+  jobDeadline?: string;
+  jobSector?: string;
+  jobCountry?: string;
+  jobPostedDate?: string;
 }
 
 export default function SEOHead({ 
@@ -13,7 +20,13 @@ export default function SEOHead({
   description, 
   keywords, 
   canonicalUrl,
-  ogImage 
+  ogImage,
+  jobLocation,
+  jobOrganization,
+  jobDeadline,
+  jobSector,
+  jobCountry,
+  jobPostedDate
 }: SEOHeadProps) {
   useEffect(() => {
     // Update document title
@@ -171,6 +184,85 @@ export default function SEOHead({
     }
     ogLocale.setAttribute('content', 'en_US');
 
+    // Add job-specific Open Graph properties for richer social media previews
+    if (jobLocation || jobOrganization || jobDeadline || jobSector) {
+      // Create a richer description by including key job details
+      let enrichedDescription = description || '';
+      
+      if (jobOrganization && jobLocation && jobCountry) {
+        enrichedDescription += ` | ${jobOrganization} in ${jobLocation}, ${jobCountry}`;
+      }
+      
+      if (jobSector) {
+        enrichedDescription += ` | ${jobSector} sector`;
+      }
+      
+      if (jobDeadline) {
+        enrichedDescription += ` | Apply by ${jobDeadline}`;
+      }
+      
+      // Update the enhanced description in all relevant meta tags
+      const metaDescription = document.querySelector('meta[name="description"]');
+      if (metaDescription) {
+        metaDescription.setAttribute('content', enrichedDescription);
+      }
+      
+      const ogDescription = document.querySelector('meta[property="og:description"]');
+      if (ogDescription) {
+        ogDescription.setAttribute('content', enrichedDescription);
+      }
+      
+      const twitterDescription = document.querySelector('meta[property="twitter:description"]');
+      if (twitterDescription) {
+        twitterDescription.setAttribute('content', enrichedDescription);
+      }
+      
+      // Add job-specific Open Graph properties
+      const updateOrCreateJobOGTag = (property: string, content: string) => {
+        let tag = document.querySelector(`meta[property="${property}"]`);
+        if (tag) {
+          tag.setAttribute('content', content);
+        } else {
+          tag = document.createElement('meta');
+          tag.setAttribute('property', property);
+          tag.setAttribute('content', content);
+          tag.setAttribute('data-job-specific', 'true');
+          document.head.appendChild(tag);
+        }
+      };
+      
+      // Add Article-specific Open Graph tags for better Facebook previews
+      if (jobPostedDate) {
+        updateOrCreateJobOGTag('article:published_time', jobPostedDate);
+      }
+      
+      if (jobSector) {
+        updateOrCreateJobOGTag('article:section', jobSector);
+        updateOrCreateJobOGTag('article:tag', jobSector);
+      }
+      
+      if (jobOrganization) {
+        updateOrCreateJobOGTag('article:author', jobOrganization);
+      }
+      
+      // Add specific tags for job posts
+      if (jobLocation && jobCountry) {
+        updateOrCreateJobOGTag('job:location', `${jobLocation}, ${jobCountry}`);
+      }
+      
+      if (jobOrganization) {
+        updateOrCreateJobOGTag('job:company', jobOrganization);
+      }
+      
+      if (jobDeadline) {
+        updateOrCreateJobOGTag('job:expires', jobDeadline);
+      }
+      
+      if (jobSector) {
+        updateOrCreateJobOGTag('job:category', jobSector);
+      }
+    }
+
     // Remove any existing image-related meta tags
     const existingOgImageWidth = document.querySelector('meta[property="og:image:width"]');
     if (existingOgImageWidth) {
@@ -214,7 +306,7 @@ export default function SEOHead({
         ogImage: 'removed - no images in social media previews'
       });
     }
-  }, [title, description, keywords, canonicalUrl, ogImage]);
+  }, [title, description, keywords, canonicalUrl, ogImage, jobLocation, jobOrganization, jobDeadline, jobSector, jobCountry, jobPostedDate]);
 
   return null; // This component doesn't render anything
 }

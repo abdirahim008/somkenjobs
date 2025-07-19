@@ -566,6 +566,12 @@ export default function JobDetails() {
           description={generateJobOGDescription(job)}
           keywords={`${job.title}, jobs in ${job.country}, ${job.organization}, ${job.sector || 'humanitarian'} jobs, ${job.location} jobs, NGO careers, UN jobs, ReliefWeb, ${job.country} humanitarian jobs`}
           canonicalUrl={`https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`}
+          jobLocation={job.location}
+          jobOrganization={job.organization}
+          jobDeadline={job.deadline ? formatDeadline(job.deadline) : undefined}
+          jobSector={job.sector}
+          jobCountry={job.country}
+          jobPostedDate={new Date(job.datePosted).toISOString()}
         />
       )}
       <Header />
