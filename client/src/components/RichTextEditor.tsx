@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useState, useRef } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
@@ -6,149 +6,34 @@ interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  required?: boolean;
-  height?: string;
+  className?: string;
   minHeight?: string;
   maxHeight?: string;
+  defaultHeight?: string;
 }
 
 export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
   onChange,
   placeholder = "Enter text...",
-  required = false,
-  height = "300px",
+  className = "",
   minHeight = "200px",
-  maxHeight = "600px"
+  maxHeight = "700px",
+  defaultHeight = "350px"
 }) => {
-  const [currentHeight, setCurrentHeight] = useState(parseInt(height));
+  const [currentHeight, setCurrentHeight] = useState(parseInt(defaultHeight));
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const resizeRef = useRef<HTMLDivElement>(null);
-
-  const modules = useMemo(() => ({
-    toolbar: {
-      container: [
-        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-        ['bold', 'italic', 'underline', 'strike'],
-        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-        [{ 'indent': '-1'}, { 'indent': '+1' }],
-        [{ 'align': [] }],
-        ['link', 'image'],
-        ['table-insert', 'table-delete'],
-        [{ 'color': [] }, { 'background': [] }],
-        ['clean']
-      ],
-      handlers: {
-        'table-insert': function(this: any) {
-          // Insert a simple 3x3 table
-          const quill = this.quill;
-          const range = quill.getSelection();
-          if (range) {
-            const tableHtml = `
-              <table style="border-collapse: collapse; width: 100%; margin: 10px 0;">
-                <tr>
-                  <td style="border: 1px solid #ccc; padding: 8px;">Header 1</td>
-                  <td style="border: 1px solid #ccc; padding: 8px;">Header 2</td>
-                  <td style="border: 1px solid #ccc; padding: 8px;">Header 3</td>
-                </tr>
-                <tr>
-                  <td style="border: 1px solid #ccc; padding: 8px;">Row 1, Col 1</td>
-                  <td style="border: 1px solid #ccc; padding: 8px;">Row 1, Col 2</td>
-                  <td style="border: 1px solid #ccc; padding: 8px;">Row 1, Col 3</td>
-                </tr>
-                <tr>
-                  <td style="border: 1px solid #ccc; padding: 8px;">Row 2, Col 1</td>
-                  <td style="border: 1px solid #ccc; padding: 8px;">Row 2, Col 2</td>
-                  <td style="border: 1px solid #ccc; padding: 8px;">Row 2, Col 3</td>
-                </tr>
-              </table>
-            `;
-            quill.clipboard.dangerouslyPasteHTML(range.index, tableHtml);
-          }
-        },
-        'table-delete': function(this: any) {
-          // Remove selected table or the table containing the cursor
-          const quill = this.quill;
-          const range = quill.getSelection();
-          if (range) {
-            const [line] = quill.getLine(range.index);
-            if (line && line.domNode) {
-              const table = line.domNode.closest('table');
-              if (table) {
-                table.remove();
-              }
-            }
-          }
-        },
-        'image': function(this: any) {
-          // Create file input for image upload
-          const input = document.createElement('input');
-          input.setAttribute('type', 'file');
-          input.setAttribute('accept', 'image/*');
-          input.click();
-
-          input.onchange = () => {
-            const file = input.files?.[0];
-            if (file) {
-              // Create a file reader to convert to base64
-              const reader = new FileReader();
-              reader.onload = (e) => {
-                const base64 = e.target?.result as string;
-                const quill = this.quill;
-                const range = quill.getSelection();
-                if (range) {
-                  // Insert image with custom attributes for resizing
-                  quill.insertEmbed(range.index, 'image', base64);
-                  
-                  // Add resize functionality after image is inserted
-                  setTimeout(() => {
-                    const images = quill.container.querySelectorAll('img');
-                    const lastImage = images[images.length - 1];
-                    if (lastImage) {
-                      makeImageResizable(lastImage);
-                    }
-                  }, 100);
-                }
-              };
-              reader.readAsDataURL(file);
-            }
-          };
-        }
-      }
-    },
-    clipboard: {
-      // Allow pasting with formatting and tables
-      matchVisual: false,
-      // Allow table pasting
-      matchers: [
-        ['table', function(node: any, delta: any) {
-          return delta;
-        }]
-      ]
-    },
-  }), []);
-
-  const formats = useMemo(() => [
-    'header',
-    'bold', 'italic', 'underline', 'strike',
-    'list', 'bullet', 'indent',
-    'align',
-    'link', 'image',
-    'color', 'background',
-    'table', 'table-cell-line', 'table-cell', 'table-col', 'table-row',
-    'clean'
-  ], []);
-
-  const handleChange = useCallback((content: string) => {
-    // Prevent infinite loops by only calling onChange if content actually changed
-    if (content !== value) {
-      onChange(content);
-    }
-  }, [onChange, value]);
+  const [quillRef, setQuillRef] = useState<any>(null);
 
   // Function to make images resizable and draggable
   const makeImageResizable = useCallback((img: HTMLImageElement) => {
+    // Skip if already has wrapper
+    if (img.parentElement?.classList.contains('image-wrapper')) {
+      return;
+    }
+
     img.style.cursor = 'move';
     img.style.position = 'relative';
     img.style.display = 'inline-block';
@@ -162,14 +47,15 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       position: absolute;
       bottom: -5px;
       right: -5px;
-      width: 10px;
-      height: 10px;
+      width: 12px;
+      height: 12px;
       background: #0077B5;
       border: 2px solid white;
       border-radius: 50%;
       cursor: nw-resize;
       z-index: 1000;
       display: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     `;
     
     // Create wrapper for image and handle
@@ -181,9 +67,12 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       max-width: 100%;
     `;
     
-    img.parentNode?.insertBefore(wrapper, img);
-    wrapper.appendChild(img);
-    wrapper.appendChild(resizeHandle);
+    // Insert wrapper before image and move image into wrapper
+    if (img.parentNode) {
+      img.parentNode.insertBefore(wrapper, img);
+      wrapper.appendChild(img);
+      wrapper.appendChild(resizeHandle);
+    }
     
     // Show/hide resize handle on hover
     wrapper.addEventListener('mouseenter', () => {
@@ -237,18 +126,18 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     });
     
     // Image resizing functionality
-    let isResizing = false;
+    let isResizingImage = false;
     let startWidth = 0;
     
     resizeHandle.addEventListener('mousedown', (e) => {
-      isResizing = true;
+      isResizingImage = true;
       startWidth = img.offsetWidth;
       startX = e.clientX;
       e.stopPropagation();
       e.preventDefault();
       
       const handleMouseMove = (e: MouseEvent) => {
-        if (!isResizing) return;
+        if (!isResizingImage) return;
         
         const deltaX = e.clientX - startX;
         const newWidth = Math.max(50, Math.min(800, startWidth + deltaX));
@@ -257,7 +146,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       };
       
       const handleMouseUp = () => {
-        isResizing = false;
+        isResizingImage = false;
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
       };
@@ -277,12 +166,13 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         top: ${e.clientY}px;
         left: ${e.clientX}px;
         background: white;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        padding: 8px 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        border: 1px solid #e5e5e5;
+        border-radius: 6px;
+        padding: 4px 0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         z-index: 1001;
-        min-width: 120px;
+        min-width: 140px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       `;
       
       const options = [
@@ -300,10 +190,12 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           padding: 8px 16px;
           cursor: pointer;
           font-size: 14px;
+          color: #333;
+          transition: background-color 0.1s ease;
         `;
         
         item.addEventListener('mouseenter', () => {
-          item.style.backgroundColor = '#f5f5f5';
+          item.style.backgroundColor = '#f8f9fa';
         });
         
         item.addEventListener('mouseleave', () => {
@@ -340,6 +232,128 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       }, 100);
     });
   }, []);
+
+  const modules = useMemo(() => ({
+    toolbar: {
+      container: [
+        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        [{ 'indent': '-1'}, { 'indent': '+1' }],
+        [{ 'align': [] }],
+        ['link', 'image'],
+        ['table-insert', 'table-delete'],
+        [{ 'color': [] }, { 'background': [] }],
+        ['clean']
+      ],
+      handlers: {
+        'table-insert': () => {
+          if (!quillRef) return;
+          
+          try {
+            const range = quillRef.getSelection();
+            if (range) {
+              const tableHtml = `
+                <table style="border-collapse: collapse; width: 100%; margin: 10px 0;">
+                  <tr>
+                    <td style="border: 1px solid #ccc; padding: 8px;">Header 1</td>
+                    <td style="border: 1px solid #ccc; padding: 8px;">Header 2</td>
+                    <td style="border: 1px solid #ccc; padding: 8px;">Header 3</td>
+                  </tr>
+                  <tr>
+                    <td style="border: 1px solid #ccc; padding: 8px;">Row 1, Col 1</td>
+                    <td style="border: 1px solid #ccc; padding: 8px;">Row 1, Col 2</td>
+                    <td style="border: 1px solid #ccc; padding: 8px;">Row 1, Col 3</td>
+                  </tr>
+                  <tr>
+                    <td style="border: 1px solid #ccc; padding: 8px;">Row 2, Col 1</td>
+                    <td style="border: 1px solid #ccc; padding: 8px;">Row 2, Col 2</td>
+                    <td style="border: 1px solid #ccc; padding: 8px;">Row 2, Col 3</td>
+                  </tr>
+                </table>
+              `;
+              quillRef.clipboard.dangerouslyPasteHTML(range.index, tableHtml);
+            }
+          } catch (error) {
+            console.error('Error inserting table:', error);
+          }
+        },
+        'table-delete': () => {
+          if (!quillRef) return;
+          
+          try {
+            const range = quillRef.getSelection();
+            if (range) {
+              const [line] = quillRef.getLine(range.index);
+              if (line && line.domNode) {
+                const table = line.domNode.closest('table');
+                if (table) {
+                  table.remove();
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error deleting table:', error);
+          }
+        },
+        'image': () => {
+          if (!quillRef) return;
+          
+          try {
+            const input = document.createElement('input');
+            input.setAttribute('type', 'file');
+            input.setAttribute('accept', 'image/*');
+            input.click();
+
+            input.onchange = () => {
+              const file = input.files?.[0];
+              if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                  const base64 = e.target?.result as string;
+                  const range = quillRef.getSelection();
+                  if (range) {
+                    quillRef.insertEmbed(range.index, 'image', base64);
+                    
+                    setTimeout(() => {
+                      const images = quillRef.container.querySelectorAll('img');
+                      const lastImage = images[images.length - 1];
+                      if (lastImage) {
+                        makeImageResizable(lastImage);
+                      }
+                    }, 100);
+                  }
+                };
+                reader.readAsDataURL(file);
+              }
+            };
+          } catch (error) {
+            console.error('Error handling image upload:', error);
+          }
+        }
+      }
+    },
+    clipboard: {
+      matchVisual: false,
+    },
+  }), [quillRef, makeImageResizable]);
+
+  const formats = useMemo(() => [
+    'header',
+    'bold', 'italic', 'underline', 'strike',
+    'list', 'bullet', 'indent',
+    'align',
+    'link', 'image',
+    'color', 'background',
+    'table', 'table-cell-line', 'table-cell', 'table-col', 'table-row',
+    'clean'
+  ], []);
+
+  const handleChange = useCallback((content: string) => {
+    if (content !== value) {
+      onChange(content);
+    }
+  }, [onChange, value]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -383,6 +397,11 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     <div className={`rich-text-editor ${isResizing ? 'resizing' : ''}`} ref={containerRef}>
       <div className="relative">
         <ReactQuill
+          ref={(el) => {
+            if (el && el.getEditor() !== quillRef) {
+              setQuillRef(el.getEditor());
+            }
+          }}
           theme="snow"
           value={value || ''}
           onChange={handleChange}
@@ -406,3 +425,5 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     </div>
   );
 };
+
+export default RichTextEditor;
