@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Image, Table, Minus } from 'lucide-react';
+import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Image, Table, Minus, Grid, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface SimpleRichTextEditorProps {
@@ -48,12 +48,21 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
           makeImageInteractive(img as HTMLImageElement);
         }
       });
+
+      // Make any new tables interactive
+      editorRef.current.querySelectorAll('table').forEach(table => {
+        if (!table.dataset.interactive) {
+          table.dataset.interactive = 'true';
+          makeTableInteractive(table as HTMLTableElement);
+        }
+      });
     }
   };
 
   const insertTable = () => {
+    const tableId = `table_${Date.now()}`;
     const tableHTML = `
-      <table style="border-collapse: collapse; width: 100%; margin: 10px 0;">
+      <table id="${tableId}" style="border-collapse: collapse; width: 100%; margin: 10px 0; border: 2px solid #ccc;">
         <tr>
           <td style="border: 1px solid #ccc; padding: 8px; background-color: #f5f5f5; font-weight: bold;">Header 1</td>
           <td style="border: 1px solid #ccc; padding: 8px; background-color: #f5f5f5; font-weight: bold;">Header 2</td>
@@ -72,6 +81,233 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
       </table>
     `;
     execCommand('insertHTML', tableHTML);
+    
+    // Make table interactive after insertion
+    setTimeout(() => {
+      const table = document.getElementById(tableId);
+      if (table) {
+        makeTableInteractive(table as HTMLTableElement);
+      }
+    }, 100);
+  };
+
+  const makeTableInteractive = (table: HTMLTableElement) => {
+    let isSelected = false;
+
+    // Create table controls
+    const createTableControls = () => {
+      const container = table.parentElement;
+      if (!container) return;
+
+      // Remove existing controls
+      container.querySelectorAll('.table-controls').forEach(control => control.remove());
+
+      // Create control panel
+      const controlPanel = document.createElement('div');
+      controlPanel.className = 'table-controls';
+      controlPanel.style.cssText = `
+        position: absolute;
+        top: -40px;
+        left: 0;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 4px;
+        display: ${isSelected ? 'flex' : 'none'};
+        gap: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        z-index: 1000;
+      `;
+
+      // Border controls
+      const borderControls = [
+        { label: 'All Borders', action: 'all' },
+        { label: 'Outer Border', action: 'outer' },
+        { label: 'Inner Borders', action: 'inner' },
+        { label: 'No Borders', action: 'none' }
+      ];
+
+      borderControls.forEach(control => {
+        const btn = document.createElement('button');
+        btn.textContent = control.label;
+        btn.style.cssText = `
+          padding: 4px 8px;
+          border: 1px solid #ddd;
+          background: white;
+          cursor: pointer;
+          font-size: 12px;
+          border-radius: 2px;
+        `;
+        
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          applyTableBorders(table, control.action);
+        });
+        
+        controlPanel.appendChild(btn);
+      });
+
+      // Add row/column controls
+      const addRowBtn = document.createElement('button');
+      addRowBtn.textContent = '+ Row';
+      addRowBtn.style.cssText = `
+        padding: 4px 8px;
+        border: 1px solid #ddd;
+        background: #f0f9ff;
+        cursor: pointer;
+        font-size: 12px;
+        border-radius: 2px;
+      `;
+      addRowBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        addTableRow(table);
+      });
+
+      const addColBtn = document.createElement('button');
+      addColBtn.textContent = '+ Col';
+      addColBtn.style.cssText = `
+        padding: 4px 8px;
+        border: 1px solid #ddd;
+        background: #f0f9ff;
+        cursor: pointer;
+        font-size: 12px;
+        border-radius: 2px;
+      `;
+      addColBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        addTableColumn(table);
+      });
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = 'Delete';
+      deleteBtn.style.cssText = `
+        padding: 4px 8px;
+        border: 1px solid #dc2626;
+        background: #fee;
+        color: #dc2626;
+        cursor: pointer;
+        font-size: 12px;
+        border-radius: 2px;
+      `;
+      deleteBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (confirm('Delete this table?')) {
+          table.remove();
+        }
+      });
+
+      controlPanel.appendChild(addRowBtn);
+      controlPanel.appendChild(addColBtn);
+      controlPanel.appendChild(deleteBtn);
+
+      // Position container relatively
+      if (container.style.position !== 'relative') {
+        container.style.position = 'relative';
+      }
+      container.appendChild(controlPanel);
+    };
+
+    // Table selection
+    table.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Clear other table selections
+      editorRef.current?.querySelectorAll('table').forEach(otherTable => {
+        if (otherTable !== table) {
+          otherTable.style.outline = 'none';
+          const otherContainer = otherTable.parentElement;
+          if (otherContainer) {
+            otherContainer.querySelectorAll('.table-controls').forEach(el => {
+              (el as HTMLElement).style.display = 'none';
+            });
+          }
+        }
+      });
+      
+      isSelected = !isSelected;
+      table.style.outline = isSelected ? '2px solid #0077B5' : 'none';
+      
+      if (isSelected) {
+        createTableControls();
+      } else {
+        const container = table.parentElement;
+        if (container) {
+          container.querySelectorAll('.table-controls').forEach(el => {
+            (el as HTMLElement).style.display = 'none';
+          });
+        }
+      }
+    });
+
+    // Initial setup
+    createTableControls();
+  };
+
+  const applyTableBorders = (table: HTMLTableElement, borderType: string) => {
+    const cells = table.querySelectorAll('td, th');
+    
+    switch (borderType) {
+      case 'all':
+        table.style.border = '2px solid #333';
+        cells.forEach(cell => {
+          (cell as HTMLElement).style.border = '1px solid #ccc';
+        });
+        break;
+      case 'outer':
+        table.style.border = '2px solid #333';
+        cells.forEach(cell => {
+          (cell as HTMLElement).style.border = 'none';
+        });
+        break;
+      case 'inner':
+        table.style.border = 'none';
+        cells.forEach(cell => {
+          (cell as HTMLElement).style.border = '1px solid #ccc';
+        });
+        break;
+      case 'none':
+        table.style.border = 'none';
+        cells.forEach(cell => {
+          (cell as HTMLElement).style.border = 'none';
+        });
+        break;
+    }
+  };
+
+  const addTableRow = (table: HTMLTableElement) => {
+    const firstRow = table.querySelector('tr');
+    if (!firstRow) return;
+    
+    const newRow = document.createElement('tr');
+    const cellCount = firstRow.children.length;
+    
+    for (let i = 0; i < cellCount; i++) {
+      const cell = document.createElement('td');
+      cell.style.cssText = 'border: 1px solid #ccc; padding: 8px;';
+      cell.textContent = `Cell ${table.rows.length + 1}-${i + 1}`;
+      newRow.appendChild(cell);
+    }
+    
+    table.appendChild(newRow);
+  };
+
+  const addTableColumn = (table: HTMLTableElement) => {
+    const rows = table.querySelectorAll('tr');
+    rows.forEach((row, rowIndex) => {
+      const cell = document.createElement('td');
+      cell.style.cssText = 'border: 1px solid #ccc; padding: 8px;';
+      cell.textContent = rowIndex === 0 ? `Header ${row.children.length + 1}` : `Cell ${rowIndex + 1}-${row.children.length + 1}`;
+      if (rowIndex === 0) {
+        cell.style.backgroundColor = '#f5f5f5';
+        cell.style.fontWeight = 'bold';
+      }
+      row.appendChild(cell);
+    });
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -511,26 +747,69 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
         }}
         data-placeholder={placeholder}
         onPaste={(e) => {
-          // Handle pasted images
+          // Handle pasted content (images and tables)
           setTimeout(() => {
             if (editorRef.current) {
+              // Make pasted images interactive
               editorRef.current.querySelectorAll('img').forEach(img => {
                 if (!img.dataset.interactive) {
                   img.dataset.interactive = 'true';
                   makeImageInteractive(img as HTMLImageElement);
                 }
               });
+
+              // Make pasted tables interactive and apply default formatting
+              editorRef.current.querySelectorAll('table').forEach(table => {
+                if (!table.dataset.interactive) {
+                  table.dataset.interactive = 'true';
+                  
+                  // Apply default table styling for pasted tables
+                  const tableEl = table as HTMLTableElement;
+                  tableEl.style.borderCollapse = 'collapse';
+                  tableEl.style.width = '100%';
+                  tableEl.style.margin = '10px 0';
+                  tableEl.style.border = '2px solid #ccc';
+                  
+                  // Style all cells
+                  const cells = tableEl.querySelectorAll('td, th');
+                  cells.forEach(cell => {
+                    const cellEl = cell as HTMLElement;
+                    cellEl.style.border = '1px solid #ccc';
+                    cellEl.style.padding = '8px';
+                    
+                    // Style header cells
+                    if (cell.tagName === 'TH' || (cellEl.parentElement?.firstElementChild === cell && tableEl.rows[0] === cellEl.parentElement)) {
+                      cellEl.style.backgroundColor = '#f5f5f5';
+                      cellEl.style.fontWeight = 'bold';
+                    }
+                  });
+                  
+                  makeTableInteractive(tableEl);
+                }
+              });
             }
           }, 100);
         }}
         onClick={(e) => {
-          // Clear image selections when clicking in editor
+          // Clear selections when clicking in editor
           if (e.target === editorRef.current) {
+            // Clear image selections
             editorRef.current?.querySelectorAll('img').forEach(img => {
               img.style.border = '2px solid transparent';
               const container = img.parentElement;
               if (container) {
                 container.querySelectorAll('.resize-handle, .image-delete-btn').forEach(el => {
+                  (el as HTMLElement).style.display = 'none';
+                });
+              }
+            });
+            
+            // Clear table selections
+            editorRef.current?.querySelectorAll('table').forEach(table => {
+              table.style.outline = 'none';
+              const container = table.parentElement;
+              if (container) {
+                container.querySelectorAll('.table-controls').forEach(el => {
                   (el as HTMLElement).style.display = 'none';
                 });
               }
