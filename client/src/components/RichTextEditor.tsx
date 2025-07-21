@@ -1,6 +1,17 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
-import ReactQuill from 'react-quill';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import 'react-quill/dist/quill.snow.css';
+
+// Dynamic import of ReactQuill to fix SSR/import issues
+let ReactQuill: any = null;
+
+const loadReactQuill = async () => {
+  if (typeof window !== 'undefined') {
+    const { default: RQ } = await import('react-quill');
+    ReactQuill = RQ;
+    return RQ;
+  }
+  return null;
+};
 
 interface RichTextEditorProps {
   value: string;
@@ -32,6 +43,17 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const resizeRef = useRef<HTMLDivElement>(null);
   const [quillRef, setQuillRef] = useState<any>(null);
+  const [isQuillLoaded, setIsQuillLoaded] = useState(false);
+
+  // Load ReactQuill dynamically
+  useEffect(() => {
+    loadReactQuill().then((quill) => {
+      if (quill) {
+        ReactQuill = quill;
+        setIsQuillLoaded(true);
+      }
+    });
+  }, []);
 
   // Function to make images resizable and draggable
   const makeImageResizable = useCallback((img: HTMLImageElement) => {
@@ -399,11 +421,36 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   }, [value, makeImageResizable]);
 
+  // Show loading state while Quill is loading
+  if (!isQuillLoaded || !ReactQuill) {
+    return (
+      <div style={{ padding: '10px', border: '1px solid #ddd', background: '#f9f9f9', borderRadius: '4px' }}>
+        <p style={{ margin: '0 0 10px 0', color: '#666' }}>Loading rich text editor...</p>
+        <textarea
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          style={{
+            width: '100%',
+            height: `${currentHeight}px`,
+            padding: '10px',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            fontFamily: 'inherit',
+            fontSize: '14px',
+            resize: 'vertical'
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={`rich-text-editor ${isResizing ? 'resizing' : ''}`} ref={containerRef}>
       <div className="relative">
         <ReactQuill
           ref={(el) => {
+            console.log('ReactQuill ref callback:', el);
             if (el && el.getEditor() !== quillRef) {
               setQuillRef(el.getEditor());
             }
