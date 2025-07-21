@@ -100,8 +100,8 @@ export default function JobDetails() {
         jobStructuredData.qualifications = job.qualifications;
       }
 
-      if (job.experienceLevel) {
-        jobStructuredData.experienceRequirements = job.experienceLevel;
+      if (job.experience) {
+        jobStructuredData.experienceRequirements = job.experience;
       }
 
       // Add jobLocationType based on job location/type
@@ -297,7 +297,7 @@ export default function JobDetails() {
     
     // First, try to extract URL from markdown-style links [text](url)
     const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-    const markdownMatches = [...text.matchAll(markdownLinkRegex)];
+    const markdownMatches = Array.from(text.matchAll(markdownLinkRegex));
     
     if (markdownMatches.length > 0) {
       for (const match of markdownMatches) {
@@ -568,7 +568,7 @@ export default function JobDetails() {
           canonicalUrl={`https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`}
           jobLocation={job.location}
           jobOrganization={job.organization}
-          jobDeadline={job.deadline ? formatDeadline(job.deadline) : undefined}
+          jobDeadline={job.deadline ? formatDeadline(job.deadline) : null}
           jobSector={job.sector}
           jobCountry={job.country}
           jobPostedDate={new Date(job.datePosted).toISOString()}
