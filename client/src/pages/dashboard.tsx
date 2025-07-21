@@ -21,7 +21,7 @@ import { OrganizationAutocomplete } from "@/components/OrganizationAutocomplete"
 import { CountryAutocomplete } from "@/components/CountryAutocomplete";
 import { CityAutocomplete } from "@/components/CityAutocomplete";
 import { SectorAutocomplete } from "@/components/SectorAutocomplete";
-import { RichTextEditor } from "@/components/RichTextEditor";
+import { SimpleRichTextEditor } from "@/components/SimpleRichTextEditor";
 import { generateJobSlug } from "@shared/utils";
 
 export default function Dashboard() {
@@ -1313,7 +1313,7 @@ export default function Dashboard() {
 
                   <div className="space-y-2 pb-6 border-b border-gray-100">
                     <Label htmlFor="description">Description *</Label>
-                    <RichTextEditor
+                    <SimpleRichTextEditor
                       value={jobForm.description}
                       onChange={(value) => setJobForm({ ...jobForm, description: value })}
                       placeholder="Provide a comprehensive description including background, context, and purpose..."
@@ -1328,7 +1328,7 @@ export default function Dashboard() {
 
                   <div className="space-y-2 pb-6 border-b border-gray-100">
                     <Label htmlFor="qualifications">Qualifications & Requirements</Label>
-                    <RichTextEditor
+                    <SimpleRichTextEditor
                       value={jobForm.qualifications}
                       onChange={(value) => setJobForm({ ...jobForm, qualifications: value })}
                       placeholder="List required education, skills, certifications, and other qualifications..."
@@ -1340,7 +1340,7 @@ export default function Dashboard() {
 
                   <div className="space-y-2 pb-6">
                     <Label htmlFor="howToApply">How to Apply *</Label>
-                    <RichTextEditor
+                    <SimpleRichTextEditor
                       value={jobForm.howToApply}
                       onChange={(value) => setJobForm({ ...jobForm, howToApply: value })}
                       placeholder="Please provide detailed application instructions including required documents, email address, and any specific requirements..."
