@@ -21,7 +21,7 @@ export default function JobCard({ job }: JobCardProps) {
     const d = new Date(date);
     const now = new Date();
     const diffTime = now.getTime() - d.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     
     if (diffDays === 0) return "Today";
     if (diffDays === 1) return "1 day ago";
