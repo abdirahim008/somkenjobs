@@ -416,7 +416,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           placeholder={placeholder}
           style={{ 
             height: `${currentHeight}px`,
-            minHeight: minHeight
+            minHeight: minHeight,
+            width: '100%',
+            display: 'block'
           }}
         />
         
@@ -426,6 +428,18 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           className={`resize-handle ${isResizing ? 'resizing' : ''}`}
           onMouseDown={handleMouseDown}
           title="Drag to resize"
+          style={{
+            position: 'absolute',
+            bottom: '-10px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '40px',
+            height: '10px',
+            background: '#ddd',
+            borderRadius: '4px',
+            cursor: 'ns-resize',
+            display: 'block'
+          }}
         />
       </div>
     </div>

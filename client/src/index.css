@@ -100,6 +100,13 @@
 }
 
 /* Rich Text Editor Styles */
+.rich-text-editor {
+  display: block !important;
+  width: 100% !important;
+  min-height: 200px !important;
+  position: relative !important;
+}
+
 .ql-toolbar {
   border-top: 1px solid #e5e7eb !important;
   border-left: 1px solid #e5e7eb !important;
@@ -107,6 +114,7 @@
   border-bottom: none !important;
   border-radius: 0.375rem 0.375rem 0 0 !important;
   background: #f9fafb !important;
+  display: block !important;
 }
 
 .ql-container {
@@ -116,6 +124,7 @@
   border-bottom: 1px solid #e5e7eb !important;
   border-radius: 0 0 0.375rem 0.375rem !important;
   background: white !important;
+  display: block !important;
 }
 
 .ql-editor {
