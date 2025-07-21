@@ -1655,7 +1655,7 @@ export default function Dashboard() {
                               onClick={() => {
                                 if (confirm('Are you sure you want to publish this job? It will become live and searchable immediately.')) {
                                   updateJobMutation.mutate({
-                                    id: job.id,
+                                    jobId: job.id,
                                     jobData: { ...job, status: 'published' }
                                   });
                                 }
