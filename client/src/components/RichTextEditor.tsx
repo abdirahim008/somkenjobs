@@ -34,14 +34,88 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         [{ 'list': 'ordered'}, { 'list': 'bullet' }],
         [{ 'indent': '-1'}, { 'indent': '+1' }],
         [{ 'align': [] }],
-        ['link'],
+        ['link', 'image'],
+        ['table-insert', 'table-delete'],
         [{ 'color': [] }, { 'background': [] }],
         ['clean']
       ],
+      handlers: {
+        'table-insert': function(this: any) {
+          // Insert a simple 3x3 table
+          const quill = this.quill;
+          const range = quill.getSelection();
+          if (range) {
+            const tableHtml = `
+              <table style="border-collapse: collapse; width: 100%; margin: 10px 0;">
+                <tr>
+                  <td style="border: 1px solid #ccc; padding: 8px;">Header 1</td>
+                  <td style="border: 1px solid #ccc; padding: 8px;">Header 2</td>
+                  <td style="border: 1px solid #ccc; padding: 8px;">Header 3</td>
+                </tr>
+                <tr>
+                  <td style="border: 1px solid #ccc; padding: 8px;">Row 1, Col 1</td>
+                  <td style="border: 1px solid #ccc; padding: 8px;">Row 1, Col 2</td>
+                  <td style="border: 1px solid #ccc; padding: 8px;">Row 1, Col 3</td>
+                </tr>
+                <tr>
+                  <td style="border: 1px solid #ccc; padding: 8px;">Row 2, Col 1</td>
+                  <td style="border: 1px solid #ccc; padding: 8px;">Row 2, Col 2</td>
+                  <td style="border: 1px solid #ccc; padding: 8px;">Row 2, Col 3</td>
+                </tr>
+              </table>
+            `;
+            quill.clipboard.dangerouslyPasteHTML(range.index, tableHtml);
+          }
+        },
+        'table-delete': function(this: any) {
+          // Remove selected table or the table containing the cursor
+          const quill = this.quill;
+          const range = quill.getSelection();
+          if (range) {
+            const [line] = quill.getLine(range.index);
+            if (line && line.domNode) {
+              const table = line.domNode.closest('table');
+              if (table) {
+                table.remove();
+              }
+            }
+          }
+        },
+        'image': function(this: any) {
+          // Create file input for image upload
+          const input = document.createElement('input');
+          input.setAttribute('type', 'file');
+          input.setAttribute('accept', 'image/*');
+          input.click();
+
+          input.onchange = () => {
+            const file = input.files?.[0];
+            if (file) {
+              // Create a file reader to convert to base64
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                const base64 = e.target?.result as string;
+                const quill = this.quill;
+                const range = quill.getSelection();
+                if (range) {
+                  quill.insertEmbed(range.index, 'image', base64);
+                }
+              };
+              reader.readAsDataURL(file);
+            }
+          };
+        }
+      }
     },
     clipboard: {
-      // Allow pasting with formatting
+      // Allow pasting with formatting and tables
       matchVisual: false,
+      // Allow table pasting
+      matchers: [
+        ['table', function(node: any, delta: any) {
+          return delta;
+        }]
+      ]
     },
   }), []);
 
@@ -50,8 +124,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     'bold', 'italic', 'underline', 'strike',
     'list', 'bullet', 'indent',
     'align',
-    'link',
+    'link', 'image',
     'color', 'background',
+    'table', 'table-cell-line', 'table-cell', 'table-col', 'table-row',
     'clean'
   ], []);
 
