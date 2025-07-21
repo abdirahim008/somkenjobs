@@ -10,6 +10,8 @@ interface RichTextEditorProps {
   minHeight?: string;
   maxHeight?: string;
   defaultHeight?: string;
+  height?: string; // Add height prop for backwards compatibility
+  required?: boolean; // Add required prop
 }
 
 export const RichTextEditor: React.FC<RichTextEditorProps> = ({
@@ -19,9 +21,13 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   className = "",
   minHeight = "200px",
   maxHeight = "700px",
-  defaultHeight = "350px"
+  defaultHeight = "350px",
+  height, // Accept height prop
+  required = false
 }) => {
-  const [currentHeight, setCurrentHeight] = useState(parseInt(defaultHeight));
+  // Use height prop if provided, otherwise use defaultHeight
+  const initialHeight = height || defaultHeight;
+  const [currentHeight, setCurrentHeight] = useState(parseInt(initialHeight));
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const resizeRef = useRef<HTMLDivElement>(null);
