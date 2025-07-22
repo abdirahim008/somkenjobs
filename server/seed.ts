@@ -7,7 +7,7 @@ export async function seedDatabase(): Promise<void> {
   
   // Create default admin user if not exists
   try {
-    const adminEmail = "admin@jobconnect.com";
+    const adminEmail = "admin@somkenjobs.com";
     const existingAdmin = await storage.getUserByEmail(adminEmail);
     
     if (!existingAdmin) {
@@ -17,7 +17,7 @@ export async function seedDatabase(): Promise<void> {
         password: hashedPassword,
         firstName: "Admin",
         lastName: "User",
-        companyName: "JobConnect East Africa",
+        companyName: "Somken Jobs East Africa",
         jobTitle: "Platform Administrator",
         phoneNumber: "+254700000000",
       };
@@ -31,7 +31,7 @@ export async function seedDatabase(): Promise<void> {
         approvedBy: "System",
       });
       
-      console.log("Default admin user created: admin@jobconnect.com / [SECURE PASSWORD]");
+      console.log("Default admin user created: admin@somkenjobs.com / [SECURE PASSWORD]");
     }
   } catch (error) {
     console.log("Admin user setup skipped (may already exist)")

@@ -946,7 +946,7 @@ export default function Dashboard() {
       country: jobForm.country,
       sector: jobForm.sector || "Other",
       description: jobForm.description,
-      url: jobForm.url || `https://jobconnect.replit.app/jobs/internal-${Date.now()}`,
+      url: jobForm.url || `https://somkenjobs.com/jobs/internal-${Date.now()}`,
       datePosted: jobForm.postingDate ? (() => {
         // If user selected a date, combine it with current time
         const selectedDate = new Date(jobForm.postingDate);
@@ -1472,7 +1472,7 @@ export default function Dashboard() {
                             country: publishedJobData.country,
                             sector: publishedJobData.sector || "Other",
                             description: publishedJobData.description,
-                            url: publishedJobData.url || `https://jobconnect.replit.app/jobs/internal-${Date.now()}`,
+                            url: publishedJobData.url || `https://somkenjobs.com/jobs/internal-${Date.now()}`,
                             datePosted: publishedJobData.postingDate ? (() => {
                               const selectedDate = new Date(publishedJobData.postingDate);
                               const currentTime = new Date();

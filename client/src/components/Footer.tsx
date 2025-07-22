@@ -27,7 +27,7 @@ export default function Footer() {
                 <Briefcase className="text-primary-foreground h-4 w-4" />
               </div>
               <div>
-                <h3 className="font-bold text-primary">JobConnect</h3>
+                <h3 className="font-bold text-primary">Somken Jobs</h3>
                 <p className="text-xs text-muted-foreground">East Africa</p>
               </div>
             </div>
@@ -91,7 +91,7 @@ export default function Footer() {
 
         <div className="border-t border-border mt-8 pt-8 text-center">
           <p className="text-muted-foreground text-sm">
-            © 2024 JobConnect East Africa. All rights reserved.
+            © 2025 Somken Jobs East Africa. All rights reserved.
             <span className="mx-2">•</span>
             Job data sourced from ReliefWeb and UN Jobs
           </p>

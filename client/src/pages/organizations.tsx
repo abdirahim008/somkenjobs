@@ -70,7 +70,7 @@ export default function Organizations() {
         title="Hiring Organizations - Humanitarian Employers in Kenya & Somalia"
         description={`Browse ${organizationStats.length || '50+'} humanitarian organizations currently hiring in Kenya and Somalia. Find opportunities with leading NGOs, UN agencies, and development partners.`}
         keywords="humanitarian organizations hiring, NGOs hiring Kenya, UN agencies Somalia, humanitarian employers East Africa, international development organizations"
-        canonicalUrl="https://jobconnect-eastafrica.replit.app/organizations"
+        canonicalUrl="https://somkenjobs.com/organizations"
       />
       <Header />
       
