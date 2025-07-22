@@ -221,7 +221,9 @@ export default function Dashboard() {
         body: JSON.stringify(jobData),
       });
       if (!response.ok) {
-        throw new Error(`Failed to create job: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error("Server error:", errorText);
+        throw new Error(`Failed to create job: ${response.statusText} - ${errorText}`);
       }
       return response.json();
     },
@@ -446,7 +448,7 @@ export default function Dashboard() {
   }) || [];
 
   // Get unique organizations for filter dropdown
-  const uniqueOrganizations = [...new Set((userJobs as any[])?.map((job: any) => job.organization) || [])].sort();
+  const uniqueOrganizations = Array.from(new Set((userJobs as any[])?.map((job: any) => job.organization) || [])).sort();
 
   // Filter admin jobs based on search term and organization
   const filteredAdminJobs = (allJobs as any[])?.filter((job: any) => {
@@ -463,7 +465,7 @@ export default function Dashboard() {
   }) || [];
 
   // Get unique organizations for admin filter dropdown
-  const uniqueAdminOrganizations = [...new Set((allJobs as any[])?.map((job: any) => job.organization) || [])].sort();
+  const uniqueAdminOrganizations = Array.from(new Set((allJobs as any[])?.map((job: any) => job.organization) || [])).sort();
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
@@ -2366,12 +2368,16 @@ export default function Dashboard() {
                               onClick={() => {
                                 setJobForm({
                                   title: job.title,
+                                  jobNumber: (job as any).jobNumber || '',
                                   organization: job.organization,
                                   location: job.location,
+                                  country: job.country,
+                                  sector: job.sector || '',
                                   description: job.description,
                                   qualifications: job.qualifications || '',
+                                  experience: job.experience || '',
                                   howToApply: job.howToApply || '',
-                                  deadline: job.deadline ? new Date(job.deadline).toISOString().split('T')[0] : getTodaysDate(),
+                                  deadline: job.deadline ? new Date(job.deadline).toISOString().split('T')[0] : '',
                                   url: job.url || '',
                                   status: (job as any).status || 'published',
                                   type: (job as any).type || 'job',
