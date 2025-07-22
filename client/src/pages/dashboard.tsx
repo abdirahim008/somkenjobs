@@ -960,7 +960,7 @@ export default function Dashboard() {
       howToApply: jobForm.howToApply,
       experience: jobForm.experience,
       qualifications: jobForm.qualifications,
-      status: jobForm.status, // Include status field
+      status: editingJob ? jobForm.status : 'draft', // Force draft for new jobs, use form status for edits
       type: jobForm.type, // Include type field
       attachmentUrl: jobForm.attachmentUrl, // Include attachment URL
       bodyHtml: `
@@ -983,7 +983,7 @@ export default function Dashboard() {
         jobData
       });
     } else {
-      // Create new job
+      // Create new job as draft
       createJobMutation.mutate(jobData);
     }
   };
@@ -1440,23 +1440,74 @@ export default function Dashboard() {
                       }
                     </LoadingButton>
                     
-                    {!editingJob && jobForm.status === 'draft' && (
-                      <Button 
+                    {!editingJob && (
+                      <LoadingButton 
                         type="button"
                         variant="outline"
                         className="w-full"
-                        onClick={() => {
-                          setJobForm({ ...jobForm, status: 'published' });
-                          const form = document.querySelector('form');
-                          if (form) {
-                            const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-                            form.dispatchEvent(submitEvent);
+                        loading={createJobMutation.isPending}
+                        loadingText="Publishing..."
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          
+                          // Validate required fields
+                          if (!jobForm.title || !jobForm.organization || !jobForm.location || !jobForm.country) {
+                            toast({
+                              title: "Error",
+                              description: "Please fill in all required fields",
+                              variant: "destructive",
+                            });
+                            return;
                           }
+
+                          // Set status to published and submit
+                          const publishedJobData = { ...jobForm, status: 'published' };
+                          
+                          // Build job data for submission
+                          const jobData = {
+                            title: publishedJobData.title,
+                            jobNumber: publishedJobData.jobNumber,
+                            organization: publishedJobData.organization,
+                            location: publishedJobData.location,
+                            country: publishedJobData.country,
+                            sector: publishedJobData.sector || "Other",
+                            description: publishedJobData.description,
+                            url: publishedJobData.url || `https://jobconnect.replit.app/jobs/internal-${Date.now()}`,
+                            datePosted: publishedJobData.postingDate ? (() => {
+                              const selectedDate = new Date(publishedJobData.postingDate);
+                              const currentTime = new Date();
+                              selectedDate.setHours(currentTime.getHours(), currentTime.getMinutes(), currentTime.getSeconds(), currentTime.getMilliseconds());
+                              return selectedDate;
+                            })() : new Date(),
+                            source: "Internal",
+                            externalId: `internal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                            deadline: publishedJobData.deadline ? new Date(publishedJobData.deadline) : null,
+                            howToApply: publishedJobData.howToApply,
+                            experience: publishedJobData.experience,
+                            qualifications: publishedJobData.qualifications,
+                            status: 'published', // Force published status
+                            type: publishedJobData.type,
+                            attachmentUrl: publishedJobData.attachmentUrl,
+                            bodyHtml: `
+                              <div>
+                                <h3>${publishedJobData.type === 'tender' ? 'Tender Description' : 'Job Description'}</h3>
+                                <p>${publishedJobData.description.replace(/\n/g, '<br>')}</p>
+                                ${publishedJobData.qualifications ? `
+                                  <h3>Qualifications & Requirements</h3>
+                                  <p>${publishedJobData.qualifications.replace(/\n/g, '<br>')}</p>
+                                ` : ''}
+                                <h3>How to Apply</h3>
+                                <p>${publishedJobData.howToApply.replace(/\n/g, '<br>')}</p>
+                              </div>
+                            `.trim(),
+                          };
+
+                          // Submit directly with published status
+                          createJobMutation.mutate(jobData);
                         }}
-                        disabled={createJobMutation.isPending}
                       >
                         Create & Publish Job
-                      </Button>
+                      </LoadingButton>
                     )}
                   </div>
                 </form>
