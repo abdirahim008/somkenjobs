@@ -662,8 +662,7 @@ export default function JobDetails() {
                       size="sm"
                       className="w-full mt-3 bg-[#0077B5] hover:bg-[#005885] text-white"
                       onClick={() => {
-                        // In a real implementation, this would download the actual file
-                        window.open(`/attachments/${job.attachmentUrl}`, '_blank');
+                        window.open(`/download/${job.attachmentUrl}`, '_blank');
                       }}
                     >
                       Download
@@ -926,8 +925,7 @@ export default function JobDetails() {
                         size="sm"
                         className="text-[#0077B5] border-[#0077B5] hover:bg-[#0077B5] hover:text-white"
                         onClick={() => {
-                          // In a real implementation, this would download the actual file
-                          window.open(`/attachments/${job.attachmentUrl}`, '_blank');
+                          window.open(`/download/${job.attachmentUrl}`, '_blank');
                         }}
                       >
                         Download

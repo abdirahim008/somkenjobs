@@ -1164,6 +1164,31 @@ ${jobUrls}
     }
   });
 
+  // Download route for job attachments
+  app.get('/download/:filename', async (req, res) => {
+    try {
+      const filename = req.params.filename;
+      
+      // In a real implementation, you would:
+      // 1. Validate the filename and check user permissions
+      // 2. Serve the actual file from secure storage (AWS S3, Google Cloud, etc.)
+      // 3. Log download activity for security
+      
+      // For development, we'll simulate file download since we only store filenames
+      // Set appropriate headers for file download
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      
+      // Placeholder content for development
+      const placeholderContent = `This is a placeholder for file: ${filename}\n\nIn production, this would download the actual file from secure storage.`;
+      
+      res.send(placeholderContent);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      res.status(404).json({ message: 'File not found' });
+    }
+  });
+
   // Serve robots.txt file
   app.get('/robots.txt', (req, res) => {
     res.setHeader('Content-Type', 'text/plain');
