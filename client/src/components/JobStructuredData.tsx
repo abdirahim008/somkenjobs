@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { type Job } from "@shared/schema";
 import { generateJobSlug } from "@shared/utils";
 
