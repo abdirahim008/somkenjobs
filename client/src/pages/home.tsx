@@ -68,9 +68,9 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead 
-        title="Jobs in Somalia & Kenya | Somken Jobs - Humanitarian Careers"
-        description={`Find ${data?.stats.totalJobs || '100+'} jobs in Somalia and Kenya with leading humanitarian organizations. Browse NGO positions, UN jobs, and development careers from ${data?.stats.organizations || '50+'} employers. Updated daily from ReliefWeb.`}
-        keywords="jobs in Somalia, jobs in Kenya, humanitarian jobs Somalia, NGO jobs Kenya, UN careers Somalia, development jobs Kenya, aid worker positions, international jobs East Africa, ReliefWeb jobs"
+        title="Jobs in Somalia & Kenya - 300+ Humanitarian Career Opportunities | Somken Jobs"
+        description={`Discover ${data?.stats.totalJobs || '300+'} humanitarian jobs in Somalia and Kenya with leading NGOs, UN agencies, and development organizations. Find careers in Nairobi, Mogadishu, and across East Africa. Updated daily from ReliefWeb with comprehensive job listings from WHO, UNHCR, Save the Children, and ${data?.stats.organizations || '150+'} employers.`}
+        keywords="jobs in Somalia, jobs in Kenya, humanitarian jobs Somalia, NGO jobs Kenya, UN careers Somalia, development jobs Kenya, aid worker positions, international jobs East Africa, ReliefWeb jobs, Nairobi jobs, Mogadishu jobs, WHO careers, UNHCR jobs, Save the Children jobs"
         canonicalUrl="https://somkenjobs.com/"
       />
       {/* Add structured data for job postings */}
@@ -83,8 +83,8 @@ export default function Home() {
       <section className="bg-[#0077B5] text-white py-12">
         <div className="max-w-full mx-auto px-2 sm:px-4 lg:px-6">
           <div className="text-center mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold mb-4">
-              Jobs in Somalia & Kenya - Humanitarian Careers
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+              Find Jobs in Somalia & Kenya - 300+ Humanitarian Career Opportunities
             </h1>
             <p className="text-white/90 text-lg max-w-4xl mx-auto">
               Find jobs in Somalia and Kenya with leading NGOs, UN agencies, and humanitarian organizations. Browse {data?.stats.totalJobs || '100+'} current opportunities updated daily from ReliefWeb.
@@ -226,36 +226,89 @@ export default function Home() {
         </div>
       </main>
 
-      {/* SEO Content Section */}
-      <section className="bg-gray-50 py-12">
+      {/* SEO Content Section - Enhanced for Better SEO */}
+      <section className="bg-gray-50 py-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-6">
               Leading Job Board for Somalia & Kenya
             </h2>
-            <p className="text-gray-600 max-w-3xl mx-auto">
-              Somken Jobs is the premier platform for finding humanitarian and development opportunities in Somalia and Kenya. We aggregate positions from top NGOs, UN agencies, and international organizations.
+            <p className="text-gray-600 max-w-4xl mx-auto text-lg leading-relaxed">
+              Somken Jobs is the premier platform for finding humanitarian and development opportunities in Somalia and Kenya. We aggregate positions from top NGOs, UN agencies, and international organizations, providing comprehensive access to career opportunities across East Africa.
             </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Jobs in Somalia</h3>
-              <p className="text-gray-600 text-sm">
-                Find the latest humanitarian jobs in Somalia including positions in Mogadishu, Hargeisa, and other major cities. We feature opportunities from UNHCR, WHO, Save the Children, and more.
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Jobs in Somalia</h3>
+              <p className="text-gray-600 mb-4">
+                Find the latest humanitarian jobs in Somalia including positions in Mogadishu, Hargeisa, Kismayo, and other major cities. We feature opportunities from UNHCR, WHO, Save the Children, World Food Programme, and leading international organizations.
               </p>
+              <a href="/jobs?country=Somalia" className="text-blue-600 hover:text-blue-800 font-medium">
+                Browse Somalia Jobs →
+              </a>
             </div>
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Jobs in Kenya</h3>
-              <p className="text-gray-600 text-sm">
-                Discover career opportunities in Kenya with international NGOs and development organizations. Browse jobs in Nairobi, Mombasa, Kisumu, and across the country.
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Jobs in Kenya</h3>
+              <p className="text-gray-600 mb-4">
+                Discover career opportunities in Kenya with international NGOs and development organizations. Browse jobs in Nairobi, Mombasa, Kisumu, Eldoret, and across the country with top humanitarian employers.
               </p>
+              <a href="/jobs?country=Kenya" className="text-blue-600 hover:text-blue-800 font-medium">
+                Browse Kenya Jobs →
+              </a>
             </div>
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Updated Daily</h3>
-              <p className="text-gray-600 text-sm">
-                Our job listings are updated twice daily from ReliefWeb and other trusted sources, ensuring you never miss new opportunities in the humanitarian sector.
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Updated Daily</h3>
+              <p className="text-gray-600 mb-4">
+                Our job listings are updated twice daily from ReliefWeb and other trusted sources, ensuring you never miss new opportunities in the humanitarian sector. Get alerts for new positions matching your skills.
               </p>
+              <a href="/career-resources" className="text-blue-600 hover:text-blue-800 font-medium">
+                Career Resources →
+              </a>
+            </div>
+          </div>
+
+          {/* Popular Categories */}
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Popular Job Categories</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              <a href="/jobs?sector=Health" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
+                <h4 className="font-semibold text-gray-900 text-sm">Health</h4>
+              </a>
+              <a href="/jobs?sector=Education" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
+                <h4 className="font-semibold text-gray-900 text-sm">Education</h4>
+              </a>
+              <a href="/jobs?sector=Protection" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
+                <h4 className="font-semibold text-gray-900 text-sm">Protection</h4>
+              </a>
+              <a href="/jobs?sector=Food%20Security" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
+                <h4 className="font-semibold text-gray-900 text-sm">Food Security</h4>
+              </a>
+              <a href="/jobs?sector=WASH" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
+                <h4 className="font-semibold text-gray-900 text-sm">WASH</h4>
+              </a>
+              <a href="/jobs?sector=Emergency" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
+                <h4 className="font-semibold text-gray-900 text-sm">Emergency</h4>
+              </a>
+            </div>
+          </div>
+
+          {/* Quick Links */}
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Explore More</h2>
+            <div className="flex flex-wrap justify-center gap-4">
+              <a href="/tenders" className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                View Tenders
+              </a>
+              <a href="/about" className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors font-medium">
+                About Us
+              </a>
+              <a href="/contact" className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors font-medium">
+                Contact
+              </a>
+              <a href="/career-resources" className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors font-medium">
+                Career Tips
+              </a>
             </div>
           </div>
         </div>
