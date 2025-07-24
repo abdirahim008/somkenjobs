@@ -20,19 +20,10 @@ export default function JobDetails() {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const jobId = params?.id;
 
-  // Debug logging
-  console.log("JobDetails Debug:", { match, params, jobId });
-
   // Scroll to top when component mounts or job ID changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [jobId]);
-
-  // Early return for debugging
-  if (!match) {
-    console.log("No match found for route");
-    return <div>No route match</div>;
-  }
 
   const { data: job, isLoading, error } = useQuery<Job>({
     queryKey: [`/api/jobs/${jobId}`],

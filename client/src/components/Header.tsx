@@ -1,8 +1,8 @@
+import React, { useState } from "react";
 import { Briefcase, Menu, User, LayoutDashboard, LogOut, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useLocation } from "wouter";
-import { useState } from "react";
 import UserMenu from "./UserMenu";
 import AuthModal from "./AuthModal";
 import { useAuth } from "@/hooks/useAuth";
