@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { Building2, MapPin, Calendar, ExternalLink, Bookmark, Briefcase, FileText, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
