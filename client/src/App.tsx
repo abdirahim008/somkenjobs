@@ -10,6 +10,7 @@ import Tenders from "@/pages/tenders";
 import JobDetails from "@/pages/job-details";
 import About from "@/pages/about";
 import Contact from "@/pages/contact";
+import TestComponent from "@/test-component";
 
 import CareerResources from "@/pages/career-resources";
 import HelpCenter from "@/pages/help-center";
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/jobs" component={Jobs} />
       <Route path="/tenders" component={Tenders} />
       <Route path="/jobs/:id" component={JobDetails} />
+      <Route path="/test" component={TestComponent} />
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
 
