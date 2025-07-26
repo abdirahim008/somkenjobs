@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Image, Table, Minus, Grid, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -14,17 +14,17 @@ interface SimpleRichTextEditorProps {
   required?: boolean;
 }
 
-export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
+export const SimpleRichTextEditor = ({
   value,
   onChange,
   placeholder = "Enter text...",
   className = "",
   minHeight = "200px",
-  maxHeight = "700px",
+  maxHeight = "700px", 
   defaultHeight = "350px",
   height,
   required = false
-}) => {
+}: SimpleRichTextEditorProps) => {
   const initialHeight = height || defaultHeight;
   const [currentHeight, setCurrentHeight] = useState(parseInt(initialHeight));
   const [isResizing, setIsResizing] = useState(false);

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import 'react-quill/dist/quill.snow.css';
 
 // Dynamic import of ReactQuill to fix SSR/import issues
@@ -410,7 +410,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   }, [currentHeight, minHeight, maxHeight]);
 
   // Effect to make existing images resizable when component mounts or value changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (containerRef.current) {
       const images = containerRef.current.querySelectorAll('img');
       images.forEach((img) => {
@@ -449,7 +449,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     <div className={`rich-text-editor ${isResizing ? 'resizing' : ''}`} ref={containerRef}>
       <div className="relative">
         <ReactQuill
-          ref={(el) => {
+          ref={(el: any) => {
             console.log('ReactQuill ref callback:', el);
             if (el && el.getEditor() !== quillRef) {
               setQuillRef(el.getEditor());

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronDown, Plus } from "lucide-react";
@@ -10,12 +10,12 @@ interface SectorAutocompleteProps {
   required?: boolean;
 }
 
-export const SectorAutocomplete: React.FC<SectorAutocompleteProps> = ({
+export const SectorAutocomplete = ({
   value,
   onChange,
   placeholder = "Type to search sectors...",
   required = false,
-}) => {
+}: SectorAutocompleteProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [sectors, setSectors] = useState<string[]>([]);
