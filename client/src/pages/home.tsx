@@ -10,6 +10,7 @@ import JobStructuredData from "@/components/JobStructuredData";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Grid, List, RefreshCw } from "lucide-react";
+import { useLocation } from "wouter";
 import { type Job } from "@shared/schema";
 
 interface JobsResponse {
@@ -35,6 +36,7 @@ interface Filters {
 }
 
 export default function Home() {
+  const [, setLocation] = useLocation();
   const [filters, setFilters] = useState<Filters>({
     country: [],
     organization: [],
@@ -95,6 +97,43 @@ export default function Home() {
             <SearchBar onSearch={handleSearch} />
           </div>
 
+          {/* Quick Navigation Links */}
+          <div className="flex justify-center space-x-6 mt-6 text-sm">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-white/10 text-white border-white/30 hover:bg-white/20"
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                setLocation('/jobs');
+              }}
+            >
+              Browse All Jobs
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-white/10 text-white border-white/30 hover:bg-white/20"
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                setLocation('/tenders');
+              }}
+            >
+              View Tenders
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-white/10 text-white border-white/30 hover:bg-white/20"
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                setLocation('/career-resources');
+              }}
+            >
+              Career Guide
+            </Button>
+          </div>
+
           {/* Quick Stats */}
           <div className="flex justify-center space-x-8 mt-8 text-sm">
             <div className="text-center">
@@ -135,6 +174,48 @@ export default function Home() {
             {/* Results Header */}
             <div className="mb-6">
               <h2 className="text-xl font-semibold mb-4">Latest Job Opportunities</h2>
+              
+              {/* Quick Links Section */}
+              <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                <h3 className="text-sm font-semibold text-blue-900 mb-2">Popular Searches</h3>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    className="h-6 p-1 text-blue-700 hover:text-blue-900"
+                    onClick={() => setFilters(prev => ({ ...prev, country: ['Kenya'] }))}
+                  >
+                    Jobs in Kenya
+                  </Button>
+                  <span className="text-gray-400">•</span>
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    className="h-6 p-1 text-blue-700 hover:text-blue-900"
+                    onClick={() => setFilters(prev => ({ ...prev, country: ['Somalia'] }))}
+                  >
+                    Jobs in Somalia  
+                  </Button>
+                  <span className="text-gray-400">•</span>
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    className="h-6 p-1 text-blue-700 hover:text-blue-900"
+                    onClick={() => setFilters(prev => ({ ...prev, sector: ['Health'] }))}
+                  >
+                    Health Jobs
+                  </Button>
+                  <span className="text-gray-400">•</span>
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    className="h-6 p-1 text-blue-700 hover:text-blue-900"
+                    onClick={() => setFilters(prev => ({ ...prev, sector: ['Protection'] }))}
+                  >
+                    Protection Jobs
+                  </Button>
+                </div>
+              </div>
               
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <p className="text-muted-foreground text-sm">

@@ -27,7 +27,7 @@ export default function Contact() {
       <section className="bg-gradient-to-br from-primary/10 to-primary/5 py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl font-bold text-foreground mb-6">
-            Contact Us
+            Contact Somken Jobs - Get Help & Support
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Get in touch with the Somken Jobs team. We're here to help you 

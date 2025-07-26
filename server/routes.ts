@@ -69,6 +69,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Start the job scheduler
   jobFetcher.startScheduler();
 
+  // 301 Redirects for SEO - Handle old URL patterns
+  app.get("/help-center", (req, res) => {
+    res.redirect(301, "/help");
+  });
+  
+  app.get("/privacy-policy", (req, res) => {
+    res.redirect(301, "/privacy");
+  });
+  
+  app.get("/terms-of-service", (req, res) => {
+    res.redirect(301, "/terms");
+  });
+  
+  app.get("/career-guide", (req, res) => {
+    res.redirect(301, "/career-resources");
+  });
+  
+  app.get("/job-board", (req, res) => {
+    res.redirect(301, "/jobs");
+  });
+  
+  app.get("/humanitarian-jobs", (req, res) => {
+    res.redirect(301, "/jobs");
+  });
+  
+  app.get("/ngo-jobs", (req, res) => {
+    res.redirect(301, "/jobs");
+  });
+
   // Authentication routes
   app.post("/api/auth/register", async (req, res) => {
     try {
@@ -1087,7 +1116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate job URLs
       const jobUrls = jobs.map(job => {
         const jobSlug = generateJobSlug(job.title, job.id);
-        const lastModified = job.updatedAt ? new Date(job.updatedAt).toISOString() : new Date(job.datePosted).toISOString();
+        const lastModified = new Date(job.datePosted).toISOString();
         
         return `  <url>
     <loc>https://somkenjobs.com/jobs/${jobSlug}</loc>

@@ -168,6 +168,20 @@ export default function Jobs() {
       
       <Header />
       
+      {/* Hero Section */}
+      <section className="bg-[#0077B5] text-white py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h1 className="text-3xl md:text-4xl font-bold mb-4">
+              Jobs in Somalia & Kenya - Browse All Opportunities
+            </h1>
+            <p className="text-white/90 text-lg max-w-3xl mx-auto">
+              Browse {jobs.length || '300+'} current job opportunities in Somalia, Kenya and across East Africa with leading humanitarian organizations.
+            </p>
+          </div>
+        </div>
+      </section>
+      
       <main className="main-container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Search Section */}
         <section className="py-6">

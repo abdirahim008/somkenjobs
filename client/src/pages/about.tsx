@@ -26,7 +26,7 @@ export default function About() {
       <section className="bg-gradient-to-br from-primary/10 to-primary/5 py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl font-bold text-foreground mb-6">
-            About Somken Jobs
+            About Somken Jobs - Leading Job Board for Somalia & Kenya
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Your gateway to humanitarian careers in Kenya and Somalia.
