@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Image, Table, Minus, Grid, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -30,34 +30,83 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
   const [isResizing, setIsResizing] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const savedSelectionRef = useRef<{ range: Range | null, selection: Selection | null }>({ range: null, selection: null });
 
-  const execCommand = (command: string, value?: string) => {
-    document.execCommand(command, false, value);
-    editorRef.current?.focus();
-  };
-
-  const handleInput = () => {
-    if (editorRef.current) {
-      const content = editorRef.current.innerHTML;
-      onChange(content);
-      
-      // Make any new images interactive
-      editorRef.current.querySelectorAll('img').forEach(img => {
-        if (!img.dataset.interactive) {
-          img.dataset.interactive = 'true';
-          makeImageInteractive(img as HTMLImageElement);
-        }
-      });
-
-      // Make any new tables interactive
-      editorRef.current.querySelectorAll('table').forEach(table => {
-        if (!table.dataset.interactive) {
-          table.dataset.interactive = 'true';
-          makeTableInteractive(table as HTMLTableElement);
-        }
-      });
+  // Save cursor position
+  const saveCursorPosition = () => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      savedSelectionRef.current = {
+        range: selection.getRangeAt(0).cloneRange(),
+        selection: selection
+      };
     }
   };
+
+  // Restore cursor position
+  const restoreCursorPosition = () => {
+    if (savedSelectionRef.current.range && editorRef.current) {
+      try {
+        const selection = window.getSelection();
+        if (selection) {
+          selection.removeAllRanges();
+          selection.addRange(savedSelectionRef.current.range);
+        }
+      } catch (error) {
+        // If restoring fails, just focus the editor
+        editorRef.current.focus();
+      }
+    }
+  };
+
+  const execCommand = (command: string, value?: string) => {
+    saveCursorPosition();
+    document.execCommand(command, false, value);
+    editorRef.current?.focus();
+    // Small delay to ensure DOM is updated before restoring position
+    setTimeout(restoreCursorPosition, 0);
+  };
+
+  const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
+    if (editorRef.current) {
+      const content = editorRef.current.innerHTML;
+      
+      // Only call onChange if content actually changed
+      if (content !== value) {
+        onChange(content);
+        
+        // Make any new images/tables interactive without affecting cursor
+        requestAnimationFrame(() => {
+          if (editorRef.current) {
+            editorRef.current.querySelectorAll('img').forEach(img => {
+              if (!img.dataset.interactive) {
+                img.dataset.interactive = 'true';
+                makeImageInteractive(img as HTMLImageElement);
+              }
+            });
+
+            editorRef.current.querySelectorAll('table').forEach(table => {
+              if (!table.dataset.interactive) {
+                table.dataset.interactive = 'true';
+                makeTableInteractive(table as HTMLTableElement);
+              }
+            });
+          }
+        });
+      }
+    }
+  };
+
+  // Update editor content when value prop changes but preserve cursor
+  useEffect(() => {
+    if (editorRef.current && value !== undefined) {
+      const currentContent = editorRef.current.innerHTML;
+      // Only update if there's a significant difference and we're not currently focused
+      if (currentContent !== value && document.activeElement !== editorRef.current) {
+        editorRef.current.innerHTML = value || '';
+      }
+    }
+  }, [value]);
 
   const insertTable = () => {
     const tableId = `table_${Date.now()}`;
@@ -730,6 +779,14 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
         ref={editorRef}
         contentEditable
         onInput={handleInput}
+        onKeyDown={(e) => {
+          // For special formatting keys, prevent default and handle manually
+          if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'i' || e.key === 'u')) {
+            e.preventDefault();
+            const command = e.key === 'b' ? 'bold' : e.key === 'i' ? 'italic' : 'underline';
+            execCommand(command);
+          }
+        }}
         dangerouslySetInnerHTML={{ __html: value || '' }}
         style={{
           border: '1px solid #e5e7eb',
