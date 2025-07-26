@@ -417,8 +417,8 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
         const imgHTML = `
           <div class="image-container" style="position: relative; display: inline-block; margin: 10px 0; min-height: 50px;">
             <img id="${imgId}" src="${result}" alt="Uploaded image" 
-                 style="max-width: 300px; height: auto; border: 2px solid transparent; border-radius: 4px; cursor: pointer; display: block; user-select: none;" 
-                 draggable="true" />
+                 style="max-width: 300px; width: 300px; height: auto; border: 2px solid transparent; border-radius: 4px; cursor: pointer; display: block; user-select: none;" 
+                 draggable="false" />
           </div>
         `;
         execCommand('insertHTML', imgHTML);
@@ -458,11 +458,20 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
     // Create resize handles
     const createResizeHandles = () => {
       const container = img.parentElement;
-      if (!container) return;
+      if (!container) {
+        console.log('No container found for image');
+        return;
+      }
+
+      console.log('Creating resize handles for image in container:', container);
 
       // Remove existing handles
-      container.querySelectorAll('.resize-handle').forEach(handle => handle.remove());
+      container.querySelectorAll('.resize-handle, .image-delete-btn').forEach(handle => handle.remove());
 
+      // Ensure container positioning
+      container.style.position = 'relative';
+      container.style.display = 'inline-block';
+      
       // Create corner handles
       const positions = ['nw', 'ne', 'sw', 'se'];
       positions.forEach(pos => {
@@ -470,22 +479,24 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
         handle.className = `resize-handle resize-${pos}`;
         handle.style.cssText = `
           position: absolute;
-          width: 8px;
-          height: 8px;
+          width: 10px;
+          height: 10px;
           background: #0077B5;
-          border: 1px solid white;
+          border: 2px solid white;
           border-radius: 50%;
           cursor: ${pos.includes('n') ? (pos.includes('w') ? 'nw' : 'ne') : (pos.includes('w') ? 'sw' : 'se')}-resize;
           z-index: 1000;
-          display: ${isSelected ? 'block' : 'none'};
+          display: block;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.3);
         `;
         
-        // Position handles
-        if (pos.includes('n')) handle.style.top = '-4px';
-        if (pos.includes('s')) handle.style.bottom = '-4px';
-        if (pos.includes('w')) handle.style.left = '-4px';
-        if (pos.includes('e')) handle.style.right = '-4px';
+        // Position handles at corners
+        if (pos.includes('n')) handle.style.top = '-5px';
+        if (pos.includes('s')) handle.style.bottom = '-5px';
+        if (pos.includes('w')) handle.style.left = '-5px';
+        if (pos.includes('e')) handle.style.right = '-5px';
 
+        console.log(`Adding ${pos} handle to container`);
         container.appendChild(handle);
 
         // Add resize functionality
@@ -528,21 +539,22 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
       deleteBtn.innerHTML = '×';
       deleteBtn.style.cssText = `
         position: absolute;
-        top: -8px;
-        right: -8px;
-        width: 20px;
-        height: 20px;
+        top: -10px;
+        right: -10px;
+        width: 22px;
+        height: 22px;
         background: #dc2626;
         color: white;
         border-radius: 50%;
         cursor: pointer;
-        display: ${isSelected ? 'flex' : 'none'};
+        display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 14px;
+        font-size: 16px;
         font-weight: bold;
         z-index: 1001;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        border: 2px solid white;
       `;
       
       deleteBtn.addEventListener('click', (e) => {
@@ -553,6 +565,7 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
         }
       });
       
+      console.log('Adding delete button to container');
       container.appendChild(deleteBtn);
     };
 
@@ -680,15 +693,22 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
       }, 100);
     });
 
-    // Drag functionality
-    img.addEventListener('dragstart', (e) => {
-      isDragging = true;
-      e.dataTransfer?.setData('text/html', img.outerHTML);
-    });
+    // Improved drag functionality - make container draggable instead
+    const imageContainer = img.parentElement;
+    if (imageContainer) {
+      imageContainer.draggable = true;
+      imageContainer.addEventListener('dragstart', (e) => {
+        isDragging = true;
+        if (e.dataTransfer) {
+          e.dataTransfer.setData('text/html', imageContainer.outerHTML);
+          e.dataTransfer.effectAllowed = 'move';
+        }
+      });
 
-    img.addEventListener('dragend', () => {
-      isDragging = false;
-    });
+      imageContainer.addEventListener('dragend', () => {
+        isDragging = false;
+      });
+    }
 
     // Initial setup - don't create handles by default, only on selection
     // createResizeHandles();
