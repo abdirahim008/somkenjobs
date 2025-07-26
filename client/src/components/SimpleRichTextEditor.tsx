@@ -103,6 +103,7 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
           if (editorRef.current) {
             editorRef.current.querySelectorAll('img').forEach(img => {
               if (!img.dataset.interactive) {
+                console.log('Making image interactive:', img);
                 img.dataset.interactive = 'true';
                 makeImageInteractive(img as HTMLImageElement);
               }
@@ -299,10 +300,12 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
       controlPanel.appendChild(deleteBtn);
 
       // Position container relatively
-      if (container.style.position !== 'relative') {
+      if (container && container.style.position !== 'relative') {
         container.style.position = 'relative';
       }
-      container.appendChild(controlPanel);
+      if (container) {
+        container.appendChild(controlPanel);
+      }
     };
 
     // Table selection
@@ -412,21 +415,23 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
         const result = e.target?.result as string;
         const imgId = `img_${Date.now()}`;
         const imgHTML = `
-          <div class="image-container" style="position: relative; display: inline-block; margin: 10px 0;">
+          <div class="image-container" style="position: relative; display: inline-block; margin: 10px 0; min-height: 50px;">
             <img id="${imgId}" src="${result}" alt="Uploaded image" 
-                 style="max-width: 300px; height: auto; border: 2px solid transparent; border-radius: 4px; cursor: move; display: block;" 
+                 style="max-width: 300px; height: auto; border: 2px solid transparent; border-radius: 4px; cursor: pointer; display: block; user-select: none;" 
                  draggable="true" />
           </div>
         `;
         execCommand('insertHTML', imgHTML);
         
-        // Add event listeners after insertion
+        // Add event listeners after insertion with delay to ensure DOM is updated
         setTimeout(() => {
           const img = document.getElementById(imgId);
           if (img) {
+            console.log('Making uploaded image interactive:', img);
+            img.dataset.interactive = 'true';
             makeImageInteractive(img as HTMLImageElement);
           }
-        }, 100);
+        }, 200);
       };
       reader.readAsDataURL(file);
     }
@@ -443,6 +448,12 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
     let startY = 0;
     let startWidth = 0;
     let isDragging = false;
+    
+    // Ensure the container has proper positioning
+    const container = img.parentElement;
+    if (container && container.style.position !== 'relative') {
+      container.style.position = 'relative';
+    }
 
     // Create resize handles
     const createResizeHandles = () => {
@@ -545,12 +556,14 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
       container.appendChild(deleteBtn);
     };
 
-    // Image selection
-    img.addEventListener('click', (e) => {
+    // Image selection - fix event handling
+    const handleImageClick = (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
       
-      // Clear other selections
+      console.log('Image clicked, current selection:', isSelected);
+      
+      // Clear other selections first
       editorRef.current?.querySelectorAll('img').forEach(otherImg => {
         if (otherImg !== img) {
           otherImg.style.border = '2px solid transparent';
@@ -563,11 +576,15 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
         }
       });
       
+      // Toggle selection state
       isSelected = !isSelected;
       img.style.border = isSelected ? '2px solid #0077B5' : '2px solid transparent';
       
+      console.log('Image selection toggled to:', isSelected);
+      
       if (isSelected) {
         createResizeHandles();
+        console.log('Resize handles created');
       } else {
         const container = img.parentElement;
         if (container) {
@@ -576,6 +593,12 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
           });
         }
       }
+    };
+    
+    img.addEventListener('click', handleImageClick);
+    img.addEventListener('mousedown', (e) => {
+      // Prevent text selection when clicking on image
+      e.preventDefault();
     });
 
     // Context menu for image sizing
@@ -667,8 +690,8 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
       isDragging = false;
     });
 
-    // Initial setup
-    createResizeHandles();
+    // Initial setup - don't create handles by default, only on selection
+    // createResizeHandles();
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
