@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
 import { ArrowLeft, Calendar, MapPin, Building2, ExternalLink, Clock, Users, ChevronDown, ChevronUp, Briefcase, FileText, Share2 } from "lucide-react";
 import { FaFacebook, FaWhatsapp, FaTwitter, FaLinkedin } from "react-icons/fa";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -568,8 +568,8 @@ export default function JobDetails() {
           canonicalUrl={`https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`}
           jobLocation={job.location}
           jobOrganization={job.organization}
-          jobDeadline={job.deadline ? formatDeadline(job.deadline) : undefined}
-          jobSector={job.sector || undefined}
+          jobDeadline={job.deadline ? formatDeadline(job.deadline) : null}
+          jobSector={job.sector}
           jobCountry={job.country}
           jobPostedDate={new Date(job.datePosted).toISOString()}
         />
