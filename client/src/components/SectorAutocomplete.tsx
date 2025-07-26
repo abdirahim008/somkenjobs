@@ -10,12 +10,12 @@ interface SectorAutocompleteProps {
   required?: boolean;
 }
 
-export const SectorAutocomplete = ({
+export const SectorAutocomplete: React.FC<SectorAutocompleteProps> = ({
   value,
   onChange,
   placeholder = "Type to search sectors...",
   required = false,
-}: SectorAutocompleteProps) => {
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [sectors, setSectors] = useState<string[]>([]);
