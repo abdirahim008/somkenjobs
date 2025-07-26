@@ -1,5 +1,7 @@
 import { createRoot } from "react-dom/client";
-import TestApp from "./TestApp";
-import "./index.css";
 
-createRoot(document.getElementById("root")!).render(<TestApp />);
+function App() {
+  return <h1>Test App Works</h1>;
+}
+
+createRoot(document.getElementById("root")!).render(<App />);
