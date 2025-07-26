@@ -431,6 +431,7 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
       min-width: 200px;
       min-height: 100px;
       table-layout: fixed;
+      border-spacing: 0;
     `;
     
     // Style all cells and make them resizable
@@ -465,13 +466,16 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
   };
 
   const addCellResizeHandle = (cell: HTMLElement) => {
-    // Create resize handle for column
-    const resizeHandle = document.createElement('div');
-    resizeHandle.className = 'cell-resize-handle';
-    resizeHandle.style.cssText = `
+    // Remove existing handles
+    cell.querySelectorAll('.cell-resize-handle').forEach(handle => handle.remove());
+    
+    // Create column resize handle (right border)
+    const columnHandle = document.createElement('div');
+    columnHandle.className = 'cell-resize-handle column-resize';
+    columnHandle.style.cssText = `
       position: absolute;
       top: 0;
-      right: 0;
+      right: -2px;
       width: 4px;
       height: 100%;
       background: transparent;
@@ -479,31 +483,55 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
       z-index: 10;
     `;
     
-    resizeHandle.addEventListener('mouseenter', () => {
-      resizeHandle.style.background = 'rgba(0, 119, 181, 0.3)';
+    // Create row resize handle (bottom border)
+    const rowHandle = document.createElement('div');
+    rowHandle.className = 'cell-resize-handle row-resize';
+    rowHandle.style.cssText = `
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: transparent;
+      cursor: row-resize;
+      z-index: 10;
+    `;
+    
+    // Hover effects for column handle
+    columnHandle.addEventListener('mouseenter', () => {
+      columnHandle.style.background = 'rgba(0, 119, 181, 0.3)';
     });
     
-    resizeHandle.addEventListener('mouseleave', () => {
-      resizeHandle.style.background = 'transparent';
+    columnHandle.addEventListener('mouseleave', () => {
+      columnHandle.style.background = 'transparent';
     });
     
-    let isResizing = false;
+    // Hover effects for row handle
+    rowHandle.addEventListener('mouseenter', () => {
+      rowHandle.style.background = 'rgba(0, 119, 181, 0.3)';
+    });
+    
+    rowHandle.addEventListener('mouseleave', () => {
+      rowHandle.style.background = 'transparent';
+    });
+    
+    // Column resizing functionality
+    let isResizingColumn = false;
     let startX = 0;
     let startWidth = 0;
     
-    resizeHandle.addEventListener('mousedown', (e) => {
+    columnHandle.addEventListener('mousedown', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      isResizing = true;
+      isResizingColumn = true;
       startX = e.clientX;
       startWidth = cell.offsetWidth;
       
       const handleMouseMove = (e: MouseEvent) => {
-        if (!isResizing) return;
+        if (!isResizingColumn) return;
         
         const deltaX = e.clientX - startX;
         const newWidth = Math.max(50, startWidth + deltaX);
-        cell.style.width = newWidth + 'px';
         
         // Update all cells in the same column
         const table = cell.closest('table');
@@ -514,13 +542,14 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
             const targetCell = row.children[cellIndex] as HTMLElement;
             if (targetCell) {
               targetCell.style.width = newWidth + 'px';
+              targetCell.style.minWidth = newWidth + 'px';
             }
           });
         }
       };
       
       const handleMouseUp = () => {
-        isResizing = false;
+        isResizingColumn = false;
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
       };
@@ -529,7 +558,47 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
       document.addEventListener('mouseup', handleMouseUp);
     });
     
-    cell.appendChild(resizeHandle);
+    // Row resizing functionality
+    let isResizingRow = false;
+    let startY = 0;
+    let startHeight = 0;
+    
+    rowHandle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      isResizingRow = true;
+      startY = e.clientY;
+      startHeight = cell.offsetHeight;
+      
+      const handleMouseMove = (e: MouseEvent) => {
+        if (!isResizingRow) return;
+        
+        const deltaY = e.clientY - startY;
+        const newHeight = Math.max(30, startHeight + deltaY);
+        
+        // Update all cells in the same row
+        const row = cell.parentElement;
+        if (row) {
+          Array.from(row.children).forEach(rowCell => {
+            const htmlCell = rowCell as HTMLElement;
+            htmlCell.style.height = newHeight + 'px';
+            htmlCell.style.minHeight = newHeight + 'px';
+          });
+        }
+      };
+      
+      const handleMouseUp = () => {
+        isResizingRow = false;
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+      
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    });
+    
+    cell.appendChild(columnHandle);
+    cell.appendChild(rowHandle);
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
