@@ -5,7 +5,7 @@ import SearchBar from "@/components/SearchBar";
 import Sidebar from "@/components/Sidebar";
 import JobCard from "@/components/JobCard";
 import Footer from "@/components/Footer";
-import SEOHead from "@/components/SEOHead";
+// import SEOHead from "@/components/SEOHead";
 import JobStructuredData from "@/components/JobStructuredData";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -67,12 +67,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      <SEOHead 
-        title="Jobs in Somalia & Kenya - 300+ Humanitarian Career Opportunities | Somken Jobs"
-        description={`Discover ${data?.stats.totalJobs || '300+'} humanitarian jobs in Somalia and Kenya with leading NGOs, UN agencies, and development organizations. Find careers in Nairobi, Mogadishu, and across East Africa. Updated daily from ReliefWeb with comprehensive job listings from WHO, UNHCR, Save the Children, and ${data?.stats.organizations || '150+'} employers.`}
-        keywords="jobs in Somalia, jobs in Kenya, humanitarian jobs Somalia, NGO jobs Kenya, UN careers Somalia, development jobs Kenya, aid worker positions, international jobs East Africa, ReliefWeb jobs, Nairobi jobs, Mogadishu jobs, WHO careers, UNHCR jobs, Save the Children jobs"
-        canonicalUrl="https://somkenjobs.com/"
-      />
+      {/* SEO component temporarily disabled to fix preamble detection issues */}
       {/* Add structured data for job postings */}
       <JobStructuredData jobs={displayedJobs} />
       <Header />

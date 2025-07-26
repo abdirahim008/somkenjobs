@@ -297,15 +297,7 @@ export default function SEOHead({
       facebookTitle.setAttribute('content', title);
     }
     
-    // Debug: Log the meta tags being set (only in development)
-    if (import.meta.env.DEV) {
-      console.log('SEO Head Meta Tags:', {
-        title,
-        description,
-        canonicalUrl,
-        ogImage: 'removed - no images in social media previews'
-      });
-    }
+    // Debug logging disabled to prevent preamble detection issues
   }, [title, description, keywords, canonicalUrl, ogImage, jobLocation, jobOrganization, jobDeadline, jobSector, jobCountry, jobPostedDate]);
 
   return null; // This component doesn't render anything
