@@ -1,5 +1,5 @@
 import { Briefcase, Menu, User, LayoutDashboard, LogOut, Loader2 } from "lucide-react";
-import { Fragment } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useLocation } from "wouter";
@@ -99,7 +99,7 @@ export default function Header() {
                 {/* Mobile Authentication Options */}
                 <hr className="border-t border-border" />
                 {!isAuthenticated ? (
-                  <Fragment>
+                  <div>
                     <button
                       onClick={() => {
                         setAuthTab("login");
@@ -122,9 +122,9 @@ export default function Header() {
                       <User className="mr-2 h-4 w-4" />
                       Register
                     </button>
-                  </Fragment>
+                  </div>
                 ) : (
-                  <Fragment>
+                  <div>
                     <button
                       onClick={() => handleNavigation("/dashboard", "Dashboard")}
                       className="font-medium transition-colors text-left text-muted-foreground hover:text-foreground flex items-center"
@@ -147,7 +147,7 @@ export default function Header() {
                       )}
                       {isLoggingOut ? "Logging out..." : "Logout"}
                     </button>
-                  </Fragment>
+                  </div>
                 )}
               </nav>
             </SheetContent>
