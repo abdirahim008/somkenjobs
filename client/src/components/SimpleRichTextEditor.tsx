@@ -30,46 +30,69 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
   const [isResizing, setIsResizing] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const savedSelectionRef = useRef<{ range: Range | null, selection: Selection | null }>({ range: null, selection: null });
+  const isUpdatingRef = useRef(false);
+  const lastContentRef = useRef<string>(value || '');
 
-  // Save cursor position
-  const saveCursorPosition = () => {
+  // Get cursor position as offset from start of text content
+  const getCursorOffset = (): number => {
     const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      savedSelectionRef.current = {
-        range: selection.getRangeAt(0).cloneRange(),
-        selection: selection
-      };
-    }
+    if (!selection || !selection.rangeCount || !editorRef.current) return 0;
+    
+    const range = selection.getRangeAt(0);
+    const preCaretRange = range.cloneRange();
+    preCaretRange.selectNodeContents(editorRef.current);
+    preCaretRange.setEnd(range.endContainer, range.endOffset);
+    return preCaretRange.toString().length;
   };
 
-  // Restore cursor position
-  const restoreCursorPosition = () => {
-    if (savedSelectionRef.current.range && editorRef.current) {
-      try {
-        const selection = window.getSelection();
-        if (selection) {
-          selection.removeAllRanges();
-          selection.addRange(savedSelectionRef.current.range);
-        }
-      } catch (error) {
-        // If restoring fails, just focus the editor
-        editorRef.current.focus();
+  // Set cursor position by offset from start of text content
+  const setCursorOffset = (offset: number) => {
+    if (!editorRef.current) return;
+    
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    let currentOffset = 0;
+    const walker = document.createTreeWalker(
+      editorRef.current,
+      NodeFilter.SHOW_TEXT,
+      null
+    );
+
+    let node;
+    while (node = walker.nextNode()) {
+      const textLength = node.textContent?.length || 0;
+      if (currentOffset + textLength >= offset) {
+        const range = document.createRange();
+        range.setStart(node, Math.max(0, offset - currentOffset));
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        return;
       }
+      currentOffset += textLength;
     }
+
+    // If offset is beyond content, place at end
+    const range = document.createRange();
+    range.selectNodeContents(editorRef.current);
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
   };
 
   const execCommand = (command: string, value?: string) => {
-    saveCursorPosition();
+    const cursorOffset = getCursorOffset();
     document.execCommand(command, false, value);
     editorRef.current?.focus();
     // Small delay to ensure DOM is updated before restoring position
-    setTimeout(restoreCursorPosition, 0);
+    setTimeout(() => setCursorOffset(cursorOffset), 0);
   };
 
   const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
-    if (editorRef.current) {
+    if (editorRef.current && !isUpdatingRef.current) {
       const content = editorRef.current.innerHTML;
+      lastContentRef.current = content;
       
       // Only call onChange if content actually changed
       if (content !== value) {
@@ -97,13 +120,35 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
     }
   };
 
+  // Initialize editor content
+  useEffect(() => {
+    if (editorRef.current && !editorRef.current.innerHTML) {
+      editorRef.current.innerHTML = value || '';
+      lastContentRef.current = value || '';
+    }
+  }, []);
+
   // Update editor content when value prop changes but preserve cursor
   useEffect(() => {
-    if (editorRef.current && value !== undefined) {
+    if (editorRef.current && value !== undefined && !isUpdatingRef.current) {
       const currentContent = editorRef.current.innerHTML;
-      // Only update if there's a significant difference and we're not currently focused
-      if (currentContent !== value && document.activeElement !== editorRef.current) {
+      // Only update if there's a significant difference
+      if (currentContent !== value && lastContentRef.current !== value) {
+        const wasFocused = document.activeElement === editorRef.current;
+        const cursorOffset = wasFocused ? getCursorOffset() : 0;
+        
+        isUpdatingRef.current = true;
         editorRef.current.innerHTML = value || '';
+        lastContentRef.current = value || '';
+        
+        if (wasFocused) {
+          setTimeout(() => {
+            setCursorOffset(cursorOffset);
+            isUpdatingRef.current = false;
+          }, 0);
+        } else {
+          isUpdatingRef.current = false;
+        }
       }
     }
   }, [value]);
@@ -787,7 +832,7 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
             execCommand(command);
           }
         }}
-        dangerouslySetInnerHTML={{ __html: value || '' }}
+
         style={{
           border: '1px solid #e5e7eb',
           borderTop: 'none',
