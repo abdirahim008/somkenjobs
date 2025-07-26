@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -110,7 +110,7 @@ export function OrganizationAutocomplete({
           {isLoading ? (
             <div className="py-2 px-3 text-sm text-gray-500">Loading...</div>
           ) : (
-            <Fragment>
+            <>
               {filteredOrganizations.length > 0 && (
                 <div>
                   <div className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-50">
@@ -150,7 +150,7 @@ export function OrganizationAutocomplete({
               {filteredOrganizations.length === 0 && !showAddNew && inputValue && (
                 <div className="px-3 py-2 text-sm text-gray-500">No organizations found.</div>
               )}
-            </Fragment>
+            </>
           )}
         </div>
       )}

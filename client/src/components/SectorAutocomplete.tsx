@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronDown, Plus } from "lucide-react";
@@ -126,7 +126,7 @@ export const SectorAutocomplete = ({
           {isLoading ? (
             <div className="p-3 text-sm text-gray-500">Loading sectors...</div>
           ) : (
-            <Fragment>
+            <>
               {filteredSectors.length > 0 ? (
                 filteredSectors.map((sector, index) => (
                   <button
@@ -154,7 +154,7 @@ export const SectorAutocomplete = ({
                   Add "{value}" as new sector
                 </button>
               )}
-            </Fragment>
+            </>
           )}
         </div>
       )}

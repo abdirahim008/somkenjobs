@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from "react";
+
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -119,7 +119,7 @@ export function CityAutocomplete({
           {isLoading ? (
             <div className="py-2 px-3 text-sm text-gray-500">Loading...</div>
           ) : (
-            <Fragment>
+            <>
               {filteredCities.length > 0 && (
                 <div>
                   <div className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-50">
@@ -159,7 +159,7 @@ export function CityAutocomplete({
               {filteredCities.length === 0 && !showAddNew && inputValue && (
                 <div className="px-3 py-2 text-sm text-gray-500">No cities found in {country}.</div>
               )}
-            </Fragment>
+            </>
           )}
         </div>
       )}
