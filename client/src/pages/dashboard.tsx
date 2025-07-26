@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1575,7 +1575,7 @@ export default function Dashboard() {
                   </div>
                 </CardContent>
               ) : (
-                <>
+                <Fragment>
                   {/* Search and Filter Section */}
                   <div className="p-4 bg-gray-50 border-b">
                     <div className="flex flex-col sm:flex-row gap-4">
@@ -1781,7 +1781,7 @@ export default function Dashboard() {
                     ))
                     )}
                   </div>
-                </>
+                </Fragment>
               )}
             </Card>
           </TabsContent>
@@ -2290,7 +2290,7 @@ export default function Dashboard() {
                     </div>
                   </CardContent>
                 ) : (
-                  <>
+                  <Fragment>
                     {/* Search and Filter Section */}
                     <div className="p-4 bg-gray-50 border-b">
                       <div className="flex flex-col sm:flex-row gap-4">
@@ -2461,7 +2461,7 @@ export default function Dashboard() {
                       ))
                       )}
                     </div>
-                  </>
+                  </Fragment>
                 )}
               </Card>
             </TabsContent>

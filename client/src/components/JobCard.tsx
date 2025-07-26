@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Building2, MapPin, Calendar, ExternalLink, Bookmark, Briefcase, FileText, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Fragment } from "react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { type Job } from "@shared/schema";
@@ -156,15 +157,15 @@ export default function JobCard({ job }: JobCardProps) {
             {/* Type badge - Job vs Tender */}
             <Badge className={`badge ${(job as any).type === 'tender' ? 'bg-orange-100 text-orange-800 hover:bg-orange-100' : 'bg-blue-100 text-blue-800 hover:bg-blue-100'} text-sm flex items-center gap-1`}>
               {(job as any).type === 'tender' ? (
-                <>
+                <Fragment>
                   <FileText className="h-3 w-3" />
                   Tender
-                </>
+                </Fragment>
               ) : (
-                <>
+                <Fragment>
                   <Briefcase className="h-3 w-3" />
                   Job
-                </>
+                </Fragment>
               )}
             </Badge>
             {job.sector && (
@@ -195,9 +196,9 @@ export default function JobCard({ job }: JobCardProps) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-border">
         <div className="text-base text-muted-foreground">
           {job.deadline && (
-            <>
+            <Fragment>
               Deadline: <span className="font-medium text-foreground">{formatDeadline(job.deadline)}</span>
-            </>
+            </Fragment>
           )}
         </div>
         <div className="flex items-center gap-3 ml-4">

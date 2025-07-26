@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -286,9 +286,9 @@ export default function Tenders() {
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-border">
                         <div className="text-base text-muted-foreground">
                           {tender.deadline && (
-                            <>
+                            <Fragment>
                               Deadline: <span className="font-medium text-foreground">{formatDeadline(tender.deadline)}</span>
-                            </>
+                            </Fragment>
                           )}
                         </div>
                         <div className="flex items-center gap-3 ml-4">

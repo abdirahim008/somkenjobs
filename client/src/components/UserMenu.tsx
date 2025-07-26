@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Fragment } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -23,7 +24,7 @@ export default function UserMenu() {
 
   if (!isAuthenticated) {
     return (
-      <>
+      <Fragment>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button 
@@ -57,7 +58,7 @@ export default function UserMenu() {
           onOpenChange={setAuthModalOpen}
           defaultTab={authTab}
         />
-      </>
+      </Fragment>
     );
   }
 
