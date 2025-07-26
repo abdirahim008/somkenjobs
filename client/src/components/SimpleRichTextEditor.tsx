@@ -101,6 +101,12 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
         // Make any new images/tables interactive without affecting cursor
         requestAnimationFrame(() => {
           if (editorRef.current) {
+            // Style pasted tables with borders
+            editorRef.current.querySelectorAll('table:not([data-styled])').forEach(table => {
+              styleTable(table as HTMLTableElement);
+              (table as HTMLTableElement).dataset.styled = 'true';
+            });
+
             editorRef.current.querySelectorAll('img').forEach(img => {
               if (!img.dataset.interactive) {
                 console.log('Making image interactive:', img);
@@ -407,6 +413,42 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
     });
   };
 
+  const styleTable = (table: HTMLTableElement) => {
+    // Apply basic table styling for pasted tables
+    table.style.cssText = `
+      border-collapse: collapse;
+      width: 100%;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      resize: both;
+      overflow: auto;
+      min-width: 200px;
+      min-height: 100px;
+    `;
+    
+    // Style all cells
+    const cells = table.querySelectorAll('td, th');
+    cells.forEach((cell, index) => {
+      const htmlCell = cell as HTMLElement;
+      htmlCell.style.cssText = `
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: left;
+        vertical-align: top;
+      `;
+      
+      // Style header row differently
+      if (cell.tagName === 'TH' || (cell.parentElement?.rowIndex === 0)) {
+        htmlCell.style.backgroundColor = '#f5f5f5';
+        htmlCell.style.fontWeight = 'bold';
+      }
+    });
+    
+    // Make table resizable
+    table.style.resize = 'both';
+    table.style.overflow = 'auto';
+  };
+
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -479,22 +521,24 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
         handle.className = `resize-handle resize-${pos}`;
         handle.style.cssText = `
           position: absolute;
-          width: 10px;
-          height: 10px;
+          width: 12px;
+          height: 12px;
           background: #0077B5;
           border: 2px solid white;
           border-radius: 50%;
           cursor: ${pos.includes('n') ? (pos.includes('w') ? 'nw' : 'ne') : (pos.includes('w') ? 'sw' : 'se')}-resize;
           z-index: 1000;
-          display: block;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+          display: block !important;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+          visibility: visible;
+          opacity: 1;
         `;
         
         // Position handles at corners
-        if (pos.includes('n')) handle.style.top = '-5px';
-        if (pos.includes('s')) handle.style.bottom = '-5px';
-        if (pos.includes('w')) handle.style.left = '-5px';
-        if (pos.includes('e')) handle.style.right = '-5px';
+        if (pos.includes('n')) handle.style.top = '-6px';
+        if (pos.includes('s')) handle.style.bottom = '-6px';
+        if (pos.includes('w')) handle.style.left = '-6px';
+        if (pos.includes('e')) handle.style.right = '-6px';
 
         console.log(`Adding ${pos} handle to container`);
         container.appendChild(handle);
@@ -539,22 +583,24 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
       deleteBtn.innerHTML = '×';
       deleteBtn.style.cssText = `
         position: absolute;
-        top: -10px;
-        right: -10px;
-        width: 22px;
-        height: 22px;
+        top: -11px;
+        right: -11px;
+        width: 24px;
+        height: 24px;
         background: #dc2626;
         color: white;
         border-radius: 50%;
         cursor: pointer;
-        display: flex;
+        display: flex !important;
         align-items: center;
         justify-content: center;
         font-size: 16px;
         font-weight: bold;
         z-index: 1001;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.5);
         border: 2px solid white;
+        visibility: visible;
+        opacity: 1;
       `;
       
       deleteBtn.addEventListener('click', (e) => {
