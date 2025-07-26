@@ -3,7 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import Home from "@/pages/home";
+import TestHomeSimple from "./TestHomeSimple";
 import Jobs from "@/pages/jobs";
 import Tenders from "@/pages/tenders";
 import JobDetails from "@/pages/job-details";
@@ -19,7 +19,7 @@ import NotFound from "@/pages/not-found";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/" component={TestHomeSimple} />
       <Route path="/jobs" component={Jobs} />
       <Route path="/tenders" component={Tenders} />
       <Route path="/jobs/:id" component={JobDetails} />
