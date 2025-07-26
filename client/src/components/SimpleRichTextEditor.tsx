@@ -195,6 +195,12 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
   const makeTableInteractive = (table: HTMLTableElement) => {
     let isSelected = false;
 
+    // Apply advanced styling to existing table
+    if (!table.dataset.styled) {
+      styleTable(table);
+      table.dataset.styled = 'true';
+    }
+
     // Create table controls
     const createTableControls = () => {
       const container = table.parentElement;
@@ -424,9 +430,10 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
       overflow: auto;
       min-width: 200px;
       min-height: 100px;
+      table-layout: fixed;
     `;
     
-    // Style all cells
+    // Style all cells and make them resizable
     const cells = table.querySelectorAll('td, th');
     cells.forEach((cell, index) => {
       const htmlCell = cell as HTMLElement;
@@ -435,18 +442,94 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
         padding: 8px;
         text-align: left;
         vertical-align: top;
+        position: relative;
+        overflow: hidden;
+        resize: horizontal;
+        min-width: 50px;
       `;
       
       // Style header row differently
-      if (cell.tagName === 'TH' || (cell.parentElement?.rowIndex === 0)) {
+      const row = cell.parentElement as HTMLTableRowElement;
+      if (cell.tagName === 'TH' || (row && row.rowIndex === 0)) {
         htmlCell.style.backgroundColor = '#f5f5f5';
         htmlCell.style.fontWeight = 'bold';
       }
+      
+      // Add resize handle to each cell
+      addCellResizeHandle(htmlCell);
     });
     
     // Make table resizable
     table.style.resize = 'both';
     table.style.overflow = 'auto';
+  };
+
+  const addCellResizeHandle = (cell: HTMLElement) => {
+    // Create resize handle for column
+    const resizeHandle = document.createElement('div');
+    resizeHandle.className = 'cell-resize-handle';
+    resizeHandle.style.cssText = `
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 4px;
+      height: 100%;
+      background: transparent;
+      cursor: col-resize;
+      z-index: 10;
+    `;
+    
+    resizeHandle.addEventListener('mouseenter', () => {
+      resizeHandle.style.background = 'rgba(0, 119, 181, 0.3)';
+    });
+    
+    resizeHandle.addEventListener('mouseleave', () => {
+      resizeHandle.style.background = 'transparent';
+    });
+    
+    let isResizing = false;
+    let startX = 0;
+    let startWidth = 0;
+    
+    resizeHandle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      isResizing = true;
+      startX = e.clientX;
+      startWidth = cell.offsetWidth;
+      
+      const handleMouseMove = (e: MouseEvent) => {
+        if (!isResizing) return;
+        
+        const deltaX = e.clientX - startX;
+        const newWidth = Math.max(50, startWidth + deltaX);
+        cell.style.width = newWidth + 'px';
+        
+        // Update all cells in the same column
+        const table = cell.closest('table');
+        if (table) {
+          const cellIndex = Array.from(cell.parentElement!.children).indexOf(cell);
+          const rows = table.querySelectorAll('tr');
+          rows.forEach(row => {
+            const targetCell = row.children[cellIndex] as HTMLElement;
+            if (targetCell) {
+              targetCell.style.width = newWidth + 'px';
+            }
+          });
+        }
+      };
+      
+      const handleMouseUp = () => {
+        isResizing = false;
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+      
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    });
+    
+    cell.appendChild(resizeHandle);
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
