@@ -67,51 +67,37 @@ export class JobFetcher {
       const countries = ["Kenya", "Somalia"];
       
       for (const country of countries) {
-        // Use proper ReliefWeb API v1 format
-        const requestBody = {
-          appname: "jobconnect-eastafrica",
-          query: {
-            value: country,
-            fields: ["country"]
-          },
-          fields: {
-            include: [
-              "title",
-              "body",
-              "body-html", 
-              "date.created",
-              "date.closing",
-              "date.changed",
-              "source.name",
-              "source.shortname",
-              "source.longname",
-              "source.homepage",
-              "source.type",
-              "country.name",
-              "country.iso3",
-              "country.shortname",
-              "url",
-              "url_alias",
-              "theme.name",
-              "career_categories.name",
-              "how_to_apply",
-              "how_to_apply-html",
-              "experience.name",
-              "type.name"
-            ]
-          },
-          limit: 10,
-          sort: ["date.created:desc"]
-        };
+        // Build URL parameters for GET request
+        const params = new URLSearchParams();
+        params.append('appname', 'jobconnect-eastafrica');
+        params.append('limit', '20');
+        params.append('query[value]', country);
+        params.append('query[fields][]', 'country.name');
+        params.append('sort[]', 'date.created:desc');
+        
+        // Add each field separately
+        const fields = [
+          "id", "title", "body", "body-html", "date.created", "date.closing", 
+          "date.changed", "source.name", "source.shortname", "source.longname", 
+          "source.homepage", "source.type", "country.name", "country.iso3", 
+          "country.shortname", "url", "url_alias", "theme.name", 
+          "career_categories.name", "how_to_apply", "how_to_apply-html", 
+          "experience.name", "type.name"
+        ];
+        
+        fields.forEach(field => {
+          params.append('fields[include][]', field);
+        });
 
-        const response = await fetch(RELIEFWEB_API_URL, {
-          method: 'POST',
+        const url = `${RELIEFWEB_API_URL}?${params}`;
+        console.log(`Fetching ${country} jobs from ReliefWeb...`);
+
+        const response = await fetch(url, {
+          method: 'GET',
           headers: {
-            'Content-Type': 'application/json',
             'User-Agent': 'JobConnect-EastAfrica/1.0',
             'Accept': 'application/json'
-          },
-          body: JSON.stringify(requestBody)
+          }
         });
         
         if (!response.ok) {
