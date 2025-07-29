@@ -1080,6 +1080,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ``
       );
 
+      // Update Twitter URL to job-specific URL
+      html = html.replace(
+        /<meta property="twitter:url" content="[^"]*">/,
+        `<meta property="twitter:url" content="${jobUrl}">`
+      );
+
+      // Remove existing og:type="website" and replace with og:type="article" for job pages
+      html = html.replace(
+        /<meta property="og:type" content="website">/,
+        `<meta property="og:type" content="article">`
+      );
+
       // Update the title tag
       html = html.replace(
         /<title>[^<]*<\/title>/,
@@ -1165,10 +1177,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
 
-      // Add job-specific Open Graph properties for richer Facebook previews
+      // Add job-specific Open Graph properties for richer Facebook previews (no duplicate og:type)
       const additionalMetaTags = `
     <!-- Job-specific meta tags for enhanced social media previews -->
-    <meta property="og:type" content="article">
     <meta property="article:published_time" content="${new Date(job.datePosted).toISOString()}">
     <meta property="article:section" content="${job.sector || 'Humanitarian'}">
     <meta property="article:tag" content="${job.sector || 'Humanitarian'}">

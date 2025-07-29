@@ -156,15 +156,18 @@ export default function SEOHead({
       twitterUrl.setAttribute('content', canonicalUrl);
     }
 
-    // Ensure Open Graph type is set for job pages
+    // Ensure Open Graph type is set correctly for job pages (only one og:type per page)
     if (canonicalUrl && canonicalUrl.includes('/jobs/')) {
-      let ogType = document.querySelector('meta[property="og:type"]');
-      if (!ogType) {
-        ogType = document.createElement('meta');
-        ogType.setAttribute('property', 'og:type');
-        document.head.appendChild(ogType);
-      }
+      // Remove any existing og:type tags to prevent duplicates
+      const existingOgTypes = document.querySelectorAll('meta[property="og:type"]');
+      existingOgTypes.forEach(tag => tag.remove());
+      
+      // Add single og:type="article" for job pages
+      const ogType = document.createElement('meta');
+      ogType.setAttribute('property', 'og:type');
       ogType.setAttribute('content', 'article');
+      ogType.setAttribute('data-job-specific', 'true');
+      document.head.appendChild(ogType);
     }
 
     // Add Twitter Card type
