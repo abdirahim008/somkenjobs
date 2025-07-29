@@ -44,11 +44,12 @@ export default function Home() {
   });
   const [sortBy, setSortBy] = useState("mostRecent");
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
-  const [displayCount, setDisplayCount] = useState(10);
+  const [displayCount, setDisplayCount] = useState(8); // Show fewer jobs initially for faster loading
 
   const { data, isLoading, refetch } = useQuery<JobsResponse>({
     queryKey: ['/api/jobs', filters],
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    refetchInterval: false, // Disable automatic refetch for low bandwidth
+    staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
   });
 
   const handleFilterChange = (newFilters: Partial<Filters>) => {

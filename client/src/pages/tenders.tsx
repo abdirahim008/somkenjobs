@@ -17,7 +17,12 @@ import { generateJobSlug } from "@shared/utils";
 export default function Tenders() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<{
+    country: string[];
+    organization: string[];
+    sector: string[];
+    datePosted: string;
+  }>({
     country: [],
     organization: [],
     sector: [],
@@ -27,32 +32,8 @@ export default function Tenders() {
 
   const { data: jobsData, isLoading } = useQuery({
     queryKey: ["/api/jobs", { ...filters, search: searchTerm }],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      
-      // Add filters
-      if (filters.country.length > 0) {
-        filters.country.forEach(c => params.append("country", c));
-      }
-      if (filters.organization.length > 0) {
-        filters.organization.forEach(o => params.append("organization", o));
-      }
-      if (filters.sector.length > 0) {
-        filters.sector.forEach(s => params.append("sector", s));
-      }
-      if (filters.datePosted) {
-        params.append("datePosted", filters.datePosted);
-      }
-      if (searchTerm) {
-        params.append("search", searchTerm);
-      }
-
-      const response = await fetch(`/api/jobs?${params.toString()}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch jobs");
-      }
-      return response.json();
-    },
+    staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
+    refetchInterval: false, // Disable automatic refetch for low bandwidth
   });
 
   // Filter jobs to show only tender type
