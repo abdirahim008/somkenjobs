@@ -1045,6 +1045,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `<meta property="og:url" content="${jobUrl}">`
       );
       
+      // Update canonical URL to job-specific URL instead of homepage
+      html = html.replace(
+        /<link rel="canonical" href="[^"]*">/,
+        `<link rel="canonical" href="${jobUrl}">`
+      );
+      
+      // Update meta name="title" with job-specific title
+      html = html.replace(
+        /<meta name="title" content="[^"]*">/,
+        `<meta name="title" content="${jobTitle.replace(/"/g, '&quot;')}">`
+      );
+      
       // Remove og:image meta tag
       html = html.replace(
         /<meta property="og:image" content="[^"]*">/,

@@ -32,6 +32,16 @@ export default function SEOHead({
     // Update document title
     if (title) {
       document.title = title;
+      
+      // Also update meta name="title" tag for better SEO
+      let metaTitle = document.querySelector('meta[name="title"]');
+      if (!metaTitle) {
+        metaTitle = document.createElement('meta');
+        metaTitle.setAttribute('name', 'title');
+        metaTitle.setAttribute('data-job-specific', 'true');
+        document.head.appendChild(metaTitle);
+      }
+      metaTitle.setAttribute('content', title);
     }
 
     // Clear any existing job-specific meta tags to prevent conflicts
