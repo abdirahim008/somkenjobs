@@ -1211,9 +1211,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       // Create JobPosting structured data for Google Jobs
-      const cleanDescription = job.description 
-        ? job.description.replace(/<[^>]*>/g, '').substring(0, 5000)
-        : `Join ${job.organization || 'our humanitarian organization'} in their mission to provide humanitarian aid in ${job.location || 'the field'}, ${job.country || 'East Africa'}. This position offers the opportunity to make a meaningful impact in humanitarian work.`;
+      const cleanDescription = (() => {
+        if (!job.description) {
+          return `Join ${job.organization || 'our humanitarian organization'} in their mission to provide humanitarian aid in ${job.location || 'the field'}, ${job.country || 'East Africa'}. This position offers the opportunity to make a meaningful impact in humanitarian work.`;
+        }
+        
+        // Clean and truncate description for Google Jobs (concise, no markup, under 800 chars)
+        let cleaned = job.description
+          .replace(/<[^>]*>/g, '') // Remove HTML tags
+          .replace(/\*\*/g, '') // Remove bold markdown
+          .replace(/\*/g, '') // Remove italic markdown
+          .replace(/\n+/g, ' ') // Replace line breaks with spaces
+          .replace(/\s+/g, ' ') // Normalize whitespace
+          .replace(/&[^;]+;/g, '') // Remove HTML entities
+          .trim();
+        
+        // Truncate to 800 characters for Google's recommendation
+        if (cleaned.length > 800) {
+          cleaned = cleaned.substring(0, 800);
+          // Find last complete sentence or word
+          const lastPeriod = cleaned.lastIndexOf('.');
+          const lastSpace = cleaned.lastIndexOf(' ');
+          if (lastPeriod > 600) {
+            cleaned = cleaned.substring(0, lastPeriod + 1);
+          } else if (lastSpace > 600) {
+            cleaned = cleaned.substring(0, lastSpace) + '...';
+          } else {
+            cleaned = cleaned + '...';
+          }
+        }
+        
+        return cleaned;
+      })();
 
       const jobStructuredData: any = {
         "@context": "https://schema.org/",
@@ -1302,6 +1331,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     <meta property="job:category" content="${job.sector || 'Humanitarian'}">
     <meta property="og:site_name" content="Somken Jobs">
     <meta property="og:locale" content="en_US">
+    
+    <!-- Hreflang tags for international SEO -->
+    <link rel="alternate" hreflang="en" href="${jobUrl}">
+    <link rel="alternate" hreflang="en-US" href="${jobUrl}">
+    <link rel="alternate" hreflang="en-KE" href="${jobUrl}">
+    <link rel="alternate" hreflang="en-SO" href="${jobUrl}">
+    <link rel="alternate" hreflang="x-default" href="${jobUrl}">
     
     <!-- Google Jobs JobPosting Structured Data -->
     <script type="application/ld+json">
