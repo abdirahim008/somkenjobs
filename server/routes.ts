@@ -1098,6 +1098,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `<title>${jobTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</title>`
       );
 
+      // Generate server-side rendered job content
+      const formatDate = (date: Date | string) => {
+        return new Date(date).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      };
+
+      const getDaysLeft = (deadline: Date | string) => {
+        const deadlineDate = new Date(deadline);
+        const today = new Date();
+        const diffTime = deadlineDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays > 0 ? diffDays : 0;
+      };
+
+      const serverRenderedContent = `
+        <div class="min-h-screen bg-gray-50 py-8">
+          <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-6">
+              <a href="/" class="inline-flex items-center text-blue-600 hover:text-blue-700">
+                ← Back to Jobs
+              </a>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-sm p-8">
+              <div class="flex items-start justify-between mb-6">
+                <div class="flex-1">
+                  <h1 class="text-3xl font-bold text-gray-900 mb-4">${job.title}</h1>
+                  <div class="flex flex-wrap items-center gap-4 text-gray-600">
+                    <div class="flex items-center">
+                      <span class="font-medium">${job.organization}</span>
+                    </div>
+                    <div class="flex items-center">
+                      <span>${job.location}, ${job.country}</span>
+                    </div>
+                    ${job.sector ? `<span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">${job.sector}</span>` : ''}
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2">
+                  <div class="prose max-w-none">
+                    <h2 class="text-xl font-semibold mb-4">Job Description</h2>
+                    <div>${(job.description || 'Job description not available.').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>')}</div>
+                    
+                    ${job.qualifications ? `
+                      <h2 class="text-xl font-semibold mb-4 mt-8">Qualifications & Requirements</h2>
+                      <div>${job.qualifications.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>')}</div>
+                    ` : ''}
+                    
+                    ${job.howToApply ? `
+                      <h2 class="text-xl font-semibold mb-4 mt-8">How to Apply</h2>
+                      <div>${job.howToApply.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" class="text-blue-600 hover:text-blue-700">$1</a>')}</div>
+                    ` : ''}
+                  </div>
+                </div>
+
+                <div class="lg:col-span-1">
+                  <div class="bg-gray-50 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">Job Details</h3>
+                    <div class="space-y-3">
+                      <div>
+                        <span class="font-medium">Posted:</span>
+                        <span class="ml-2">${formatDate(job.datePosted)}</span>
+                      </div>
+                      ${job.deadline ? `
+                        <div>
+                          <span class="font-medium">Deadline:</span>
+                          <span class="ml-2">${formatDate(job.deadline)} (${getDaysLeft(job.deadline)} days left)</span>
+                        </div>
+                      ` : ''}
+                      <div>
+                        <span class="font-medium">Organization:</span>
+                        <span class="ml-2">${job.organization}</span>
+                      </div>
+                      <div>
+                        <span class="font-medium">Location:</span>
+                        <span class="ml-2">${job.location}, ${job.country}</span>
+                      </div>
+                      ${job.sector ? `
+                        <div>
+                          <span class="font-medium">Sector:</span>
+                          <span class="ml-2">${job.sector}</span>
+                        </div>
+                      ` : ''}
+                    </div>
+                    
+                    ${job.url ? `
+                      <div class="mt-6">
+                        <a href="${job.url}" target="_blank" rel="noopener noreferrer" 
+                           class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors inline-block text-center">
+                          Apply Now
+                        </a>
+                      </div>
+                    ` : ''}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Replace the empty root div with server-rendered content
+      html = html.replace(
+        /<div id="root"><\/div>/,
+        `<div id="root">${serverRenderedContent}</div>`
+      );
+
       // Create JobPosting structured data for Google Jobs
       const cleanDescription = job.description 
         ? job.description.replace(/<[^>]*>/g, '').substring(0, 5000)
