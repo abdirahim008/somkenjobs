@@ -1086,6 +1086,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `<title>${jobTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</title>`
       );
 
+      // Create JobPosting structured data for Google Jobs
+      const cleanDescription = job.description 
+        ? job.description.replace(/<[^>]*>/g, '').substring(0, 5000)
+        : `Join ${job.organization || 'our humanitarian organization'} in their mission to provide humanitarian aid in ${job.location || 'the field'}, ${job.country || 'East Africa'}. This position offers the opportunity to make a meaningful impact in humanitarian work.`;
+
+      const jobStructuredData: any = {
+        "@context": "https://schema.org/",
+        "@type": "JobPosting",
+        "title": job.title.substring(0, 100),
+        "description": cleanDescription,
+        "datePosted": new Date(job.datePosted).toISOString().split('T')[0],
+        "hiringOrganization": {
+          "@type": "Organization", 
+          "name": job.organization || "Humanitarian Organization"
+        },
+        "jobLocation": {
+          "@type": "Place",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": job.location || "Field Location",
+            "addressCountry": job.country === "Kenya" ? "KE" : job.country === "Somalia" ? "SO" : job.country
+          }
+        }
+      };
+
+      // Add optional fields only if they have valid values
+      if (job.deadline) {
+        const deadlineDate = new Date(job.deadline);
+        if (deadlineDate > new Date()) {
+          jobStructuredData.validThrough = deadlineDate.toISOString().split('T')[0];
+        }
+      }
+
+      // Employment type mapping
+      const title = job.title.toLowerCase();
+      if (title.includes('consultant') || title.includes('contract')) {
+        jobStructuredData.employmentType = "CONTRACTOR";
+      } else if (title.includes('part-time')) {
+        jobStructuredData.employmentType = "PART_TIME"; 
+      } else if (title.includes('intern')) {
+        jobStructuredData.employmentType = "INTERN";
+      } else {
+        jobStructuredData.employmentType = "FULL_TIME";
+      }
+
+      // Job location type
+      if (job.location && job.location.toLowerCase().includes('remote')) {
+        jobStructuredData.jobLocationType = "TELECOMMUTE";
+      } else {
+        jobStructuredData.jobLocationType = "ON_SITE";
+      }
+
+      // Industry classification
+      if (job.sector) {
+        jobStructuredData.industry = job.sector;
+        jobStructuredData.occupationalCategory = job.sector;
+      }
+
+      // Canonical URL
+      jobStructuredData.url = jobUrl;
+
+      // Application instructions
+      if (job.url) {
+        jobStructuredData.applicationContact = {
+          "@type": "ContactPoint",
+          "contactType": "HR",
+          "url": job.url
+        };
+      }
+
+      // External identifier
+      if (job.externalId && job.source) {
+        jobStructuredData.identifier = {
+          "@type": "PropertyValue",
+          "name": job.source,
+          "value": job.externalId.toString()
+        };
+      }
+
       // Add job-specific Open Graph properties for richer Facebook previews
       const additionalMetaTags = `
     <!-- Job-specific meta tags for enhanced social media previews -->
@@ -1099,7 +1178,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ${job.deadline ? `<meta property="job:expires" content="${Math.ceil((new Date(job.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left">` : ''}
     <meta property="job:category" content="${job.sector || 'Humanitarian'}">
     <meta property="og:site_name" content="Somken Jobs">
-    <meta property="og:locale" content="en_US">`;
+    <meta property="og:locale" content="en_US">
+    
+    <!-- Google Jobs JobPosting Structured Data -->
+    <script type="application/ld+json">
+${JSON.stringify(jobStructuredData, null, 2)}
+    </script>`;
 
       // Insert additional meta tags before the closing head tag
       html = html.replace(
