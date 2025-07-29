@@ -12,6 +12,7 @@ import Footer from "@/components/Footer";
 import SearchBar from "@/components/SearchBar";
 import Sidebar from "@/components/Sidebar";
 import SEOHead from "@/components/SEOHead";
+import JobStructuredData from "@/components/JobStructuredData";
 import { type Job } from "@shared/schema";
 import { generateJobSlug } from "@shared/utils";
 
@@ -40,6 +41,15 @@ export default function Jobs() {
 
   // Filter jobs to show only job type (not tenders)
   const jobs = jobsData?.jobs?.filter((job: Job) => !(job as any).type || (job as any).type === 'job') || [];
+  
+  interface JobsResponse {
+    jobs: Job[];
+    filters: {
+      countries: string[];
+      organizations: string[];
+      sectors: string[];
+    };
+  }
 
   const handleFilterChange = (newFilters: Partial<typeof filters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
@@ -354,6 +364,9 @@ export default function Jobs() {
           </div>
         </div>
       </main>
+
+      {/* Google Jobs Schema for job listings */}
+      {jobs.length > 0 && <JobStructuredData jobs={jobs} />}
 
       <Footer />
     </div>

@@ -11,6 +11,7 @@ import Footer from "@/components/Footer";
 import SearchBar from "@/components/SearchBar";
 import Sidebar from "@/components/Sidebar";
 import SEOHead from "@/components/SEOHead";
+import JobStructuredData from "@/components/JobStructuredData";
 import { type Job } from "@shared/schema";
 import { generateJobSlug } from "@shared/utils";
 
@@ -339,6 +340,9 @@ export default function Tenders() {
           </div>
         </div>
       </main>
+
+      {/* Google Jobs Schema for tender listings */}
+      {tenders.length > 0 && <JobStructuredData jobs={tenders} />}
 
       <Footer />
     </div>

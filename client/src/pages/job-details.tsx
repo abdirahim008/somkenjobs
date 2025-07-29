@@ -46,15 +46,18 @@ export default function JobDetails() {
 
     // Add new structured data only if job data exists
     if (job) {
-      // Build the structured data object with required fields
+      // Build Google Jobs 2025 compliant structured data
+      const cleanDescription = job.description 
+        ? job.description.replace(/<[^>]*>/g, '').substring(0, 5000)
+        : `Join ${job.organization || 'our humanitarian organization'} in their mission to provide humanitarian aid in ${job.location || 'the field'}, ${job.country || 'East Africa'}. This position offers the opportunity to make a meaningful impact in humanitarian work.`;
+
       const jobStructuredData: any = {
-        "@context": "https://schema.org",
+        "@context": "https://schema.org/",
         "@type": "JobPosting",
-        // Required fields - always include with fallbacks
-        "title": job.title || "Humanitarian Position",
-        "description": job.description || `Join ${job.organization || 'our organization'} in their humanitarian mission in ${job.location || 'the field'}, ${job.country || 'East Africa'}.`,
-        "datePosted": new Date(job.datePosted).toISOString(),
-        "employmentType": "CONTRACTOR",
+        // Required fields with proper Google Jobs formatting
+        "title": job.title.substring(0, 100), // Google limit
+        "description": cleanDescription,
+        "datePosted": new Date(job.datePosted).toISOString().split('T')[0], // YYYY-MM-DD format
         "hiringOrganization": {
           "@type": "Organization",
           "name": job.organization || "Humanitarian Organization"
@@ -64,70 +67,83 @@ export default function JobDetails() {
           "address": {
             "@type": "PostalAddress",
             "addressLocality": job.location || "Field Location",
-            "addressCountry": job.country || "East Africa"
+            "addressCountry": job.country === "Kenya" ? "KE" : job.country === "Somalia" ? "SO" : job.country
           }
         }
       };
 
       // Add optional fields only if they have valid values
       if (job.deadline) {
-        jobStructuredData.validThrough = new Date(job.deadline).toISOString();
-      }
-
-      if (job.externalId && job.source) {
-        jobStructuredData.identifier = {
-          "@type": "PropertyValue",
-          "name": job.source,
-          "value": job.externalId
-        };
-      }
-
-      if (job.url) {
-        jobStructuredData.url = job.url;
-        if (job.url.includes("reliefweb.int")) {
-          jobStructuredData.hiringOrganization.sameAs = job.url;
+        const deadlineDate = new Date(job.deadline);
+        if (deadlineDate > new Date()) {
+          jobStructuredData.validThrough = deadlineDate.toISOString().split('T')[0];
         }
+      }
+
+      // Employment type mapping
+      const title = job.title.toLowerCase();
+      if (title.includes('consultant') || title.includes('contract')) {
+        jobStructuredData.employmentType = "CONTRACTOR";
+      } else if (title.includes('part-time')) {
+        jobStructuredData.employmentType = "PART_TIME";
+      } else if (title.includes('intern')) {
+        jobStructuredData.employmentType = "INTERN";
       } else {
-        jobStructuredData.url = `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`;
+        jobStructuredData.employmentType = "FULL_TIME";
       }
 
-      if (job.sector) {
-        jobStructuredData.industry = job.sector;
-        jobStructuredData.occupationalCategory = job.sector;
-      }
-
-      if (job.qualifications) {
-        jobStructuredData.qualifications = job.qualifications;
-      }
-
-      if (job.experience) {
-        jobStructuredData.experienceRequirements = job.experience;
-      }
-
-      // Add jobLocationType based on job location/type
+      // Job location type
       if (job.location && job.location.toLowerCase().includes('remote')) {
         jobStructuredData.jobLocationType = "TELECOMMUTE";
       } else {
         jobStructuredData.jobLocationType = "ON_SITE";
       }
 
-      // Add skills array if sector is available
+      // Industry classification
       if (job.sector) {
-        jobStructuredData.skills = [job.sector, "Humanitarian Aid", "Development Work"];
+        jobStructuredData.industry = job.sector;
+        jobStructuredData.occupationalCategory = job.sector;
       }
 
-      // Add application contact information
-      const applicationUrl = job.url || `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`;
-      jobStructuredData.applicationContact = {
-        "@type": "ContactPoint",
-        "contactType": "HR",
-        "url": applicationUrl
-      };
+      // Qualifications and experience
+      if (job.qualifications && job.qualifications.trim()) {
+        jobStructuredData.qualifications = job.qualifications.substring(0, 1000);
+      }
+
+      if (job.experience && job.experience.trim()) {
+        jobStructuredData.experienceRequirements = {
+          "@type": "OccupationalExperienceRequirements",
+          "monthsOfExperience": job.experience.includes('0-2') ? "0" : 
+                               job.experience.includes('3-5') ? "36" :
+                               job.experience.includes('5+') ? "60" : "12"
+        };
+      }
+
+      // Canonical URL
+      jobStructuredData.url = `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`;
+
+      // Application instructions
+      if (job.url) {
+        jobStructuredData.applicationContact = {
+          "@type": "ContactPoint",
+          "contactType": "HR",
+          "url": job.url
+        };
+      }
+
+      // External identifier
+      if (job.externalId && job.source) {
+        jobStructuredData.identifier = {
+          "@type": "PropertyValue",
+          "name": job.source,
+          "value": job.externalId.toString()
+        };
+      }
 
       const script = document.createElement('script');
       script.type = 'application/ld+json';
       script.setAttribute('data-job-posting-detail', 'true');
-      script.textContent = JSON.stringify(jobStructuredData);
+      script.textContent = JSON.stringify(jobStructuredData, null, 0);
       document.head.appendChild(script);
     }
 

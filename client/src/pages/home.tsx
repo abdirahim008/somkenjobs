@@ -286,6 +286,8 @@ export default function Home() {
                 {displayedJobs.map((job) => (
                   <JobCard key={job.id} job={job} />
                 ))}
+                {/* Google Jobs Schema for displayed jobs */}
+                <JobStructuredData jobs={displayedJobs} />
               </div>
             )}
 
