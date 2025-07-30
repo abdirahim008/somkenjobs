@@ -89,6 +89,83 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
     setTimeout(() => setCursorOffset(cursorOffset), 0);
   };
 
+  // Clean and sanitize pasted HTML content
+  const cleanPastedContent = (html: string): string => {
+    // Remove Microsoft Office styling and unwanted tags
+    let cleaned = html
+      // Remove Microsoft Office specific tags and styles
+      .replace(/<o:p\s*\/?>/gi, '')                    // Remove <o:p> tags
+      .replace(/<\/o:p>/gi, '')                        // Remove </o:p> tags
+      .replace(/<w:[^>]*>/gi, '')                      // Remove Word-specific tags
+      .replace(/<\/w:[^>]*>/gi, '')                    // Remove Word-specific closing tags
+      .replace(/class="?Mso[^"]*"?/gi, '')             // Remove MSO classes
+      .replace(/style="[^"]*mso-[^"]*"/gi, '')         // Remove MSO inline styles
+      .replace(/style="[^"]*font-family:[^"]*Sabon[^"]*"/gi, '') // Remove Sabon font
+      .replace(/style="[^"]*line-height:[^"]*"/gi, '') // Remove line-height styles
+      .replace(/style="[^"]*text-indent:[^"]*"/gi, '') // Remove text-indent styles
+      .replace(/style="[^"]*tab-stops:[^"]*"/gi, '')   // Remove tab-stops styles
+      .replace(/style="[^"]*color:[^"]*"/gi, '')       // Remove color styles
+      .replace(/style="[^"]*mso-[^"]*"/gi, '')         // Remove all mso- styles
+      // Remove other unwanted styling
+      .replace(/style="[^"]*"/gi, '')                  // Remove all remaining inline styles
+      .replace(/class="[^"]*"/gi, '')                  // Remove all classes
+      .replace(/<span[^>]*>/gi, '')                    // Remove span tags
+      .replace(/<\/span>/gi, '')                       // Remove closing span tags
+      .replace(/<font[^>]*>/gi, '')                    // Remove font tags
+      .replace(/<\/font>/gi, '')                       // Remove closing font tags
+      .replace(/<!--[^>]*-->/gi, '')                   // Remove HTML comments
+      // Clean up whitespace and empty tags
+      .replace(/\s+/g, ' ')                            // Replace multiple spaces with single space
+      .replace(/<p[^>]*>\s*<\/p>/gi, '')               // Remove empty paragraphs
+      .replace(/<div[^>]*>\s*<\/div>/gi, '')           // Remove empty divs
+      .replace(/^\s+|\s+$/g, '')                       // Trim whitespace
+      // Convert remaining HTML to plain text with basic formatting
+      .replace(/<p[^>]*>/gi, '\n')                     // Convert <p> to newline
+      .replace(/<\/p>/gi, '')                          // Remove </p>
+      .replace(/<br[^>]*>/gi, '\n')                    // Convert <br> to newline
+      .replace(/<div[^>]*>/gi, '\n')                   // Convert <div> to newline
+      .replace(/<\/div>/gi, '')                        // Remove </div>
+      .replace(/<strong[^>]*>/gi, '**')                // Convert <strong> to **
+      .replace(/<\/strong>/gi, '**')                   // Convert </strong> to **
+      .replace(/<b[^>]*>/gi, '**')                     // Convert <b> to **
+      .replace(/<\/b>/gi, '**')                        // Convert </b> to **
+      .replace(/<em[^>]*>/gi, '*')                     // Convert <em> to *
+      .replace(/<\/em>/gi, '*')                        // Convert </em> to *
+      .replace(/<i[^>]*>/gi, '*')                      // Convert <i> to *
+      .replace(/<\/i>/gi, '*')                         // Convert </i> to *
+      .replace(/<[^>]*>/gi, '')                        // Remove all remaining HTML tags
+      // Clean up formatting
+      .replace(/\n\s*\n\s*\n/g, '\n\n')               // Replace multiple newlines with double
+      .replace(/^\n+|\n+$/g, '')                       // Remove leading/trailing newlines
+      .trim();
+
+    console.log('Cleaned pasted content:', cleaned);
+    return cleaned;
+  };
+
+  // Handle paste events to clean content
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    
+    const clipboardData = e.clipboardData;
+    const htmlData = clipboardData.getData('text/html');
+    const textData = clipboardData.getData('text/plain');
+    
+    let contentToInsert = '';
+    
+    if (htmlData) {
+      // Clean the HTML content
+      contentToInsert = cleanPastedContent(htmlData);
+    } else if (textData) {
+      contentToInsert = textData;
+    }
+    
+    if (contentToInsert) {
+      // Insert the cleaned content
+      document.execCommand('insertText', false, contentToInsert);
+    }
+  };
+
   const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
     if (editorRef.current && !isUpdatingRef.current) {
       const content = editorRef.current.innerHTML;
@@ -1089,50 +1166,7 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
           outline: 'none'
         }}
         data-placeholder={placeholder}
-        onPaste={(e) => {
-          // Handle pasted content (images and tables)
-          setTimeout(() => {
-            if (editorRef.current) {
-              // Make pasted images interactive
-              editorRef.current.querySelectorAll('img').forEach(img => {
-                if (!img.dataset.interactive) {
-                  img.dataset.interactive = 'true';
-                  makeImageInteractive(img as HTMLImageElement);
-                }
-              });
-
-              // Make pasted tables interactive and apply default formatting
-              editorRef.current.querySelectorAll('table').forEach(table => {
-                if (!table.dataset.interactive) {
-                  table.dataset.interactive = 'true';
-                  
-                  // Apply default table styling for pasted tables
-                  const tableEl = table as HTMLTableElement;
-                  tableEl.style.borderCollapse = 'collapse';
-                  tableEl.style.width = '100%';
-                  tableEl.style.margin = '10px 0';
-                  tableEl.style.border = '2px solid #ccc';
-                  
-                  // Style all cells
-                  const cells = tableEl.querySelectorAll('td, th');
-                  cells.forEach(cell => {
-                    const cellEl = cell as HTMLElement;
-                    cellEl.style.border = '1px solid #ccc';
-                    cellEl.style.padding = '8px';
-                    
-                    // Style header cells
-                    if (cell.tagName === 'TH' || (cellEl.parentElement?.firstElementChild === cell && tableEl.rows[0] === cellEl.parentElement)) {
-                      cellEl.style.backgroundColor = '#f5f5f5';
-                      cellEl.style.fontWeight = 'bold';
-                    }
-                  });
-                  
-                  makeTableInteractive(tableEl);
-                }
-              });
-            }
-          }, 100);
-        }}
+        onPaste={handlePaste}
         onClick={(e) => {
           // Clear selections when clicking in editor
           if (e.target === editorRef.current) {

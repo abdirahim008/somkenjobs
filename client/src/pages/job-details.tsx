@@ -178,6 +178,20 @@ export default function JobDetails() {
 
   const cleanText = (text: string) => {
     return text
+      // First, handle Microsoft Office HTML/CSS codes that appear as raw text
+      .replace(/0C00">[^<]*<\/[^>]*>/gi, '')              // Remove Microsoft Office XML tags
+      .replace(/line-height:\d+%;/gi, '')                 // Remove line-height CSS
+      .replace(/mso-list:l\d+\s+level\d+\s+lfo\d+>/gi, '') // Remove MSO list formatting
+      .replace(/mso-fareast-font-family:[^;]+;/gi, '')    // Remove MSO font family
+      .replace(/color:#[0-9A-Fa-f]{6}>/gi, '')           // Remove color codes
+      .replace(/text-indent:-?\d+\.\d+pt;/gi, '')        // Remove text indent
+      .replace(/mso-list:l\d+/gi, '')                     // Remove MSO list references
+      .replace(/tab-stops:list\s+[\d\.]+pt>/gi, '')      // Remove tab stops
+      .replace(/mso-bidi-font-family:[^;]+;/gi, '')      // Remove MSO bidi font
+      .replace(/mso-themecolor:[^;]+;/gi, '')            // Remove MSO theme color
+      .replace(/text\d+">/gi, '')                         // Remove text references like text1">
+      .replace(/level\d+\s+lfo\d+>/gi, '')               // Remove level formatting
+      // Clean up escaped characters
       .replace(/\\-/g, '-')           // Fix escaped hyphens
       .replace(/\\\\/g, '')           // Remove double backslashes
       .replace(/\\'/g, "'")           // Fix escaped apostrophes
@@ -212,6 +226,7 @@ export default function JobDetails() {
       .replace(/\\\|/g, '|')          // Fix escaped pipes
       .replace(/\\`/g, '`')           // Fix escaped backticks
       .replace(/\\~/g, '~')           // Fix escaped tildes
+      // Clean up formatting
       .replace(/\*{4,}/g, '**')       // Replace 4 or more asterisks with just **
       .replace(/\*{3}/g, '**')        // Replace triple asterisks with double
       .replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>') // Convert **text** to bold (non-greedy)
