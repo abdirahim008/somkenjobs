@@ -212,8 +212,33 @@ export default function JobDetails() {
       return cleanHtmlContent(text);
     }
     
-    // Otherwise, clean as regular text
-    return text
+    // Clean Microsoft Office CSS artifacts that appear as text fragments
+    let cleanedText = text
+      // Remove Microsoft Office CSS style fragments that appear as text
+      .replace(/level\d+\s+lfo\d+"?>/gi, '')
+      .replace(/color:#[0-9A-Fa-f]{6}"?>/gi, '')
+      .replace(/line-height:\d+%[;"]*font-family:"?[^"]*"?[;"]*mso-fareast-font-family:[^;"]*[;"]*color:#[0-9A-Fa-f]{6}"?>/gi, '')
+      .replace(/color:#[0-9A-Fa-f]{6}"?>/gi, '')
+      .replace(/font-family:"?[^"]*"?[;"]*mso-fareast-font-family:[^;"]*[;"]*color:#[0-9A-Fa-f]{6}"?>/gi, '')
+      .replace(/mso-fareast-font-family:"?[^"]*"?[;"]*color:#[0-9A-Fa-f]{6}"?>/gi, '')
+      .replace(/font-family:"?[^"]*"?[;"]*color:#[0-9A-Fa-f]{6}"?>/gi, '')
+      .replace(/color:[^;]*[;"]*mso-themecolor:[^;"]*[;"]*>/gi, '')
+      .replace(/text\d+"?>/gi, '')
+      .replace(/[A-Z0-9]{4}"?>/gi, '')
+      .replace(/margin-left:\d+\.\d+pt[;"]*text-align:justify[;"]*>/gi, '')
+      .replace(/color:black[;"]*color:black[;"]*>/gi, '')
+      .replace(/color:black[;"]*>/gi, '')
+      .replace(/text-align:justify[;"]*>/gi, '')
+      .replace(/margin-left:\d+\.\d+pt[;"]*>/gi, '')
+      .replace(/line-height:\d+%[;"]*>/gi, '')
+      .replace(/font-size:\d+\.\d+pt[;"]*>/gi, '')
+      .replace(/mso-list:l\d+\s+level\d+\s+lfo\d+[;"]*>/gi, '')
+      .replace(/mso-[^;"\s]*[;"]*>/gi, '')
+      // Remove standalone CSS fragments
+      .replace(/^\s*[";]+\s*>/gm, '')
+      .replace(/[";]+\s*>\s*$/gm, '')
+      .replace(/>"?\s*$/gm, '')
+      .replace(/^[";]*>\s*/gm, '')
       // Clean up escaped characters
       .replace(/\\-/g, '-')           // Fix escaped hyphens
       .replace(/\\\\/g, '')           // Remove double backslashes
@@ -261,7 +286,11 @@ export default function JobDetails() {
       .replace(/^\s*[\)\]\}]+\s*$/gm, '') // Remove lines that contain only closing brackets/parentheses
       .replace(/^\s*[\)\]\}]+(?=\s)/gm, '') // Remove standalone closing brackets/parentheses at start of lines only if followed by space
       .replace(/(?<=\s)[\)\]\}]+\s*$/gm, '') // Remove standalone closing brackets/parentheses at end of lines only if preceded by space
+      // Final cleanup of extra whitespace
+      .replace(/\s+/g, ' ')
       .trim();                        // Remove leading/trailing whitespace
+      
+    return cleanedText;
   };
 
   // Helper function to convert URLs and emails to clickable links
