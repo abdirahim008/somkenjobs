@@ -1098,6 +1098,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `<title>${jobTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</title>`
       );
 
+      // Function to clean HTML content from Microsoft Office and other sources
+      const cleanHtmlContent = (html: string): string => {
+        if (!html) return '';
+        
+        // Create a simple DOM parser to extract text content safely
+        const extractTextFromHtml = (htmlString: string): string => {
+          try {
+            // Use a more aggressive approach to strip all HTML and style content
+            let text = htmlString
+              // Remove all style attributes and their content
+              .replace(/style="[^"]*"/gi, '')
+              .replace(/class="[^"]*"/gi, '')
+              .replace(/lang="[^"]*"/gi, '')
+              // Remove Microsoft Office XML comments completely
+              .replace(/<!--\[if[^>]*>.*?<!\[endif\]-->/gis, '')
+              .replace(/<!--[^>]*-->/gi, '')
+              // Remove all HTML tags
+              .replace(/<[^>]*>/g, ' ')
+              // Clean up HTML entities
+              .replace(/&nbsp;/g, ' ')
+              .replace(/&amp;/g, '&')
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/&quot;/g, '"')
+              .replace(/&#\d+;/g, ' ')
+              // Remove Microsoft Office artifacts that appear as text
+              .replace(/mso-[^;"\s]*[;"]?/gi, '')
+              .replace(/line-height:\s*\d+%[;"]?/gi, '')
+              .replace(/font-family:[^;"]*[;"]?/gi, '')
+              .replace(/color:\s*#[0-9A-Fa-f]{6}[;"]?/gi, '')
+              .replace(/text-indent:[^;"]*[;"]?/gi, '')
+              .replace(/text-align:[^;"]*[;"]?/gi, '')
+              .replace(/margin-left:[^;"]*[;"]?/gi, '')
+              .replace(/tab-stops:[^;"]*[;"]?/gi, '')
+              .replace(/text\d+"?>/gi, '')
+              .replace(/[A-Z0-9]{4}"?>/gi, '')
+              // Clean up leftover formatting artifacts
+              .replace(/^\s*[">]+/gm, '')
+              .replace(/[">]+\s*$/gm, '')
+              .replace(/\s+/g, ' ')
+              .trim();
+            
+            return text;
+          } catch (error) {
+            // Fallback: return original text with basic cleaning
+            return htmlString.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+          }
+        };
+        
+        return extractTextFromHtml(html);
+      };
+
       // Generate server-side rendered job content
       const formatDate = (date: Date | string) => {
         return new Date(date).toLocaleDateString('en-US', {
@@ -1144,16 +1196,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 <div class="lg:col-span-2">
                   <div class="prose max-w-none">
                     <h2 class="text-xl font-semibold mb-4">Job Description</h2>
-                    <div>${(job.description || 'Job description not available.').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>')}</div>
+                    <div>${cleanHtmlContent(job.bodyHtml || job.description || 'Job description not available.').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>')}</div>
                     
                     ${job.qualifications ? `
                       <h2 class="text-xl font-semibold mb-4 mt-8">Qualifications & Requirements</h2>
-                      <div>${job.qualifications.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>')}</div>
+                      <div>${cleanHtmlContent(job.qualifications).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>')}</div>
                     ` : ''}
                     
                     ${job.howToApply ? `
                       <h2 class="text-xl font-semibold mb-4 mt-8">How to Apply</h2>
-                      <div>${job.howToApply.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" class="text-blue-600 hover:text-blue-700">$1</a>')}</div>
+                      <div>${cleanHtmlContent(job.howToApply).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" class="text-blue-600 hover:text-blue-700">$1</a>')}</div>
                     ` : ''}
                   </div>
                 </div>

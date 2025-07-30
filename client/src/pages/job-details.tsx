@@ -176,21 +176,44 @@ export default function JobDetails() {
     return `${diffDays} days left`;
   };
 
-  const cleanText = (text: string) => {
+  // Comprehensive function to clean HTML content from Microsoft Office and other sources
+  const cleanHtmlContent = (html: string): string => {
+    // First, strip HTML tags and get plain text, preserving basic structure
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    // Convert HTML to plain text while preserving some structure
+    let text = tempDiv.innerText || tempDiv.textContent || '';
+    
+    // Clean up the resulting text
     return text
-      // First, handle Microsoft Office HTML/CSS codes that appear as raw text
-      .replace(/0C00">[^<]*<\/[^>]*>/gi, '')              // Remove Microsoft Office XML tags
-      .replace(/line-height:\d+%;/gi, '')                 // Remove line-height CSS
-      .replace(/mso-list:l\d+\s+level\d+\s+lfo\d+>/gi, '') // Remove MSO list formatting
-      .replace(/mso-fareast-font-family:[^;]+;/gi, '')    // Remove MSO font family
-      .replace(/color:#[0-9A-Fa-f]{6}>/gi, '')           // Remove color codes
-      .replace(/text-indent:-?\d+\.\d+pt;/gi, '')        // Remove text indent
-      .replace(/mso-list:l\d+/gi, '')                     // Remove MSO list references
-      .replace(/tab-stops:list\s+[\d\.]+pt>/gi, '')      // Remove tab stops
-      .replace(/mso-bidi-font-family:[^;]+;/gi, '')      // Remove MSO bidi font
-      .replace(/mso-themecolor:[^;]+;/gi, '')            // Remove MSO theme color
-      .replace(/text\d+">/gi, '')                         // Remove text references like text1">
-      .replace(/level\d+\s+lfo\d+>/gi, '')               // Remove level formatting
+      // Remove Microsoft Office artifacts
+      .replace(/0C00">[^<]*<\/[^>]*>/gi, '')
+      .replace(/line-height:\d+%;/gi, '')
+      .replace(/mso-list:l\d+\s+level\d+\s+lfo\d+>/gi, '')
+      .replace(/mso-fareast-font-family:[^;]+;/gi, '')
+      .replace(/color:#[0-9A-Fa-f]{6}>/gi, '')
+      .replace(/text-indent:-?\d+\.\d+pt;/gi, '')
+      .replace(/mso-list:l\d+/gi, '')
+      .replace(/tab-stops:list\s+[\d\.]+pt>/gi, '')
+      .replace(/mso-bidi-font-family:[^;]+;/gi, '')
+      .replace(/mso-themecolor:[^;]+;/gi, '')
+      .replace(/text\d+">/gi, '')
+      .replace(/level\d+\s+lfo\d+>/gi, '')
+      // Clean up multiple spaces and line breaks
+      .replace(/\s+/g, ' ')
+      .replace(/\n\s*\n/g, '\n\n')
+      .trim();
+  };
+
+  const cleanText = (text: string) => {
+    // Check if text contains HTML tags (Microsoft Office content)
+    if (text.includes('<') && text.includes('>')) {
+      return cleanHtmlContent(text);
+    }
+    
+    // Otherwise, clean as regular text
+    return text
       // Clean up escaped characters
       .replace(/\\-/g, '-')           // Fix escaped hyphens
       .replace(/\\\\/g, '')           // Remove double backslashes
