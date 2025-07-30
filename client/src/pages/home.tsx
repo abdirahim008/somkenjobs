@@ -99,11 +99,11 @@ export default function Home() {
           </div>
 
           {/* Quick Navigation Links */}
-          <div className="flex justify-center space-x-6 mt-6 text-sm">
+          <div className="flex justify-center space-x-3 sm:space-x-6 mt-6 text-sm px-4 sm:px-0">
             <Button 
               variant="outline" 
               size="sm" 
-              className="bg-white/10 text-white border-white/30 hover:bg-white/20"
+              className="bg-white/10 text-white border-white/30 hover:bg-white/20 flex-1 sm:flex-none max-w-32 sm:max-w-none"
               onClick={() => {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 setLocation('/jobs');
@@ -114,7 +114,7 @@ export default function Home() {
             <Button 
               variant="outline" 
               size="sm" 
-              className="bg-white/10 text-white border-white/30 hover:bg-white/20"
+              className="bg-white/10 text-white border-white/30 hover:bg-white/20 flex-1 sm:flex-none max-w-32 sm:max-w-none"
               onClick={() => {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 setLocation('/tenders');
@@ -125,7 +125,7 @@ export default function Home() {
             <Button 
               variant="outline" 
               size="sm" 
-              className="bg-white/10 text-white border-white/30 hover:bg-white/20"
+              className="bg-white/10 text-white border-white/30 hover:bg-white/20 flex-1 sm:flex-none max-w-32 sm:max-w-none"
               onClick={() => {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 setLocation('/career-resources');
