@@ -63,14 +63,14 @@ export class JobFetcher {
     try {
       console.log("Fetching jobs from ReliefWeb...");
       
-      // Fetch jobs for Kenya and Somalia
-      const countries = ["Kenya", "Somalia"];
+      // Fetch jobs for East African countries
+      const countries = ["Kenya", "Somalia", "Ethiopia", "Uganda", "Tanzania"];
       
       for (const country of countries) {
         // Build URL parameters for GET request
         const params = new URLSearchParams();
         params.append('appname', 'jobconnect-eastafrica');
-        params.append('limit', '20');
+        params.append('limit', '15');
         params.append('query[value]', country);
         params.append('query[fields][]', 'country.name');
         params.append('sort[]', 'date.created:desc');

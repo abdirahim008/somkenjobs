@@ -71,9 +71,9 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead 
-        title="Jobs in Somalia & Kenya - 300+ Humanitarian Career Opportunities | Somken Jobs"
-        description={`Discover ${data?.stats.totalJobs || '300+'} humanitarian jobs in Somalia and Kenya with leading NGOs, UN agencies, and development organizations. Find careers in Nairobi, Mogadishu, and across East Africa. Updated daily from ReliefWeb with comprehensive job listings from WHO, UNHCR, Save the Children, and ${data?.stats.organizations || '150+'} employers.`}
-        keywords="jobs in Somalia, jobs in Kenya, humanitarian jobs Somalia, NGO jobs Kenya, UN careers Somalia, development jobs Kenya, aid worker positions, international jobs East Africa, ReliefWeb jobs, Nairobi jobs, Mogadishu jobs, WHO careers, UNHCR jobs, Save the Children jobs"
+        title="East Africa Jobs - 500+ Humanitarian Opportunities in Kenya, Somalia, Ethiopia, Uganda & Tanzania | Somken Jobs"
+        description={`Discover ${data?.stats.totalJobs || '500+'} humanitarian jobs across East Africa in Kenya, Somalia, Ethiopia, Uganda, and Tanzania. Find careers with leading NGOs, UN agencies, and development organizations in Nairobi, Mogadishu, Addis Ababa, Kampala, Dar es Salaam. Updated daily from ReliefWeb with comprehensive job listings from WHO, UNHCR, Save the Children, and ${data?.stats.organizations || '200+'} employers.`}
+        keywords="East Africa jobs, jobs in Somalia, jobs in Kenya, jobs in Ethiopia, jobs in Uganda, jobs in Tanzania, humanitarian jobs East Africa, NGO jobs, UN careers, aid worker positions, international development jobs, ReliefWeb jobs, Nairobi jobs, Mogadishu jobs, Addis Ababa jobs, Kampala jobs, Dar es Salaam jobs"
         canonicalUrl="https://somkenjobs.com/"
       />
       {/* Add structured data for job postings */}
@@ -87,10 +87,10 @@ export default function Home() {
         <div className="max-w-full mx-auto px-2 sm:px-4 lg:px-6">
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-              Find Jobs in Somalia & Kenya - 300+ Humanitarian Career Opportunities
+              East Africa Jobs - 500+ Humanitarian Career Opportunities
             </h1>
             <p className="text-white/90 text-lg max-w-4xl mx-auto">
-              Find jobs in Somalia and Kenya with leading NGOs, UN agencies, and humanitarian organizations. Browse {data?.stats.totalJobs || '100+'} current opportunities updated daily from ReliefWeb.
+              Find jobs across Kenya, Somalia, Ethiopia, Uganda, and Tanzania with leading NGOs, UN agencies, and humanitarian organizations. Browse {data?.stats.totalJobs || '500+'} current opportunities updated daily from ReliefWeb.
             </p>
           </div>
 
