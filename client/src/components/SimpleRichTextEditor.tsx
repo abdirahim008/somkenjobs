@@ -91,55 +91,38 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
 
   // Clean and sanitize pasted HTML content
   const cleanPastedContent = (html: string): string => {
-    // Remove Microsoft Office styling and unwanted tags
-    let cleaned = html
-      // Remove Microsoft Office specific tags and styles
-      .replace(/<o:p\s*\/?>/gi, '')                    // Remove <o:p> tags
-      .replace(/<\/o:p>/gi, '')                        // Remove </o:p> tags
-      .replace(/<w:[^>]*>/gi, '')                      // Remove Word-specific tags
-      .replace(/<\/w:[^>]*>/gi, '')                    // Remove Word-specific closing tags
-      .replace(/class="?Mso[^"]*"?/gi, '')             // Remove MSO classes
-      .replace(/style="[^"]*mso-[^"]*"/gi, '')         // Remove MSO inline styles
-      .replace(/style="[^"]*font-family:[^"]*Sabon[^"]*"/gi, '') // Remove Sabon font
-      .replace(/style="[^"]*line-height:[^"]*"/gi, '') // Remove line-height styles
-      .replace(/style="[^"]*text-indent:[^"]*"/gi, '') // Remove text-indent styles
-      .replace(/style="[^"]*tab-stops:[^"]*"/gi, '')   // Remove tab-stops styles
-      .replace(/style="[^"]*color:[^"]*"/gi, '')       // Remove color styles
-      .replace(/style="[^"]*mso-[^"]*"/gi, '')         // Remove all mso- styles
-      // Remove other unwanted styling
-      .replace(/style="[^"]*"/gi, '')                  // Remove all remaining inline styles
-      .replace(/class="[^"]*"/gi, '')                  // Remove all classes
-      .replace(/<span[^>]*>/gi, '')                    // Remove span tags
-      .replace(/<\/span>/gi, '')                       // Remove closing span tags
-      .replace(/<font[^>]*>/gi, '')                    // Remove font tags
-      .replace(/<\/font>/gi, '')                       // Remove closing font tags
-      .replace(/<!--[^>]*-->/gi, '')                   // Remove HTML comments
-      // Clean up whitespace and empty tags
+    console.log('Original pasted content:', html);
+    
+    // Use a more aggressive approach - create a temporary DOM element and extract only text
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    // Extract text content only, completely stripping all HTML and styles
+    let textContent = tempDiv.textContent || tempDiv.innerText || '';
+    
+    // Clean up the extracted text
+    let cleaned = textContent
+      // Remove Microsoft Office artifacts that might remain as text
+      .replace(/level\d+\s+lfo\d+/gi, '')
+      .replace(/mso-[^;\s]*[;\s]*/gi, '')
+      .replace(/color:#[0-9A-Fa-f]{6}/gi, '')
+      .replace(/line-height:\d+%/gi, '')
+      .replace(/font-family:[^;]*/gi, '')
+      .replace(/text-indent:[^;]*/gi, '')
+      .replace(/text-align:[^;]*/gi, '')
+      .replace(/margin-left:[^;]*/gi, '')
+      .replace(/tab-stops:[^;]*/gi, '')
+      .replace(/font-size:[^;]*/gi, '')
+      .replace(/background:[^;]*/gi, '')
+      // Remove standalone style fragments
+      .replace(/[";>]+\s*/g, ' ')
+      // Clean up spacing and structure
       .replace(/\s+/g, ' ')                            // Replace multiple spaces with single space
-      .replace(/<p[^>]*>\s*<\/p>/gi, '')               // Remove empty paragraphs
-      .replace(/<div[^>]*>\s*<\/div>/gi, '')           // Remove empty divs
-      .replace(/^\s+|\s+$/g, '')                       // Trim whitespace
-      // Convert remaining HTML to plain text with basic formatting
-      .replace(/<p[^>]*>/gi, '\n')                     // Convert <p> to newline
-      .replace(/<\/p>/gi, '')                          // Remove </p>
-      .replace(/<br[^>]*>/gi, '\n')                    // Convert <br> to newline
-      .replace(/<div[^>]*>/gi, '\n')                   // Convert <div> to newline
-      .replace(/<\/div>/gi, '')                        // Remove </div>
-      .replace(/<strong[^>]*>/gi, '**')                // Convert <strong> to **
-      .replace(/<\/strong>/gi, '**')                   // Convert </strong> to **
-      .replace(/<b[^>]*>/gi, '**')                     // Convert <b> to **
-      .replace(/<\/b>/gi, '**')                        // Convert </b> to **
-      .replace(/<em[^>]*>/gi, '*')                     // Convert <em> to *
-      .replace(/<\/em>/gi, '*')                        // Convert </em> to *
-      .replace(/<i[^>]*>/gi, '*')                      // Convert <i> to *
-      .replace(/<\/i>/gi, '*')                         // Convert </i> to *
-      .replace(/<[^>]*>/gi, '')                        // Remove all remaining HTML tags
-      // Clean up formatting
       .replace(/\n\s*\n\s*\n/g, '\n\n')               // Replace multiple newlines with double
-      .replace(/^\n+|\n+$/g, '')                       // Remove leading/trailing newlines
+      .replace(/^\s+|\s+$/g, '')                       // Trim whitespace
       .trim();
 
-    console.log('Cleaned pasted content:', cleaned);
+    console.log('Cleaned pasted content (text-only):', cleaned);
     return cleaned;
   };
 
