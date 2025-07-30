@@ -1112,7 +1112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               .replace(/class="[^"]*"/gi, '')
               .replace(/lang="[^"]*"/gi, '')
               // Remove Microsoft Office XML comments completely
-              .replace(/<!--\[if[^>]*>.*?<!\[endif\]-->/gis, '')
+              .replace(/<!--\[if[^>]*>.*?<!\[endif\]-->/gi, '')
               .replace(/<!--[^>]*-->/gi, '')
               // Remove all HTML tags
               .replace(/<[^>]*>/g, ' ')

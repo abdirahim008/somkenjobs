@@ -82,43 +82,98 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
   };
 
   const execCommand = (command: string, value?: string) => {
+    if (!editorRef.current) return;
+    
     const cursorOffset = getCursorOffset();
-    document.execCommand(command, false, value);
-    editorRef.current?.focus();
+    
+    // Handle special commands that need different approach
+    if (command === 'insertUnorderedList' || command === 'insertOrderedList') {
+      // For lists, we need to ensure proper DOM focus first
+      editorRef.current.focus();
+      document.execCommand(command, false, value);
+      
+      // Apply some basic styling to lists to make them visible
+      setTimeout(() => {
+        if (editorRef.current) {
+          const lists = editorRef.current.querySelectorAll('ul, ol');
+          lists.forEach(list => {
+            (list as HTMLElement).style.paddingLeft = '20px';
+            (list as HTMLElement).style.margin = '10px 0';
+            if (list.tagName === 'UL') {
+              (list as HTMLElement).style.listStyleType = 'disc';
+            } else {
+              (list as HTMLElement).style.listStyleType = 'decimal';
+            }
+          });
+        }
+      }, 100);
+    } else {
+      // For other commands, use normal execution
+      document.execCommand(command, false, value);
+      editorRef.current.focus();
+    }
+    
     // Small delay to ensure DOM is updated before restoring position
-    setTimeout(() => setCursorOffset(cursorOffset), 0);
+    setTimeout(() => setCursorOffset(cursorOffset), 50);
   };
 
   // Clean and sanitize pasted HTML content
   const cleanPastedContent = (html: string): string => {
     console.log('Original pasted content:', html);
     
-    // Use a more aggressive approach - create a temporary DOM element and extract only text
+    // First pass: Strip all style blocks and Microsoft Office elements
+    let preprocessed = html
+      // Remove entire style blocks
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      // Remove Microsoft Office XML and namespaces
+      .replace(/<\?xml[^>]*>/gi, '')
+      .replace(/xmlns[^=]*="[^"]*"/gi, '')
+      // Remove all Microsoft Office specific tags
+      .replace(/<o:[^>]*>[\s\S]*?<\/o:[^>]*>/gi, '')
+      .replace(/<w:[^>]*>[\s\S]*?<\/w:[^>]*>/gi, '')
+      .replace(/<m:[^>]*>[\s\S]*?<\/m:[^>]*>/gi, '')
+      // Remove HTML head section entirely
+      .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '')
+      // Remove all HTML comments
+      .replace(/<!--[\s\S]*?-->/gi, '')
+      // Remove meta tags
+      .replace(/<meta[^>]*>/gi, '')
+      .replace(/<link[^>]*>/gi, '');
+
+    // Create temporary DOM element and extract only text
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html;
+    tempDiv.innerHTML = preprocessed;
     
-    // Extract text content only, completely stripping all HTML and styles
+    // Extract pure text content
     let textContent = tempDiv.textContent || tempDiv.innerText || '';
     
-    // Clean up the extracted text
+    // Aggressive cleaning of Microsoft Office artifacts
     let cleaned = textContent
-      // Remove Microsoft Office artifacts that might remain as text
-      .replace(/level\d+\s+lfo\d+/gi, '')
+      // Remove CSS style fragments completely
+      .replace(/\/\*[\s\S]*?\*\//g, '')                // Remove CSS comments
+      .replace(/@font-face\s*\{[^}]*\}/gi, '')         // Remove font-face declarations
+      .replace(/p\.MsoNormal[^}]*\}/gi, '')            // Remove MsoNormal styles
+      .replace(/\.MsoChpDefault[^}]*\}/gi, '')         // Remove MsoChpDefault styles
+      .replace(/\.MsoPapDefault[^}]*\}/gi, '')         // Remove MsoPapDefault styles
+      .replace(/@page\s+WordSection1[^}]*\}/gi, '')    // Remove page styles
+      .replace(/div\.WordSection1[^}]*\}/gi, '')       // Remove WordSection styles
+      .replace(/panose-1:[^}]*\}/gi, '')               // Remove panose font definitions
+      .replace(/margin-[^:]*:[^;}]*[;}]/gi, '')        // Remove margin styles
+      .replace(/font-family:[^;}]*[;}]/gi, '')         // Remove font-family styles
+      .replace(/line-height:[^;}]*[;}]/gi, '')         // Remove line-height styles
+      .replace(/color:[^;}]*[;}]/gi, '')               // Remove color styles
+      .replace(/text-[^:]*:[^;}]*[;}]/gi, '')          // Remove text-* styles
+      .replace(/New Roman[^}]*\}/gi, '')               // Remove Times New Roman references
+      // Remove style property fragments
       .replace(/mso-[^;\s]*[;\s]*/gi, '')
-      .replace(/color:#[0-9A-Fa-f]{6}/gi, '')
-      .replace(/line-height:\d+%/gi, '')
-      .replace(/font-family:[^;]*/gi, '')
-      .replace(/text-indent:[^;]*/gi, '')
-      .replace(/text-align:[^;]*/gi, '')
-      .replace(/margin-left:[^;]*/gi, '')
-      .replace(/tab-stops:[^;]*/gi, '')
-      .replace(/font-size:[^;]*/gi, '')
-      .replace(/background:[^;]*/gi, '')
-      // Remove standalone style fragments
-      .replace(/[";>]+\s*/g, ' ')
-      // Clean up spacing and structure
-      .replace(/\s+/g, ' ')                            // Replace multiple spaces with single space
-      .replace(/\n\s*\n\s*\n/g, '\n\n')               // Replace multiple newlines with double
+      .replace(/level\d+\s+lfo\d+/gi, '')
+      .replace(/[0-9]+\s+[0-9]+\s+[0-9]+\s+[0-9]+/g, '')  // Remove number sequences
+      // Clean up remaining artifacts
+      .replace(/[{};]/g, ' ')                          // Replace CSS brackets and semicolons
+      .replace(/<!--[^>]*-->/g, '')                    // Remove remaining comments
+      .replace(/^\s*[-·•]\s*/gm, '• ')                 // Normalize bullet points
+      .replace(/\s+/g, ' ')                            // Replace multiple spaces
+      .replace(/\n\s*\n\s*\n/g, '\n\n')               // Replace multiple newlines
       .replace(/^\s+|\s+$/g, '')                       // Trim whitespace
       .trim();
 
