@@ -310,6 +310,8 @@ export default function JobDetails() {
 
   // Helper function to convert URLs and emails to clickable links
   const convertUrlsToLinks = (text: string) => {
+    if (!text) return text;
+    
     // Don't process text that already contains HTML links
     if (text.includes('<a ') || text.includes('</a>')) {
       return text;
@@ -317,38 +319,38 @@ export default function JobDetails() {
     
     let processedText = text;
     
-    // Enhanced email regex to detect email addresses
-    const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+    // Enhanced email regex to detect email addresses - make sure it's only emails, not the whole text
+    const emailRegex = /\b([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,})\b/g;
     
-    // First, replace email addresses
-    processedText = processedText.replace(emailRegex, (email) => {
-      return `<a href="mailto:${email}" class="text-blue-600 hover:text-blue-800 font-medium bg-blue-50 px-2 py-0.5 rounded border border-blue-200 inline-block break-all word-break-all max-w-full" style="overflow-wrap: anywhere; word-break: break-all; max-width: 100%;">${email}</a>`;
+    // First, replace email addresses only (not the whole text)
+    processedText = processedText.replace(emailRegex, (match, email) => {
+      return `<a href="mailto:${email}" style="color: #0077B5; text-decoration: underline; background-color: #f0f8ff; padding: 2px 4px; border-radius: 4px; border: 1px solid #e0e7ff;">${email}</a>`;
     });
     
     // Enhanced URL regex to catch various URL formats, but exclude those in parentheses following text
-    const urlRegex = /((?:https?:\/\/|www\.)[^\s\)]+)/gi;
+    const urlRegex = /((?:https?:\/\/|www\.)[^\s\)\<\>\"\']+)/gi;
     
-    // Then, replace URLs (but avoid replacing emails that are already processed)
-    processedText = processedText.replace(urlRegex, (url) => {
+    // Then, replace URLs only (not the whole text)
+    processedText = processedText.replace(urlRegex, (match) => {
       // Skip if this URL is already part of an email link
-      if (url.includes('mailto:')) {
-        return url;
+      if (match.includes('mailto:')) {
+        return match;
       }
       
-      let href = url;
-      let displayText = url;
+      let href = match;
+      let displayText = match;
       
       // Add https:// if it's missing
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        href = `https://${url}`;
+      if (!match.startsWith('http://') && !match.startsWith('https://')) {
+        href = `https://${match}`;
       }
       
       // Truncate display text if URL is very long
-      if (displayText.length > 60) {
-        displayText = displayText.substring(0, 57) + '...';
+      if (displayText.length > 50) {
+        displayText = displayText.substring(0, 47) + '...';
       }
       
-      return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline break-all font-medium">${displayText}</a>`;
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer" style="color: #0077B5; text-decoration: underline;">${displayText}</a>`;
     });
     
     return processedText;
@@ -408,13 +410,13 @@ export default function JobDetails() {
           const domainMatch = linkText.match(/(?:www\.)?([a-zA-Z0-9-]+\.[a-zA-Z]{2,})/);
           if (domainMatch) {
             url = `https://${domainMatch[0]}`;
-            cleanedText = text.replace(match[0], `Visit ${linkText} to apply`);
+            cleanedText = text; // Keep full text instead of replacing with generic message
             break;
           }
         } else if (!linkUrl.includes('void(0)')) {
           // Use valid URL
           url = linkUrl.startsWith('http') ? linkUrl : `https://${linkUrl}`;
-          cleanedText = text.replace(match[0], `Visit the application link to apply`);
+          cleanedText = text; // Keep full text instead of replacing with generic message
           break;
         }
       }
@@ -444,8 +446,8 @@ export default function JobDetails() {
           if (!url.startsWith('http://') && !url.startsWith('https://')) {
             url = `https://${url}`;
           }
-          // Remove the URL from the text but keep the rest
-          cleanedText = text.replace(new RegExp(validUrls[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '').trim();
+          // Keep the full text instead of removing the URL
+          cleanedText = text;
         }
       }
     }
