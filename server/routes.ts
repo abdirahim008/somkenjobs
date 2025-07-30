@@ -567,7 +567,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if user owns this job OR user is super admin
       const existingJob = await storage.getJobById(jobId);
+      console.log(`Job update attempt - JobId: ${jobId}, UserId: ${userId}, IsAdmin: ${isAdmin}, JobCreatedBy: ${existingJob?.createdBy}`);
+      
       if (!existingJob || (existingJob.createdBy !== userId && !isAdmin)) {
+        console.log(`Job update denied - User ${userId} (admin: ${isAdmin}) cannot edit job ${jobId} (created by: ${existingJob?.createdBy})`);
         return res.status(403).json({ message: "You can only edit your own jobs" });
       }
 
