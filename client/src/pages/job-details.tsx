@@ -207,23 +207,33 @@ export default function JobDetails() {
   };
 
   const cleanText = (text: string) => {
-    // First, handle Microsoft Office HTML content
+    if (!text) return '';
+    
+    let cleanedText = text;
+    
+    // Only strip Microsoft Office artifacts, preserve intentional HTML formatting
     if (text.includes('<') && text.includes('>')) {
-      // Remove HTML tags and extract clean text
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = text;
-      text = tempDiv.innerText || tempDiv.textContent || '';
+      // Remove Microsoft Office specific tags while preserving basic formatting
+      cleanedText = text
+        .replace(/<h1[^>]*>/gi, '')
+        .replace(/<\/h1>/gi, '')
+        .replace(/<div[^>]*>/gi, '')
+        .replace(/<\/div>/gi, '')
+        .replace(/<span[^>]*>/gi, '')
+        .replace(/<\/span>/gi, '')
+        .replace(/style="[^"]*"/gi, '')
+        .replace(/&amp;/g, '&')
+        .replace(/&nbsp;/g, ' ');
     }
     
     // Clean Microsoft Office CSS artifacts that appear as text fragments
-    let cleanedText = text
+    cleanedText = cleanedText
       // Remove percentage-based formatting artifacts 
       .replace(/\d+%;[^">]*"?>/gi, '')
       .replace(/level\d+\s+lfo\d+"?>/gi, '')
       .replace(/list:l\d+\s+level\d+\s+lfo\d+"?>/gi, '')
       .replace(/color:#[0-9A-Fa-f]{6}"?>/gi, '')
       .replace(/line-height:\d+%[;"]*font-family:"?[^"]*"?[;"]*mso-fareast-font-family:[^;"]*[;"]*color:#[0-9A-Fa-f]{6}"?>/gi, '')
-      .replace(/color:#[0-9A-Fa-f]{6}"?>/gi, '')
       .replace(/font-family:"?[^"]*"?[;"]*mso-fareast-font-family:[^;"]*[;"]*color:#[0-9A-Fa-f]{6}"?>/gi, '')
       .replace(/mso-fareast-font-family:"?[^"]*"?[;"]*color:#[0-9A-Fa-f]{6}"?>/gi, '')
       .replace(/font-family:"?[^"]*"?[;"]*color:#[0-9A-Fa-f]{6}"?>/gi, '')
@@ -470,74 +480,34 @@ export default function JobDetails() {
     
     // Use the full HTML description if available, otherwise use the regular description
     const fullDescription = job.bodyHtml || job.description;
-    const shortDescription = job.description;
     
-    // Check if we need to show "Show More" button (if there's more content in bodyHtml or description is truncated)
-    const needsShowMore = fullDescription && fullDescription.length > shortDescription.length;
+    // Count words for the "Show More" functionality
+    const words = fullDescription.split(/\s+/).filter(word => word.length > 0);
+    const shouldShowMore = words.length > 200;
+    
+    // Create short description (first 200 words)
+    const shortDescription = shouldShowMore 
+      ? words.slice(0, 200).join(' ') + '...'
+      : fullDescription;
     
     const displayDescription = showFullDescription ? fullDescription : shortDescription;
     
     return (
       <div className="space-y-4">
         <div className="prose prose-gray max-w-none">
-          <div className="space-y-4 break-words overflow-wrap-anywhere">
-            {displayDescription
-              .split('\n')
-              .filter(paragraph => paragraph.trim().length > 0)
-              .map((paragraph, index) => {
-                const trimmedParagraph = cleanText(paragraph.trim());
-                
-                // Check if it's a header/title (usually short and in caps or ends with colon)
-                if (trimmedParagraph.length < 100 && 
-                    (trimmedParagraph.toUpperCase() === trimmedParagraph || 
-                     trimmedParagraph.endsWith(':') ||
-                     trimmedParagraph.match(/^\d+\.\s/))) {
-                  return (
-                    <h3 key={index} className="text-lg font-semibold text-foreground mt-6 mb-3">
-                      <span dangerouslySetInnerHTML={{
-                        __html: convertUrlsToLinks(
-                          trimmedParagraph
-                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                        )
-                      }} />
-                    </h3>
-                  );
-                }
-                
-                // Check if it's a bullet point
-                if (trimmedParagraph.startsWith('•') || trimmedParagraph.startsWith('-') || trimmedParagraph.match(/^\*[^*]/)) {
-                  return (
-                    <li key={index} className="ml-4 mb-2 text-foreground leading-relaxed">
-                      <span dangerouslySetInnerHTML={{
-                        __html: convertUrlsToLinks(
-                          trimmedParagraph
-                            .replace(/^[•\-*]\s*/, '')
-                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                        )
-                      }} />
-                    </li>
-                  );
-                }
-                
-                // Regular paragraph
-                return (
-                  <p key={index} className="mb-4 text-foreground leading-relaxed break-words">
-                    <span dangerouslySetInnerHTML={{
-                      __html: convertUrlsToLinks(
-                        trimmedParagraph
-                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                          .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                      )
-                    }} />
-                  </p>
-                );
-              })}
-          </div>
+          <div 
+            className="space-y-4 break-words overflow-wrap-anywhere rich-text-content"
+            dangerouslySetInnerHTML={{
+              __html: convertUrlsToLinks(cleanText(displayDescription))
+            }}
+            style={{
+              lineHeight: '1.6',
+              fontSize: '16px'
+            }}
+          />
         </div>
         
-        {needsShowMore && (
+        {shouldShowMore && (
           <Button
             variant="outline"
             size="sm"

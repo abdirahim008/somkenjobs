@@ -58,6 +58,51 @@
   }
 }
 
+/* Rich text content styling for job descriptions */
+.rich-text-content {
+  /* Preserve formatting from rich text editor */
+}
+
+.rich-text-content p {
+  @apply mb-4 leading-relaxed;
+}
+
+.rich-text-content strong {
+  @apply font-semibold;
+}
+
+.rich-text-content em {
+  @apply italic;
+}
+
+.rich-text-content ul {
+  @apply list-disc ml-6 mb-4;
+}
+
+.rich-text-content ol {
+  @apply list-decimal ml-6 mb-4;
+}
+
+.rich-text-content li {
+  @apply mb-2 leading-relaxed;
+}
+
+.rich-text-content h1, .rich-text-content h2, .rich-text-content h3 {
+  @apply font-semibold text-lg mt-6 mb-3;
+}
+
+.rich-text-content table {
+  @apply w-full border-collapse border border-gray-300 mb-4;
+}
+
+.rich-text-content td, .rich-text-content th {
+  @apply border border-gray-300 px-3 py-2;
+}
+
+.rich-text-content th {
+  @apply bg-gray-100 font-semibold;
+}
+
 /* Custom styles for the job board */
 .job-card {
   @apply bg-card rounded-xl shadow-sm border border-border p-6 hover:shadow-lg transition-all duration-200;
