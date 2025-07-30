@@ -558,15 +558,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update a job (only if user owns it)
+  // Update a job (user owns it OR user is super admin)
   app.put("/api/jobs/:id", authenticate, async (req: AuthRequest, res) => {
     try {
       const jobId = parseInt(req.params.id);
       const userId = req.user!.id;
+      const isAdmin = req.user!.isAdmin;
       
-      // Check if user owns this job
+      // Check if user owns this job OR user is super admin
       const existingJob = await storage.getJobById(jobId);
-      if (!existingJob || existingJob.createdBy !== userId) {
+      if (!existingJob || (existingJob.createdBy !== userId && !isAdmin)) {
         return res.status(403).json({ message: "You can only edit your own jobs" });
       }
 
@@ -602,15 +603,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete a job (only if user owns it)
+  // Delete a job (user owns it OR user is super admin)
   app.delete("/api/jobs/:id", authenticate, async (req: AuthRequest, res) => {
     try {
       const jobId = parseInt(req.params.id);
       const userId = req.user!.id;
+      const isAdmin = req.user!.isAdmin;
       
-      // Check if user owns this job
+      // Check if user owns this job OR user is super admin
       const existingJob = await storage.getJobById(jobId);
-      if (!existingJob || existingJob.createdBy !== userId) {
+      if (!existingJob || (existingJob.createdBy !== userId && !isAdmin)) {
         return res.status(403).json({ message: "You can only delete your own jobs" });
       }
 
