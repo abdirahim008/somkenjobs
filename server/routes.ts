@@ -574,8 +574,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "You can only edit your own jobs" });
       }
 
+      // Clean Microsoft Office formatting artifacts from text fields
+      const cleanMicrosoftText = (text: string): string => {
+        if (!text) return text;
+        
+        return text
+          // Remove percentage-based CSS fragments that appear as text
+          .replace(/\d+%;[^">]*">/g, '')
+          .replace(/level\d+\s+lfo\d+"?>/g, '')
+          .replace(/color:#[0-9A-Fa-f]{6}"?>/g, '')
+          .replace(/line-height:\d+%[;"]*font-family:"?[^"]*"?[;"]*mso-fareast-font-family:[^;"]*[;"]*color:#[0-9A-Fa-f]{6}"?>/g, '')
+          .replace(/font-family:"?[^"]*"?[;"]*mso-fareast-font-family:[^;"]*[;"]*color:#[0-9A-Fa-f]{6}"?>/g, '')
+          .replace(/mso-fareast-font-family:"?[^"]*"?[;"]*color:#[0-9A-Fa-f]{6}"?>/g, '')
+          .replace(/font-family:"?[^"]*"?[;"]*color:#[0-9A-Fa-f]{6}"?>/g, '')
+          .replace(/color:[^;]*[;"]*mso-themecolor:[^;"]*[;"]*>/g, '')
+          .replace(/mso-[^;>"]*[;"]*>/g, '')
+          .replace(/tab-stops:[^;"]*[;"]*>/g, '')
+          .replace(/text-indent:[^;"]*[;"]*>/g, '')
+          // Clean up any remaining artifacts
+          .replace(/\s+/g, ' ')
+          .trim();
+      };
+
       // Validate and transform job data
       const jobData = req.body;
+      
+      // Clean text fields of Microsoft Office formatting
+      if (jobData.description) jobData.description = cleanMicrosoftText(jobData.description);
+      if (jobData.qualifications) jobData.qualifications = cleanMicrosoftText(jobData.qualifications);
+      if (jobData.howToApply) jobData.howToApply = cleanMicrosoftText(jobData.howToApply);
       
       // Convert date strings to Date objects if they exist
       const transformedData = {

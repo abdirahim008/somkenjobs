@@ -207,15 +207,20 @@ export default function JobDetails() {
   };
 
   const cleanText = (text: string) => {
-    // Check if text contains HTML tags (Microsoft Office content)
+    // First, handle Microsoft Office HTML content
     if (text.includes('<') && text.includes('>')) {
-      return cleanHtmlContent(text);
+      // Remove HTML tags and extract clean text
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = text;
+      text = tempDiv.innerText || tempDiv.textContent || '';
     }
     
     // Clean Microsoft Office CSS artifacts that appear as text fragments
     let cleanedText = text
-      // Remove Microsoft Office CSS style fragments that appear as text
+      // Remove percentage-based formatting artifacts 
+      .replace(/\d+%;[^">]*"?>/gi, '')
       .replace(/level\d+\s+lfo\d+"?>/gi, '')
+      .replace(/list:l\d+\s+level\d+\s+lfo\d+"?>/gi, '')
       .replace(/color:#[0-9A-Fa-f]{6}"?>/gi, '')
       .replace(/line-height:\d+%[;"]*font-family:"?[^"]*"?[;"]*mso-fareast-font-family:[^;"]*[;"]*color:#[0-9A-Fa-f]{6}"?>/gi, '')
       .replace(/color:#[0-9A-Fa-f]{6}"?>/gi, '')
