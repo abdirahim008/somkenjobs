@@ -74,7 +74,7 @@ export default function Dashboard() {
     url: "",
     status: "draft", // Add status field
     type: "job" as "job" | "tender", // Add type field
-    attachmentUrl: "", // Add attachment URL field
+    attachmentUrls: [] as string[], // Add multiple attachment URLs field
     postingDate: getTodaysDate() // Add posting date field with today's date as default
   });
 
@@ -244,7 +244,7 @@ export default function Dashboard() {
         url: "",
         status: "draft",
         type: "job",
-        attachmentUrl: "",
+        attachmentUrls: [],
         postingDate: getTodaysDate()
       });
       queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
@@ -962,7 +962,7 @@ export default function Dashboard() {
       qualifications: jobForm.qualifications,
       status: editingJob ? jobForm.status : 'draft', // Force draft for new jobs, use form status for edits
       type: jobForm.type, // Include type field
-      attachmentUrl: jobForm.attachmentUrl, // Include attachment URL
+      attachmentUrls: jobForm.attachmentUrls, // Include attachment URLs
       bodyHtml: `
         <div>
           <h3>${jobForm.type === 'tender' ? 'Tender Description' : 'Job Description'}</h3>
@@ -971,7 +971,7 @@ export default function Dashboard() {
           ${jobForm.qualifications && jobForm.qualifications.trim() ? `<h3>Qualifications & Requirements</h3><div>${jobForm.qualifications}</div>` : ''}
           ${jobForm.experience ? `<h3>Experience Level</h3><p>${jobForm.experience}</p>` : ''}
           ${jobForm.howToApply && jobForm.howToApply.trim() ? `<h3>How to Apply</h3><div>${jobForm.howToApply}</div>` : ''}
-          ${jobForm.attachmentUrl ? `<h3>Attachment</h3><p>Document: ${jobForm.attachmentUrl}</p>` : ''}
+          ${jobForm.attachmentUrls.length > 0 ? `<h3>Attachments</h3><ul>${jobForm.attachmentUrls.map(url => `<li>Document: ${url}</li>`).join('')}</ul>` : ''}
         </div>
       `.trim()
     };
@@ -1176,7 +1176,7 @@ export default function Dashboard() {
                         url: "",
                         status: "draft",
                         type: "job",
-                        attachmentUrl: "",
+                        attachmentUrls: [],
                         postingDate: getTodaysDate()
                       });
                     }}
@@ -1363,25 +1363,52 @@ export default function Dashboard() {
                   </div>
 
                   <div>
-                    <Label htmlFor="attachment">Attachment (Optional)</Label>
+                    <Label htmlFor="attachments">Attachments (Optional)</Label>
+                    <div className="text-sm text-gray-600 mb-2">
+                      You can upload multiple files: PDFs, Word documents, images, etc.
+                    </div>
                     <Input
-                      id="attachment"
+                      id="attachments"
                       type="file"
-                      accept=".pdf,.doc,.docx"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.txt,.xlsx,.xls,.ppt,.pptx"
+                      multiple
                       onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          // For now, we'll just store the filename
+                        const files = Array.from(e.target.files || []);
+                        if (files.length > 0) {
+                          // For now, we'll just store the filenames
                           // In a real implementation, you'd upload to a file storage service
-                          setJobForm({ ...jobForm, attachmentUrl: file.name });
+                          const newAttachments = files.map(file => file.name);
+                          setJobForm({ 
+                            ...jobForm, 
+                            attachmentUrls: [...jobForm.attachmentUrls, ...newAttachments]
+                          });
                         }
                       }}
                       className="file:mr-4 file:py-2.5 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#0077B5] file:text-white hover:file:bg-[#005582]"
                     />
-                    {jobForm.attachmentUrl && (
-                      <p className="text-sm text-gray-600 mt-1">
-                        Selected: {jobForm.attachmentUrl}
-                      </p>
+                    {jobForm.attachmentUrls.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        <p className="text-sm font-medium text-gray-700">Selected files:</p>
+                        <div className="space-y-1">
+                          {jobForm.attachmentUrls.map((filename, index) => (
+                            <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded-md">
+                              <span className="text-sm text-gray-700 truncate">{filename}</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const newAttachments = jobForm.attachmentUrls.filter((_, i) => i !== index);
+                                  setJobForm({ ...jobForm, attachmentUrls: newAttachments });
+                                }}
+                                className="text-red-600 hover:text-red-800 p-1 h-auto"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
 
@@ -1496,7 +1523,7 @@ export default function Dashboard() {
                             qualifications: publishedJobData.qualifications,
                             status: 'published', // Force published status
                             type: publishedJobData.type,
-                            attachmentUrl: publishedJobData.attachmentUrl,
+                            attachmentUrls: publishedJobData.attachmentUrls,
                             bodyHtml: `
                               <div>
                                 <h3>${publishedJobData.type === 'tender' ? 'Tender Description' : 'Job Description'}</h3>
@@ -1763,7 +1790,7 @@ export default function Dashboard() {
                                 url: job.url || '',
                                 status: (job as any).status || 'published',
                                 type: (job as any).type || 'job',
-                                attachmentUrl: (job as any).attachmentUrl || '',
+                                attachmentUrls: (job as any).attachmentUrls || [],
                                 postingDate: job.datePosted ? new Date(job.datePosted).toISOString().split('T')[0] : getTodaysDate()
                               });
                               // Switch to create-job tab
@@ -2443,7 +2470,7 @@ export default function Dashboard() {
                                   url: job.url || '',
                                   status: (job as any).status || 'published',
                                   type: (job as any).type || 'job',
-                                  attachmentUrl: (job as any).attachmentUrl || '',
+                                  attachmentUrls: (job as any).attachmentUrls || [],
                                   postingDate: job.datePosted ? new Date(job.datePosted).toISOString().split('T')[0] : getTodaysDate()
                                 });
                                 setEditingJob(job);
