@@ -966,11 +966,11 @@ export default function Dashboard() {
       bodyHtml: `
         <div>
           <h3>${jobForm.type === 'tender' ? 'Tender Description' : 'Job Description'}</h3>
-          <p>${jobForm.description.replace(/\n/g, '<br>')}</p>
+          <div>${jobForm.description}</div>
 
-          ${jobForm.qualifications ? `<h3>Qualifications & Requirements</h3><p>${jobForm.qualifications.replace(/\n/g, '<br>')}</p>` : ''}
+          ${jobForm.qualifications && jobForm.qualifications.trim() ? `<h3>Qualifications & Requirements</h3><div>${jobForm.qualifications}</div>` : ''}
           ${jobForm.experience ? `<h3>Experience Level</h3><p>${jobForm.experience}</p>` : ''}
-          ${jobForm.howToApply ? `<h3>How to Apply</h3><p>${jobForm.howToApply.replace(/\n/g, '<br>')}</p>` : ''}
+          ${jobForm.howToApply && jobForm.howToApply.trim() ? `<h3>How to Apply</h3><div>${jobForm.howToApply}</div>` : ''}
           ${jobForm.attachmentUrl ? `<h3>Attachment</h3><p>Document: ${jobForm.attachmentUrl}</p>` : ''}
         </div>
       `.trim()
@@ -1314,11 +1314,14 @@ export default function Dashboard() {
                   </div>
 
                   <div className="space-y-2 pb-6 border-b border-gray-100">
-                    <Label htmlFor="description">Description *</Label>
+                    <Label htmlFor="description">Job/Tender Description *</Label>
+                    <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-md mb-3 border border-amber-200">
+                      <strong>Important:</strong> Only write the main job description here. Don't include qualifications or application instructions - use the separate fields below for those.
+                    </div>
                     <SimpleRichTextEditor
                       value={jobForm.description}
                       onChange={(value) => setJobForm({ ...jobForm, description: value })}
-                      placeholder="Provide a comprehensive description including background, context, and purpose..."
+                      placeholder="Provide the main job/tender description: background, context, purpose, responsibilities, and key details. Do NOT include qualifications or application instructions here."
                       required
                       height="350px"
                       minHeight="250px"
@@ -1329,11 +1332,14 @@ export default function Dashboard() {
 
 
                   <div className="space-y-2 pb-6 border-b border-gray-100">
-                    <Label htmlFor="qualifications">Qualifications & Requirements</Label>
+                    <Label htmlFor="qualifications">Qualifications & Requirements (Optional)</Label>
+                    <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded-md mb-3 border border-blue-200">
+                      Only fill this if you have specific qualifications to add beyond what's in the main description above.
+                    </div>
                     <SimpleRichTextEditor
                       value={jobForm.qualifications}
                       onChange={(value) => setJobForm({ ...jobForm, qualifications: value })}
-                      placeholder="List required education, skills, certifications, and other qualifications..."
+                      placeholder="List additional required education, skills, certifications, and other qualifications not mentioned in the description above..."
                       height="300px"
                       minHeight="200px"
                       maxHeight="600px"
@@ -1342,10 +1348,13 @@ export default function Dashboard() {
 
                   <div className="space-y-2 pb-6">
                     <Label htmlFor="howToApply">How to Apply *</Label>
+                    <div className="text-sm text-green-600 bg-green-50 p-3 rounded-md mb-3 border border-green-200">
+                      <strong>Application instructions only:</strong> Email addresses, documents required, application process, deadlines, etc.
+                    </div>
                     <SimpleRichTextEditor
                       value={jobForm.howToApply}
                       onChange={(value) => setJobForm({ ...jobForm, howToApply: value })}
-                      placeholder="Please provide detailed application instructions including required documents, email address, and any specific requirements..."
+                      placeholder="Provide application instructions: email address, required documents, application process, and any specific requirements. Do NOT repeat the job description here."
                       required
                       height="300px"
                       minHeight="200px"
@@ -1491,13 +1500,15 @@ export default function Dashboard() {
                             bodyHtml: `
                               <div>
                                 <h3>${publishedJobData.type === 'tender' ? 'Tender Description' : 'Job Description'}</h3>
-                                <p>${publishedJobData.description.replace(/\n/g, '<br>')}</p>
-                                ${publishedJobData.qualifications ? `
+                                <div>${publishedJobData.description}</div>
+                                ${publishedJobData.qualifications && publishedJobData.qualifications.trim() ? `
                                   <h3>Qualifications & Requirements</h3>
-                                  <p>${publishedJobData.qualifications.replace(/\n/g, '<br>')}</p>
+                                  <div>${publishedJobData.qualifications}</div>
                                 ` : ''}
-                                <h3>How to Apply</h3>
-                                <p>${publishedJobData.howToApply.replace(/\n/g, '<br>')}</p>
+                                ${publishedJobData.howToApply && publishedJobData.howToApply.trim() ? `
+                                  <h3>How to Apply</h3>
+                                  <div>${publishedJobData.howToApply}</div>
+                                ` : ''}
                               </div>
                             `.trim(),
                           };
