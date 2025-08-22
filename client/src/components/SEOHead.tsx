@@ -197,83 +197,135 @@ export default function SEOHead({
     }
     ogLocale.setAttribute('content', 'en_US');
 
-    // Add job-specific Open Graph properties for richer social media previews
+    // Add comprehensive Open Graph and Twitter Card properties for job postings
     if (jobLocation || jobOrganization || jobDeadline || jobSector) {
-      // Create a richer description by including key job details
-      let enrichedDescription = description || '';
+      // Create a structured rich description for social media
+      const jobSummaryParts = [];
       
-      if (jobOrganization && jobLocation && jobCountry) {
-        enrichedDescription += ` | ${jobOrganization} in ${jobLocation}, ${jobCountry}`;
+      if (jobOrganization) {
+        jobSummaryParts.push(`📍 ${jobOrganization}`);
+      }
+      
+      if (jobLocation && jobCountry) {
+        jobSummaryParts.push(`🌍 ${jobLocation}, ${jobCountry}`);
       }
       
       if (jobSector) {
-        enrichedDescription += ` | ${jobSector} sector`;
+        jobSummaryParts.push(`💼 ${jobSector}`);
       }
       
       if (jobDeadline) {
-        enrichedDescription += ` | Apply by ${jobDeadline}`;
+        const deadlineDate = new Date(jobDeadline);
+        const isValidDate = !isNaN(deadlineDate.getTime());
+        if (isValidDate) {
+          const formattedDeadline = deadlineDate.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          });
+          jobSummaryParts.push(`⏰ Apply by ${formattedDeadline}`);
+        }
       }
       
-      // Update the enhanced description in all relevant meta tags
+      const baseDescription = description || '';
+      const enrichedDescription = jobSummaryParts.length > 0 
+        ? `${baseDescription}\n\n${jobSummaryParts.join('\n')}`
+        : baseDescription;
+      
+      // Update description in all relevant meta tags  
       const metaDescription = document.querySelector('meta[name="description"]');
       if (metaDescription) {
-        metaDescription.setAttribute('content', enrichedDescription);
+        metaDescription.setAttribute('content', enrichedDescription.substring(0, 160)); // SEO limit
       }
       
       const ogDescription = document.querySelector('meta[property="og:description"]');
       if (ogDescription) {
-        ogDescription.setAttribute('content', enrichedDescription);
+        ogDescription.setAttribute('content', enrichedDescription.substring(0, 300)); // OG limit
       }
       
       const twitterDescription = document.querySelector('meta[property="twitter:description"]');
       if (twitterDescription) {
-        twitterDescription.setAttribute('content', enrichedDescription);
+        twitterDescription.setAttribute('content', enrichedDescription.substring(0, 200)); // Twitter limit
       }
       
-      // Add job-specific Open Graph properties
-      const updateOrCreateJobOGTag = (property: string, content: string) => {
-        let tag = document.querySelector(`meta[property="${property}"]`);
+      // Comprehensive meta tag helper function
+      const updateOrCreateMetaTag = (attribute: string, attributeValue: string, content: string, isTwitter = false) => {
+        const selector = isTwitter ? `meta[name="${attributeValue}"]` : `meta[${attribute}="${attributeValue}"]`;
+        let tag = document.querySelector(selector);
         if (tag) {
           tag.setAttribute('content', content);
         } else {
           tag = document.createElement('meta');
-          tag.setAttribute('property', property);
+          tag.setAttribute(isTwitter ? 'name' : attribute, attributeValue);
           tag.setAttribute('content', content);
           tag.setAttribute('data-job-specific', 'true');
           document.head.appendChild(tag);
         }
       };
       
-      // Add Article-specific Open Graph tags for better Facebook previews
+      // Enhanced Open Graph tags for job postings
+      updateOrCreateMetaTag('property', 'og:type', 'article');
+      
       if (jobPostedDate) {
-        updateOrCreateJobOGTag('article:published_time', jobPostedDate);
+        updateOrCreateMetaTag('property', 'article:published_time', new Date(jobPostedDate).toISOString());
       }
       
       if (jobSector) {
-        updateOrCreateJobOGTag('article:section', jobSector);
-        updateOrCreateJobOGTag('article:tag', jobSector);
+        updateOrCreateMetaTag('property', 'article:section', jobSector);
+        updateOrCreateMetaTag('property', 'article:tag', jobSector);
       }
       
       if (jobOrganization) {
-        updateOrCreateJobOGTag('article:author', jobOrganization);
+        updateOrCreateMetaTag('property', 'article:author', jobOrganization);
       }
       
-      // Add specific tags for job posts
+      // Job-specific Open Graph properties
       if (jobLocation && jobCountry) {
-        updateOrCreateJobOGTag('job:location', `${jobLocation}, ${jobCountry}`);
+        updateOrCreateMetaTag('property', 'job:location', `${jobLocation}, ${jobCountry}`);
       }
       
       if (jobOrganization) {
-        updateOrCreateJobOGTag('job:company', jobOrganization);
+        updateOrCreateMetaTag('property', 'job:company', jobOrganization);
       }
       
       if (jobDeadline) {
-        updateOrCreateJobOGTag('job:expires', jobDeadline);
+        updateOrCreateMetaTag('property', 'job:expires', jobDeadline);
       }
       
       if (jobSector) {
-        updateOrCreateJobOGTag('job:category', jobSector);
+        updateOrCreateMetaTag('property', 'job:category', jobSector);
       }
+      
+      // Enhanced Twitter Card meta tags
+      updateOrCreateMetaTag('name', 'twitter:card', 'summary_large_image', true);
+      updateOrCreateMetaTag('name', 'twitter:site', '@SomkenJobs', true);
+      updateOrCreateMetaTag('name', 'twitter:creator', '@SomkenJobs', true);
+      
+      if (title) {
+        updateOrCreateMetaTag('name', 'twitter:title', title, true);
+      }
+      
+      // Twitter-specific job labels for enhanced display
+      if (jobOrganization) {
+        updateOrCreateMetaTag('name', 'twitter:label1', 'Employer', true);
+        updateOrCreateMetaTag('name', 'twitter:data1', jobOrganization, true);
+      }
+      
+      if (jobLocation && jobCountry) {
+        updateOrCreateMetaTag('name', 'twitter:label2', 'Location', true);
+        updateOrCreateMetaTag('name', 'twitter:data2', `${jobLocation}, ${jobCountry}`, true);
+      }
+      
+      // Additional LinkedIn-specific Open Graph properties
+      if (jobOrganization && jobLocation && jobSector) {
+        const linkedInTitle = `${title} at ${jobOrganization} | ${jobLocation} | ${jobSector}`;
+        updateOrCreateMetaTag('property', 'og:title', linkedInTitle.substring(0, 100));
+      }
+      
+      // Facebook-specific Open Graph properties for better job sharing
+      // Remove Facebook App ID for now since it requires actual app registration
+      // updateOrCreateMetaTag('property', 'fb:app_id', 'YOUR_FB_APP_ID');
+      updateOrCreateMetaTag('property', 'og:updated_time', new Date().toISOString());
     }
 
     // Remove any existing image-related meta tags

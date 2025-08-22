@@ -628,7 +628,7 @@ export default function JobDetails() {
           canonicalUrl={`https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`}
           jobLocation={job.location}
           jobOrganization={job.organization}
-          jobDeadline={job.deadline ? formatDeadline(job.deadline) : undefined}
+          jobDeadline={job.deadline ? new Date(job.deadline).toISOString() : undefined}
           jobSector={job.sector || undefined}
           jobCountry={job.country}
           jobPostedDate={new Date(job.datePosted).toISOString()}

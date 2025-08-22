@@ -18,7 +18,7 @@ The application employs a modern full-stack architecture, ensuring clear separat
 -   **State Management:** TanStack Query for server state, complemented by local state for UI interactions.
 -   **Routing:** Wouter is used for client-side routing.
 -   **UI/UX:** Focuses on clean, intuitive design with a professional LinkedIn blue color scheme for branding. Features include advanced filtering, real-time search, responsive design for all devices, and interactive components like collapsible filter sections and rich text editors.
--   **SEO:** Comprehensive SEO optimization including dynamic sitemaps, robots.txt, meta tags, Open Graph, Twitter Cards, JSON-LD structured data (especially for JobPosting schema), canonical URLs, and server-side rendering for optimal search engine and social media compatibility.
+-   **SEO:** Comprehensive SEO optimization including dynamic sitemaps, robots.txt, meta tags, enhanced Open Graph and Twitter Card implementations with job-specific data (employer, location, deadline, sector), JSON-LD structured data (especially for JobPosting schema), canonical URLs, and server-side rendering for optimal search engine and social media compatibility. Rich social media previews display job title, organization, location, application deadline, and job category when shared on LinkedIn, Facebook, WhatsApp, or Twitter.
 
 **Backend:**
 -   **Technology:** Express.js with TypeScript running on Node.js.
