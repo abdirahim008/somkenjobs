@@ -998,7 +998,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const deadline = job.deadline ? 
         ` • Deadline: ${Math.ceil((new Date(job.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left` : 
         '';
-      const jobDescription = `${job.title} • ${job.organization} • ${job.location}, ${job.country}${deadline} • Apply now on Somken Jobs`;
+      // Create compelling social media description
+      const jobDescription = `🎯 ${job.title} at ${job.organization} | 📍 ${job.location}, ${job.country}${deadline} | Apply now on Somken Jobs - East Africa's leading humanitarian job platform`;
       const jobUrl = `https://somkenjobs.com/jobs/${job.id}`;
 
       // Create dynamic SVG image data URL
@@ -1095,27 +1096,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ``
       );
 
-      // Also update Twitter meta tags
+      // Also update Twitter meta tags (using 'name' attribute, not 'property')
       html = html.replace(
-        /<meta property="twitter:title" content="[^"]*">/,
-        `<meta property="twitter:title" content="${jobTitle.replace(/"/g, '&quot;')}">`
+        /<meta name="twitter:title" content="[^"]*">/,
+        `<meta name="twitter:title" content="${jobTitle.replace(/"/g, '&quot;')}">`
       );
       
       html = html.replace(
-        /<meta property="twitter:description" content="[^"]*">/,
-        `<meta property="twitter:description" content="${jobDescription.replace(/"/g, '&quot;')}">`
+        /<meta name="twitter:description" content="[^"]*">/,
+        `<meta name="twitter:description" content="${jobDescription.replace(/"/g, '&quot;')}">`
       );
       
       // Remove twitter:image meta tag
       html = html.replace(
-        /<meta property="twitter:image" content="[^"]*">/,
+        /<meta name="twitter:image" content="[^"]*">/,
         ``
       );
 
       // Update Twitter URL to job-specific URL
       html = html.replace(
-        /<meta property="twitter:url" content="[^"]*">/,
-        `<meta property="twitter:url" content="${jobUrl}">`
+        /<meta name="twitter:url" content="[^"]*">/,
+        `<meta name="twitter:url" content="${jobUrl}">`
+      );
+      
+      // Add Twitter-specific job labels for enhanced preview cards
+      const twitterLabels = `
+    <!-- Enhanced Twitter Cards for Job Previews -->
+    <meta name="twitter:label1" content="Employer">
+    <meta name="twitter:data1" content="${job.organization}">
+    <meta name="twitter:label2" content="Location">
+    <meta name="twitter:data2" content="${job.location}, ${job.country}">
+    ${job.deadline ? `<meta name="twitter:label3" content="Deadline">
+    <meta name="twitter:data3" content="${Math.ceil((new Date(job.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left">` : ''}`;
+    
+      // Insert Twitter labels before closing head tag
+      html = html.replace(
+        /<\/head>/,
+        `${twitterLabels}\n  </head>`
       );
 
       // Remove existing og:type="website" and replace with og:type="article" for job pages

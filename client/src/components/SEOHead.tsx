@@ -69,11 +69,11 @@ export default function SEOHead({
       }
       ogDescription.setAttribute('content', description);
 
-      // Update Twitter description
-      let twitterDescription = document.querySelector('meta[property="twitter:description"]');
+      // Update Twitter description (Twitter uses 'name' not 'property')
+      let twitterDescription = document.querySelector('meta[name="twitter:description"]');
       if (!twitterDescription) {
         twitterDescription = document.createElement('meta');
-        twitterDescription.setAttribute('property', 'twitter:description');
+        twitterDescription.setAttribute('name', 'twitter:description');
         twitterDescription.setAttribute('data-job-specific', 'true');
         document.head.appendChild(twitterDescription);
       }
@@ -113,11 +113,11 @@ export default function SEOHead({
       }
       ogTitle.setAttribute('content', title);
 
-      // Update Twitter title
-      let twitterTitle = document.querySelector('meta[property="twitter:title"]');
+      // Update Twitter title (Twitter uses 'name' not 'property')
+      let twitterTitle = document.querySelector('meta[name="twitter:title"]');
       if (!twitterTitle) {
         twitterTitle = document.createElement('meta');
-        twitterTitle.setAttribute('property', 'twitter:title');
+        twitterTitle.setAttribute('name', 'twitter:title');
         twitterTitle.setAttribute('data-job-specific', 'true');
         document.head.appendChild(twitterTitle);
       }
@@ -130,7 +130,7 @@ export default function SEOHead({
       existingOgImage.remove();
     }
 
-    const existingTwitterImage = document.querySelector('meta[property="twitter:image"]');
+    const existingTwitterImage = document.querySelector('meta[name="twitter:image"]');
     if (existingTwitterImage) {
       existingTwitterImage.remove();
     }
@@ -145,11 +145,11 @@ export default function SEOHead({
       }
       ogUrl.setAttribute('content', canonicalUrl);
 
-      // Update Twitter URL
-      let twitterUrl = document.querySelector('meta[property="twitter:url"]');
+      // Update Twitter URL (Twitter uses 'name' not 'property')
+      let twitterUrl = document.querySelector('meta[name="twitter:url"]');
       if (!twitterUrl) {
         twitterUrl = document.createElement('meta');
-        twitterUrl.setAttribute('property', 'twitter:url');
+        twitterUrl.setAttribute('name', 'twitter:url');
         twitterUrl.setAttribute('data-job-specific', 'true');
         document.head.appendChild(twitterUrl);
       }
@@ -199,38 +199,54 @@ export default function SEOHead({
 
     // Add comprehensive Open Graph and Twitter Card properties for job postings
     if (jobLocation || jobOrganization || jobDeadline || jobSector) {
-      // Create a structured rich description for social media
-      const jobSummaryParts = [];
+      // Create compelling social media description with rich job details
+      let socialDescription = description || '';
       
-      if (jobOrganization) {
-        jobSummaryParts.push(`📍 ${jobOrganization}`);
-      }
-      
-      if (jobLocation && jobCountry) {
-        jobSummaryParts.push(`🌍 ${jobLocation}, ${jobCountry}`);
-      }
-      
-      if (jobSector) {
-        jobSummaryParts.push(`💼 ${jobSector}`);
-      }
-      
-      if (jobDeadline) {
-        const deadlineDate = new Date(jobDeadline);
-        const isValidDate = !isNaN(deadlineDate.getTime());
-        if (isValidDate) {
-          const formattedDeadline = deadlineDate.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric' 
-          });
-          jobSummaryParts.push(`⏰ Apply by ${formattedDeadline}`);
+      // For job pages, create a structured description that social media platforms will display nicely
+      if (jobOrganization && jobLocation && jobCountry) {
+        const jobDetails = [];
+        
+        // Add key information in a format that looks good on social platforms
+        if (jobOrganization) {
+          jobDetails.push(`🏢 ${jobOrganization}`);
+        }
+        
+        if (jobLocation && jobCountry) {
+          jobDetails.push(`📍 ${jobLocation}, ${jobCountry}`);
+        }
+        
+        if (jobSector) {
+          jobDetails.push(`🏷️ ${jobSector} Sector`);
+        }
+        
+        if (jobDeadline) {
+          const deadlineDate = new Date(jobDeadline);
+          const isValidDate = !isNaN(deadlineDate.getTime());
+          if (isValidDate) {
+            const now = new Date();
+            const diffTime = deadlineDate.getTime() - now.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays > 0) {
+              jobDetails.push(`⏰ ${diffDays} days left to apply`);
+            } else {
+              const formattedDeadline = deadlineDate.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric',
+                year: 'numeric'
+              });
+              jobDetails.push(`⏰ Deadline: ${formattedDeadline}`);
+            }
+          }
+        }
+        
+        // Create the final social media optimized description
+        if (jobDetails.length > 0) {
+          socialDescription = `${jobDetails.join(' • ')} | Apply now on Somken Jobs - East Africa's leading humanitarian job platform`;
         }
       }
       
-      const baseDescription = description || '';
-      const enrichedDescription = jobSummaryParts.length > 0 
-        ? `${baseDescription}\n\n${jobSummaryParts.join('\n')}`
-        : baseDescription;
+      const enrichedDescription = socialDescription;
       
       // Update description in all relevant meta tags  
       const metaDescription = document.querySelector('meta[name="description"]');
