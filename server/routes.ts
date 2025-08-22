@@ -969,6 +969,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to generate dynamic social media text
+  function generateSocialMediaText(job: any, deadline: string): string {
+    const catchyPhrases = [
+      "🚀 New Exciting Job Alert!",
+      "💼 Latest Job Opportunity:",
+      "🌟 Fresh Career Opening:",
+      "🎯 Hot Job Alert:",
+      "⚡ Just Posted:",
+      "🔥 Breaking: New Position Available",
+      "💫 Exciting Opportunity Alert:",
+      "🌍 New Humanitarian Role:"
+    ];
+    
+    // Pick a phrase based on job characteristics
+    let phrase = catchyPhrases[0]; // default
+    
+    if (job.title.toLowerCase().includes('manager')) {
+      phrase = "🚀 New Management Position Alert!";
+    } else if (job.title.toLowerCase().includes('director')) {
+      phrase = "💼 Director Role Now Available:";
+    } else if (job.title.toLowerCase().includes('coordinator')) {
+      phrase = "🌟 Coordinator Position Open:";
+    } else if (job.title.toLowerCase().includes('officer')) {
+      phrase = "⚡ Officer Role Just Posted:";
+    } else if (job.title.toLowerCase().includes('specialist')) {
+      phrase = "🎯 Specialist Position Alert:";
+    } else if (job.title.toLowerCase().includes('consultant')) {
+      phrase = "💫 Consultancy Opportunity:";
+    } else if (job.title.toLowerCase().includes('intern')) {
+      phrase = "🌱 Internship Opportunity:";
+    } else {
+      // Random selection for variety
+      phrase = catchyPhrases[Math.floor(Math.random() * catchyPhrases.length)];
+    }
+    
+    return `${phrase} ${job.title} position in ${job.location}, ${job.country} with ${job.organization}${deadline}`;
+  }
+
   // Server-side rendering route for job pages to inject meta tags
   app.get('/jobs/:id', async (req, res) => {
     try {
@@ -998,8 +1036,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const deadline = job.deadline ? 
         ` • Deadline: ${Math.ceil((new Date(job.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left` : 
         '';
-      // Create compelling social media description
-      const jobDescription = `🎯 ${job.title} at ${job.organization} | 📍 ${job.location}, ${job.country}${deadline} | Apply now on Somken Jobs - East Africa's leading humanitarian job platform`;
+      // Create compelling social media description that appears as post content
+      const socialMediaText = generateSocialMediaText(job, deadline);
+      const jobDescription = socialMediaText;
       const jobUrl = `https://somkenjobs.com/jobs/${job.id}`;
 
       // Create dynamic SVG image data URL

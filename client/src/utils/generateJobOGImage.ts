@@ -8,7 +8,7 @@ export function generateJobOGTitle(job: Job): string {
 }
 
 export function generateJobOGDescription(job: Job): string {
-  // Calculate deadline in a more user-friendly way
+  // Generate dynamic social media text similar to server-side generation
   const deadline = job.deadline ? (() => {
     const deadlineDate = new Date(job.deadline);
     const now = new Date();
@@ -16,20 +16,30 @@ export function generateJobOGDescription(job: Job): string {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
     if (diffDays > 0) {
-      return `${diffDays} days left`;
+      return ` • Deadline: ${diffDays} days left`;
     } else {
-      return `Deadline: ${deadlineDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+      return ` • Deadline: ${deadlineDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
     }
   })() : '';
   
-  // Create social media optimized description - single line format works better for previews
-  const parts = [];
+  // Generate catchy social media text based on job characteristics
+  let phrase = "🚀 New Exciting Job Alert!"; // default
   
-  if (job.title) parts.push(job.title);
-  if (job.organization) parts.push(`${job.organization}`);
-  if (job.location && job.country) parts.push(`${job.location}, ${job.country}`);
-  if (deadline) parts.push(`Deadline: ${deadline}`);
-  parts.push(`Apply now on Somken Jobs`);
+  if (job.title.toLowerCase().includes('manager')) {
+    phrase = "🚀 New Management Position Alert!";
+  } else if (job.title.toLowerCase().includes('director')) {
+    phrase = "💼 Director Role Now Available:";
+  } else if (job.title.toLowerCase().includes('coordinator')) {
+    phrase = "🌟 Coordinator Position Open:";
+  } else if (job.title.toLowerCase().includes('officer')) {
+    phrase = "⚡ Officer Role Just Posted:";
+  } else if (job.title.toLowerCase().includes('specialist')) {
+    phrase = "🎯 Specialist Position Alert:";
+  } else if (job.title.toLowerCase().includes('consultant')) {
+    phrase = "💫 Consultancy Opportunity:";
+  } else if (job.title.toLowerCase().includes('intern')) {
+    phrase = "🌱 Internship Opportunity:";
+  }
   
-  return parts.filter(Boolean).join(' • ');
+  return `${phrase} ${job.title} position in ${job.location}, ${job.country} with ${job.organization}${deadline} | Apply now on Somken Jobs`;
 }
