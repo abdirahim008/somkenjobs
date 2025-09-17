@@ -1,5 +1,10 @@
 import { type Job } from "@shared/schema";
 import { generateJobSlug } from "@shared/utils";
+import { 
+  generateHomepageSEOMetadata, 
+  generateJobsListingSEOMetadata, 
+  generateJobSEOMetadata 
+} from "@shared/seoUtils";
 
 // Bot user agents that should receive SSR content
 export function isBotUserAgent(userAgent: string): boolean {
@@ -77,6 +82,9 @@ export function generateJobStructuredData(job: Job): string {
 
 // Generate SSR HTML for homepage
 export function generateHomepageHTML(jobStats: { totalJobs: number; organizations: number; newToday: number }, recentJobs: Job[]): string {
+  // Generate optimized SEO metadata
+  const seoMetadata = generateHomepageSEOMetadata(jobStats);
+  
   const jobListings = recentJobs.slice(0, 8).map(job => `
     <div class="job-listing" style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
       <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600;">
@@ -99,23 +107,23 @@ export function generateHomepageHTML(jobStats: { totalJobs: number; organization
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>East Africa Jobs - ${jobStats.totalJobs}+ Humanitarian Opportunities in Kenya, Somalia, Ethiopia, Uganda & Tanzania | Somken Jobs</title>
-  <meta name="description" content="Discover ${jobStats.totalJobs}+ humanitarian jobs across East Africa in Kenya, Somalia, Ethiopia, Uganda, and Tanzania. Find careers with leading NGOs, UN agencies, and development organizations in Nairobi, Mogadishu, Addis Ababa, Kampala, Dar es Salaam. Updated daily from ReliefWeb with comprehensive job listings from WHO, UNHCR, Save the Children, and ${jobStats.organizations}+ employers.">
-  <meta name="keywords" content="East Africa jobs, jobs in Somalia, jobs in Kenya, jobs in Ethiopia, jobs in Uganda, jobs in Tanzania, humanitarian jobs East Africa, NGO jobs, UN careers, aid worker positions, international development jobs, ReliefWeb jobs, Nairobi jobs, Mogadishu jobs, Addis Ababa jobs, Kampala jobs, Dar es Salaam jobs">
+  <title>${seoMetadata.title}</title>
+  <meta name="description" content="${seoMetadata.description}">
+  <meta name="keywords" content="${seoMetadata.keywords}">
   <link rel="canonical" href="https://somkenjobs.com/">
   
   <!-- Open Graph Tags -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://somkenjobs.com/">
-  <meta property="og:title" content="East Africa Jobs - ${jobStats.totalJobs}+ Humanitarian Opportunities | Somken Jobs">
-  <meta property="og:description" content="Discover ${jobStats.totalJobs}+ humanitarian jobs across East Africa. Find careers with leading NGOs, UN agencies, and development organizations. Updated daily from ReliefWeb.">
+  <meta property="og:title" content="${seoMetadata.title}">
+  <meta property="og:description" content="${seoMetadata.description}">
   <meta property="og:site_name" content="Somken Jobs">
   
   <!-- Twitter Card Tags -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@SomkenJobs">
-  <meta name="twitter:title" content="East Africa Jobs - ${jobStats.totalJobs}+ Humanitarian Opportunities | Somken Jobs">
-  <meta name="twitter:description" content="Discover ${jobStats.totalJobs}+ humanitarian jobs across East Africa. Find careers with leading NGOs, UN agencies, and development organizations.">
+  <meta name="twitter:title" content="${seoMetadata.title}">
+  <meta name="twitter:description" content="${seoMetadata.description}">
   
   <!-- Structured Data -->
   <script type="application/ld+json">
@@ -216,7 +224,10 @@ export function generateHomepageHTML(jobStats: { totalJobs: number; organization
 }
 
 // Generate SSR HTML for jobs page
-export function generateJobsPageHTML(jobs: Job[], totalCount: number): string {
+export function generateJobsPageHTML(jobs: Job[], totalCount: number, filters: { country?: string; location?: string; sector?: string; organization?: string } = {}): string {
+  // Generate optimized SEO metadata for jobs listing
+  const seoMetadata = generateJobsListingSEOMetadata(totalCount, filters);
+  
   const jobListings = jobs.slice(0, 20).map(job => `
     <div class="job-listing" style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
       <h3 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 600;">
@@ -240,23 +251,23 @@ export function generateJobsPageHTML(jobs: Job[], totalCount: number): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jobs in Somalia & Kenya | Somken Jobs - Humanitarian Careers</title>
-  <meta name="description" content="Find job opportunities in Somalia and Kenya with leading humanitarian organizations. Browse ${totalCount}+ NGO positions, UN jobs, and development careers. Updated daily from ReliefWeb.">
-  <meta name="keywords" content="jobs in Somalia, jobs in Kenya, humanitarian jobs, NGO careers, UN jobs, ReliefWeb jobs, development careers, aid worker jobs">
+  <title>${seoMetadata.title}</title>
+  <meta name="description" content="${seoMetadata.description}">
+  <meta name="keywords" content="${seoMetadata.keywords}">
   <link rel="canonical" href="https://somkenjobs.com/jobs">
   
   <!-- Open Graph Tags -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://somkenjobs.com/jobs">
-  <meta property="og:title" content="Jobs in Somalia & Kenya | Somken Jobs - Humanitarian Careers">
-  <meta property="og:description" content="Find job opportunities in Somalia and Kenya with leading humanitarian organizations. Browse ${totalCount}+ NGO positions, UN jobs, and development careers.">
+  <meta property="og:title" content="${seoMetadata.title}">
+  <meta property="og:description" content="${seoMetadata.description}">
   <meta property="og:site_name" content="Somken Jobs">
   
   <!-- Twitter Card Tags -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@SomkenJobs">
-  <meta name="twitter:title" content="Jobs in Somalia & Kenya | Somken Jobs - Humanitarian Careers">
-  <meta name="twitter:description" content="Find job opportunities in Somalia and Kenya with leading humanitarian organizations. Browse ${totalCount}+ NGO positions, UN jobs, and development careers.">
+  <meta name="twitter:title" content="${seoMetadata.title}">
+  <meta name="twitter:description" content="${seoMetadata.description}">
 
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; line-height: 1.6; color: #333; }
@@ -316,29 +327,32 @@ export function generateJobDetailsHTML(job: Job): string {
   const structuredData = generateJobStructuredData(job);
   const jobUrl = `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`;
   
+  // Generate optimized SEO metadata for the job
+  const seoMetadata = generateJobSEOMetadata(job);
+  
   return `
 <!DOCTYPE html>
 <html lang="en-US">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${job.title} - ${job.organization} | Somken Jobs</title>
-  <meta name="description" content="${job.title} position with ${job.organization} in ${job.location}, ${job.country}. ${cleanDescription.substring(0, 160)}">
-  <meta name="keywords" content="${job.title}, ${job.organization}, jobs in ${job.country}, ${job.location} jobs, humanitarian jobs, ${job.sector || 'NGO'} careers">
+  <title>${seoMetadata.title}</title>
+  <meta name="description" content="${seoMetadata.description}">
+  <meta name="keywords" content="${seoMetadata.keywords}">
   <link rel="canonical" href="${jobUrl}">
   
   <!-- Open Graph Tags -->
   <meta property="og:type" content="article">
   <meta property="og:url" content="${jobUrl}">
-  <meta property="og:title" content="${job.title} - ${job.organization} | Somken Jobs">
-  <meta property="og:description" content="${job.title} position with ${job.organization} in ${job.location}, ${job.country}. ${cleanDescription.substring(0, 200)}">
+  <meta property="og:title" content="${seoMetadata.title}">
+  <meta property="og:description" content="${seoMetadata.description}">
   <meta property="og:site_name" content="Somken Jobs">
   
   <!-- Twitter Card Tags -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@SomkenJobs">
-  <meta name="twitter:title" content="${job.title} - ${job.organization}">
-  <meta name="twitter:description" content="${job.title} position with ${job.organization} in ${job.location}, ${job.country}.">
+  <meta name="twitter:title" content="${seoMetadata.title}">
+  <meta name="twitter:description" content="${seoMetadata.description}">
 
   <!-- Job Structured Data -->
   <script type="application/ld+json">

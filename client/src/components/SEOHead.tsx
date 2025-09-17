@@ -1,4 +1,9 @@
 import React, { useEffect } from "react";
+import { 
+  generateOptimizedTitle, 
+  generateOptimizedDescription, 
+  validateSEOMetadata 
+} from "@shared/seoUtils";
 
 interface SEOHeadProps {
   title?: string;
@@ -13,6 +18,10 @@ interface SEOHeadProps {
   jobSector?: string;
   jobCountry?: string;
   jobPostedDate?: string;
+  // Additional props for SEO optimization
+  pageType?: 'homepage' | 'jobs' | 'job-detail' | 'search';
+  jobCount?: number;
+  optimizeTitleAndDescription?: boolean; // Flag to enable/disable optimization
 }
 
 export default function SEOHead({ 
@@ -26,12 +35,60 @@ export default function SEOHead({
   jobDeadline,
   jobSector,
   jobCountry,
-  jobPostedDate
+  jobPostedDate,
+  pageType,
+  jobCount,
+  optimizeTitleAndDescription = true
 }: SEOHeadProps) {
   useEffect(() => {
-    // Update document title
-    if (title) {
-      document.title = title;
+    // Optimize title and description if optimization is enabled
+    let optimizedTitle = title;
+    let optimizedDescription = description;
+    
+    if (optimizeTitleAndDescription && pageType) {
+      // Generate optimized versions using utility functions
+      const context = {
+        location: jobLocation,
+        country: jobCountry,
+        organization: jobOrganization,
+        sector: jobSector,
+        jobCount,
+        pageType
+      };
+      
+      if (title) {
+        optimizedTitle = generateOptimizedTitle(title, context);
+      }
+      
+      if (description) {
+        optimizedDescription = generateOptimizedDescription(description, {
+          ...context,
+          deadline: jobDeadline
+        });
+      }
+      
+      // Log SEO validation in development
+      if (import.meta.env.DEV && optimizedTitle && optimizedDescription) {
+        const validation = validateSEOMetadata({
+          title: optimizedTitle,
+          description: optimizedDescription
+        });
+        
+        if (!validation.isValid) {
+          console.warn('SEO Optimization Warnings:', validation.warnings);
+        } else {
+          console.log('✓ SEO metadata optimized and validated');
+        }
+      }
+    }
+    
+    // Clear any existing job-specific meta tags FIRST to prevent conflicts
+    const existingJobMetas = document.querySelectorAll('meta[data-job-specific]');
+    existingJobMetas.forEach(meta => meta.remove());
+    
+    // Update document title with optimized version
+    if (optimizedTitle) {
+      document.title = optimizedTitle;
       
       // Also update meta name="title" tag for better SEO
       let metaTitle = document.querySelector('meta[name="title"]');
@@ -41,15 +98,11 @@ export default function SEOHead({
         metaTitle.setAttribute('data-job-specific', 'true');
         document.head.appendChild(metaTitle);
       }
-      metaTitle.setAttribute('content', title);
+      metaTitle.setAttribute('content', optimizedTitle);
     }
 
-    // Clear any existing job-specific meta tags to prevent conflicts
-    const existingJobMetas = document.querySelectorAll('meta[data-job-specific]');
-    existingJobMetas.forEach(meta => meta.remove());
-
-    // Update meta description
-    if (description) {
+    // Update meta description with optimized version
+    if (optimizedDescription) {
       let metaDescription = document.querySelector('meta[name="description"]');
       if (!metaDescription) {
         metaDescription = document.createElement('meta');
@@ -57,7 +110,7 @@ export default function SEOHead({
         metaDescription.setAttribute('data-job-specific', 'true');
         document.head.appendChild(metaDescription);
       }
-      metaDescription.setAttribute('content', description);
+      metaDescription.setAttribute('content', optimizedDescription);
 
       // Update Open Graph description
       let ogDescription = document.querySelector('meta[property="og:description"]');
@@ -67,7 +120,7 @@ export default function SEOHead({
         ogDescription.setAttribute('data-job-specific', 'true');
         document.head.appendChild(ogDescription);
       }
-      ogDescription.setAttribute('content', description);
+      ogDescription.setAttribute('content', optimizedDescription);
 
       // Update Twitter description (Twitter uses 'name' not 'property')
       let twitterDescription = document.querySelector('meta[name="twitter:description"]');
@@ -77,7 +130,7 @@ export default function SEOHead({
         twitterDescription.setAttribute('data-job-specific', 'true');
         document.head.appendChild(twitterDescription);
       }
-      twitterDescription.setAttribute('content', description);
+      twitterDescription.setAttribute('content', optimizedDescription);
     }
 
     // Update keywords
@@ -102,8 +155,8 @@ export default function SEOHead({
       canonicalLink.setAttribute('href', canonicalUrl);
     }
 
-    // Update Open Graph title
-    if (title) {
+    // Update Open Graph title with optimized version
+    if (optimizedTitle) {
       let ogTitle = document.querySelector('meta[property="og:title"]');
       if (!ogTitle) {
         ogTitle = document.createElement('meta');
@@ -111,7 +164,7 @@ export default function SEOHead({
         ogTitle.setAttribute('data-job-specific', 'true');
         document.head.appendChild(ogTitle);
       }
-      ogTitle.setAttribute('content', title);
+      ogTitle.setAttribute('content', optimizedTitle);
 
       // Update Twitter title (Twitter uses 'name' not 'property')
       let twitterTitle = document.querySelector('meta[name="twitter:title"]');
@@ -121,7 +174,7 @@ export default function SEOHead({
         twitterTitle.setAttribute('data-job-specific', 'true');
         document.head.appendChild(twitterTitle);
       }
-      twitterTitle.setAttribute('content', title);
+      twitterTitle.setAttribute('content', optimizedTitle);
     }
 
     // Remove any existing image meta tags to prevent unwanted images in social media previews
@@ -317,8 +370,8 @@ export default function SEOHead({
       updateOrCreateMetaTag('name', 'twitter:site', '@SomkenJobs', true);
       updateOrCreateMetaTag('name', 'twitter:creator', '@SomkenJobs', true);
       
-      if (title) {
-        updateOrCreateMetaTag('name', 'twitter:title', title, true);
+      if (optimizedTitle) {
+        updateOrCreateMetaTag('name', 'twitter:title', optimizedTitle, true);
       }
       
       // Twitter-specific job labels for enhanced display
@@ -387,7 +440,7 @@ export default function SEOHead({
         ogImage: 'removed - no images in social media previews'
       });
     }
-  }, [title, description, keywords, canonicalUrl, ogImage, jobLocation, jobOrganization, jobDeadline, jobSector, jobCountry, jobPostedDate]);
+  }, [title, description, keywords, canonicalUrl, ogImage, jobLocation, jobOrganization, jobDeadline, jobSector, jobCountry, jobPostedDate, pageType, jobCount, optimizeTitleAndDescription]);
 
   return null; // This component doesn't render anything
 }

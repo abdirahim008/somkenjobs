@@ -622,8 +622,8 @@ export default function JobDetails() {
     <div className="min-h-screen bg-background">
       {job && (
         <SEOHead 
-          title={generateJobOGTitle(job)}
-          description={generateJobOGDescription(job)}
+          title={job.title}
+          description={job.description || "Join this humanitarian organization in their mission to make a difference."}
           keywords={`${job.title}, jobs in ${job.country}, ${job.organization}, ${job.sector || 'humanitarian'} jobs, ${job.location} jobs, NGO careers, UN jobs, ReliefWeb, ${job.country} humanitarian jobs`}
           canonicalUrl={`https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`}
           jobLocation={job.location}
@@ -632,6 +632,8 @@ export default function JobDetails() {
           jobSector={job.sector || undefined}
           jobCountry={job.country}
           jobPostedDate={new Date(job.datePosted).toISOString()}
+          pageType="job-detail"
+          optimizeTitleAndDescription={true}
         />
       )}
       <Header />
