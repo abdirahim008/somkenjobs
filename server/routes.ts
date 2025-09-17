@@ -12,6 +12,13 @@ import { Request, Response, NextFunction } from "express";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from 'url';
+import { 
+  isBotUserAgent, 
+  generateHomepageHTML, 
+  generateJobsPageHTML, 
+  generateJobDetailsHTML, 
+  extractJobIdFromSlug as ssrExtractJobIdFromSlug 
+} from "./utils/ssrUtils";
 
 const JWT_SECRET = process.env.JWT_SECRET || "jobconnect-secret-key-change-in-production";
 
@@ -96,6 +103,245 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/ngo-jobs", (req, res) => {
     res.redirect(301, "/jobs");
+  });
+
+  // Simple test endpoint
+  app.get("/api/ssr/test", (req, res) => {
+    console.log('Test endpoint hit');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send('<html><head><title>SSR Test</title></head><body><h1>SSR is working!</h1></body></html>');
+  });
+
+  // SSR API endpoints that serve HTML for bots
+  app.get("/api/ssr/homepage", async (req, res) => {
+    console.log('SSR Homepage endpoint hit');
+    try {
+      // Fetch job data and stats
+      const allJobs = await storage.getAllJobsWithDetails();
+      console.log('Fetched', allJobs.length, 'jobs for SSR');
+      const recentJobs = allJobs
+        .filter(job => job.type !== 'tender' || !job.type) // Filter out tenders
+        .sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime())
+        .slice(0, 10);
+        
+      // Calculate stats
+      const jobStats = {
+        totalJobs: allJobs.length,
+        organizations: new Set(allJobs.map(job => job.organization)).size,
+        newToday: allJobs.filter(job => {
+          const today = new Date();
+          const jobDate = new Date(job.datePosted);
+          return jobDate.toDateString() === today.toDateString();
+        }).length
+      };
+
+      const html = generateHomepageHTML(jobStats, recentJobs);
+      console.log('Generated HTML length:', html.length);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(html);
+    } catch (error) {
+      console.error('Error generating homepage SSR:', error);
+      res.status(500).json({ error: 'SSR generation failed', message: error.message });
+    }
+  });
+
+  app.get("/api/ssr/jobs", async (req, res) => {
+    try {
+      // Fetch all jobs, filter out tenders
+      const allJobs = await storage.getAllJobsWithDetails();
+      const jobs = allJobs
+        .filter(job => job.type !== 'tender' || !job.type) // Filter out tenders
+        .sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime());
+
+      const html = generateJobsPageHTML(jobs, jobs.length);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(html);
+    } catch (error) {
+      console.error('Error generating jobs page SSR:', error);
+      res.status(500).json({ error: 'SSR generation failed' });
+    }
+  });
+
+  app.get("/api/ssr/job/:slug", async (req, res) => {
+    try {
+      const slug = req.params.slug;
+      const jobId = ssrExtractJobIdFromSlug(slug);
+      
+      if (!jobId) {
+        return res.status(404).json({ error: 'Invalid job slug' });
+      }
+
+      const job = await storage.getJobById(jobId);
+      
+      if (!job) {
+        return res.status(404).json({ error: 'Job not found' });
+      }
+
+      const html = generateJobDetailsHTML(job);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(html);
+    } catch (error) {
+      console.error('Error generating job details SSR:', error);
+      res.status(500).json({ error: 'SSR generation failed' });
+    }
+  });
+
+  // Early SSR middleware - intercept bot requests before Vite
+  app.use(async (req, res, next) => {
+    const userAgent = req.get('User-Agent') || '';
+    const isSSRRequest = isBotUserAgent(userAgent) || req.query.ssr === "1";
+    
+    console.log('SSR middleware check:', req.path, 'UA:', userAgent.substring(0, 30), 'isSSR:', isSSRRequest);
+    
+    if (!isSSRRequest) {
+      return next(); // Not a bot, continue to regular routing
+    }
+
+    try {
+      // Handle homepage
+      if (req.path === "/") {
+        console.log('Bot detected, serving inline SSR for homepage');
+        const allJobs = await storage.getAllJobsWithDetails();
+        console.log('Fetched', allJobs.length, 'jobs for homepage SSR');
+        const recentJobs = allJobs
+          .filter(job => job.type !== 'tender' || !job.type)
+          .sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime())
+          .slice(0, 10);
+          
+        const jobStats = {
+          totalJobs: allJobs.length,
+          organizations: new Set(allJobs.map(job => job.organization)).size,
+          newToday: allJobs.filter(job => {
+            const today = new Date();
+            const jobDate = new Date(job.datePosted);
+            return jobDate.toDateString() === today.toDateString();
+          }).length
+        };
+
+        const html = generateHomepageHTML(jobStats, recentJobs);
+        console.log('Generated homepage HTML length:', html.length);
+        
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        return res.send(html);
+      }
+      
+      // Handle jobs page
+      if (req.path === "/jobs") {
+        console.log('Bot detected, serving inline SSR for jobs page');
+        const allJobs = await storage.getAllJobsWithDetails();
+        const jobs = allJobs
+          .filter(job => job.type !== 'tender' || !job.type)
+          .sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime());
+
+        const html = generateJobsPageHTML(jobs, jobs.length);
+        console.log('Generated jobs page HTML length:', html.length);
+        
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        return res.send(html);
+      }
+      
+      // Handle individual job pages
+      if (req.path.startsWith("/jobs/")) {
+        console.log('Bot detected, serving inline SSR for job details:', req.path);
+        const slug = req.path.substring(6); // Remove "/jobs/"
+        const jobId = ssrExtractJobIdFromSlug(slug);
+        
+        if (!jobId) {
+          console.log('Invalid job slug:', slug);
+          return res.status(404).send('<html><head><title>Job Not Found</title></head><body><h1>Job Not Found</h1></body></html>');
+        }
+
+        const job = await storage.getJobById(jobId);
+        
+        if (!job) {
+          console.log('Job not found for ID:', jobId);
+          return res.status(404).send('<html><head><title>Job Not Found</title></head><body><h1>Job Not Found</h1></body></html>');
+        }
+
+        const html = generateJobDetailsHTML(job);
+        console.log('Generated job details HTML length:', html.length);
+        
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        return res.send(html);
+      }
+      
+    } catch (error) {
+      console.error('Error in SSR middleware:', error);
+      // Fall through to regular routing on error
+    }
+    
+    next(); // Continue to regular routing
+  });
+
+  // HEAD handlers for link unfurlers
+  app.head("/", async (req, res) => {
+    try {
+      const allJobs = await storage.getAllJobsWithDetails();
+      const jobStats = {
+        totalJobs: allJobs.length,
+        organizations: new Set(allJobs.map(job => job.organization)).size,
+        newToday: allJobs.filter(job => {
+          const today = new Date();
+          const jobDate = new Date(job.datePosted);
+          return jobDate.toDateString() === today.toDateString();
+        }).length
+      };
+      
+      const recentJobs = allJobs
+        .filter(job => job.type !== 'tender' || !job.type)
+        .sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime())
+        .slice(0, 10);
+      
+      const html = generateHomepageHTML(jobStats, recentJobs);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Content-Length', Buffer.byteLength(html, 'utf8'));
+      res.end();
+    } catch (error) {
+      console.error('Error in HEAD handler for homepage:', error);
+      res.status(500).end();
+    }
+  });
+
+  app.head("/jobs", async (req, res) => {
+    try {
+      const allJobs = await storage.getAllJobsWithDetails();
+      const jobs = allJobs
+        .filter(job => job.type !== 'tender' || !job.type)
+        .sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime());
+      
+      const html = generateJobsPageHTML(jobs, jobs.length);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Content-Length', Buffer.byteLength(html, 'utf8'));
+      res.end();
+    } catch (error) {
+      console.error('Error in HEAD handler for jobs page:', error);
+      res.status(500).end();
+    }
+  });
+
+  app.head("/jobs/:slug", async (req, res) => {
+    try {
+      const slug = req.params.slug;
+      const jobId = ssrExtractJobIdFromSlug(slug);
+      
+      if (!jobId) {
+        return res.status(404).end();
+      }
+
+      const job = await storage.getJobById(jobId);
+      
+      if (!job) {
+        return res.status(404).end();
+      }
+
+      const html = generateJobDetailsHTML(job);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Content-Length', Buffer.byteLength(html, 'utf8'));
+      res.end();
+    } catch (error) {
+      console.error('Error in HEAD handler for job details:', error);
+      res.status(500).end();
+    }
   });
 
   // Authentication routes
