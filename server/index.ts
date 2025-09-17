@@ -3,6 +3,27 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Remove X-Powered-By header for security and SEO
+app.disable('x-powered-by');
+
+// Domain consolidation middleware - redirect www to non-www for canonical domain
+app.use((req, res, next) => {
+  const host = req.headers.host;
+  
+  // Only apply domain consolidation in production and if host is available
+  if (app.get('env') === 'production' && host && host.startsWith('www.')) {
+    const nonWwwHost = host.substring(4); // Remove 'www.' prefix
+    const protocol = req.headers['x-forwarded-proto'] || 'https'; // Assume HTTPS in production
+    const redirectUrl = `${protocol}://${nonWwwHost}${req.originalUrl}`;
+    
+    // 301 permanent redirect to canonical non-www domain
+    return res.redirect(301, redirectUrl);
+  }
+  
+  next();
+});
+
 // Increase payload size limit to handle rich text content from job creation forms
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
