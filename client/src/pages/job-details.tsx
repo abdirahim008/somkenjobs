@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useRoute, useLocation } from "wouter";
+import { useRoute, useLocation, Link } from "wouter";
 import { ArrowLeft, Calendar, MapPin, Building2, ExternalLink, Clock, Users, ChevronDown, ChevronUp, Briefcase, FileText, Share2 } from "lucide-react";
 import { FaFacebook, FaWhatsapp, FaTwitter, FaLinkedin } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
+import Breadcrumb, { generateJobBreadcrumbs } from "@/components/Breadcrumb";
 import { type Job } from "@shared/schema";
 import { generateJobOGTitle, generateJobOGDescription } from "@/utils/generateJobOGImage";
 import { generateJobSlug } from "@shared/utils";
@@ -639,12 +640,17 @@ export default function JobDetails() {
       <Header />
       
       <main className="main-container max-w-5xl">
+        {/* Breadcrumb Navigation */}
+        <Breadcrumb 
+          items={generateJobBreadcrumbs(job.title, job.sector || undefined, true)}
+        />
+        
         {/* Back Button */}
         <Button 
           variant="ghost" 
           onClick={() => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
-            setLocation("/");
+            setLocation("/jobs");
           }}
           className="mb-6"
         >
@@ -665,15 +671,44 @@ export default function JobDetails() {
                 <CardContent className="space-y-4">
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Organization</label>
-                    <p className="text-foreground font-medium">{job.organization}</p>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-foreground font-medium">{job.organization}</p>
+                      <Link 
+                        href={`/jobs?organization=${encodeURIComponent(job.organization)}`}
+                        className="text-blue-600 hover:text-blue-800 underline text-xs inline-block"
+                        data-testid={`link-organization-${job.organization.toLowerCase().replace(/\s+/g, '-')}`}
+                      >
+                        → View all {job.organization} jobs
+                      </Link>
+                    </div>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Location</label>
-                    <p className="text-foreground">{job.location}, {job.country}</p>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-foreground">{job.location}, {job.country}</p>
+                      <Link
+                        href={`/jobs?country=${encodeURIComponent(job.country)}`}
+                        className="text-blue-600 hover:text-blue-800 underline text-xs inline-block"
+                        data-testid={`link-country-${job.country.toLowerCase().replace(/\s+/g, '-')}`}
+                      >
+                        → More jobs in {job.country}
+                      </Link>
+                    </div>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Sector</label>
-                    <p className="text-foreground">{job.sector || "General"}</p>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-foreground">{job.sector || "General"}</p>
+                      {job.sector && (
+                        <Link
+                          href={`/jobs?sector=${encodeURIComponent(job.sector)}`}
+                          className="text-blue-600 hover:text-blue-800 underline text-xs inline-block"
+                          data-testid={`link-sector-${job.sector.toLowerCase().replace(/\s+/g, '-')}`}
+                        >
+                          → Browse {job.sector} sector jobs
+                        </Link>
+                      )}
+                    </div>
                   </div>
                   {job.experience && (
                     <div>
@@ -1001,6 +1036,138 @@ export default function JobDetails() {
 
 
 
+              {/* Find Similar Jobs - Comprehensive Internal Linking Section */}
+              <Card className="mb-6 border-blue-100 bg-blue-50/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-blue-900">
+                    <Briefcase className="mr-2 h-5 w-5" />
+                    Find Similar Jobs & Opportunities
+                  </CardTitle>
+                  <p className="text-sm text-blue-700 mt-2">
+                    Discover more career opportunities that match your interests and qualifications
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Sector-Based Links */}
+                    {job.sector && (
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-sm text-blue-900 border-b border-blue-200 pb-1">
+                          {job.sector} Sector Jobs
+                        </h4>
+                        <div className="space-y-2">
+                          <Link
+                            href={`/jobs?sector=${encodeURIComponent(job.sector)}`}
+                            className="text-blue-600 hover:text-blue-800 underline text-sm font-medium inline-block"
+                            data-testid={`similar-jobs-sector-${job.sector.toLowerCase().replace(/\s+/g, '-')}`}
+                          >
+                            → Browse all {job.sector} sector jobs in East Africa
+                          </Link>
+                          <Link
+                            href={`/jobs?sector=${encodeURIComponent(job.sector)}&country=${encodeURIComponent(job.country)}`}
+                            className="text-blue-600 hover:text-blue-800 underline text-sm inline-block"
+                            data-testid={`similar-jobs-sector-country-${job.sector.toLowerCase().replace(/\s+/g, '-')}-${job.country.toLowerCase().replace(/\s+/g, '-')}`}
+                          >
+                            → {job.sector} jobs specifically in {job.country}
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Country & Location-Based Links */}
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-sm text-blue-900 border-b border-blue-200 pb-1">
+                        {job.country} Opportunities
+                      </h4>
+                      <div className="space-y-2">
+                        <Link
+                          href={`/jobs?country=${encodeURIComponent(job.country)}`}
+                          className="text-blue-600 hover:text-blue-800 underline text-sm font-medium inline-block"
+                          data-testid={`similar-jobs-country-${job.country.toLowerCase().replace(/\s+/g, '-')}`}
+                        >
+                          → All humanitarian jobs in {job.country}
+                        </Link>
+                        <Link
+                          href={`/jobs?country=${encodeURIComponent(job.country)}&datePosted=week`}
+                          className="text-blue-600 hover:text-blue-800 underline text-sm inline-block"
+                          data-testid={`similar-jobs-country-recent-${job.country.toLowerCase().replace(/\s+/g, '-')}`}
+                        >
+                          → Latest jobs posted this week in {job.country}
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* Organization-Based Links */}
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-sm text-blue-900 border-b border-blue-200 pb-1">
+                        {job.organization} Careers
+                      </h4>
+                      <div className="space-y-2">
+                        <Link
+                          href={`/jobs?organization=${encodeURIComponent(job.organization)}`}
+                          className="text-blue-600 hover:text-blue-800 underline text-sm font-medium inline-block"
+                          data-testid={`similar-jobs-organization-${job.organization.toLowerCase().replace(/\s+/g, '-')}`}
+                        >
+                          → View all current {job.organization} openings
+                        </Link>
+                        <Link
+                          href="/organizations"
+                          className="text-blue-600 hover:text-blue-800 underline text-sm inline-block"
+                          data-testid="similar-jobs-organizations-page"
+                        >
+                          → Explore other leading humanitarian organizations
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* Experience & Career Level Links */}
+                    {job.experience && (
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-sm text-blue-900 border-b border-blue-200 pb-1">
+                          Career Level Opportunities
+                        </h4>
+                        <div className="space-y-2">
+                          <Link
+                            href={`/jobs?search=${encodeURIComponent(job.experience.toLowerCase().includes('senior') ? 'senior' : job.experience.toLowerCase().includes('junior') ? 'junior' : 'manager')}`}
+                            className="text-blue-600 hover:text-blue-800 underline text-sm inline-block"
+                            data-testid="similar-jobs-experience-level"
+                          >
+                            → Jobs for {job.experience} professionals
+                          </Link>
+                          <Link
+                            href="/career-resources"
+                            className="text-blue-600 hover:text-blue-800 underline text-sm inline-block"
+                            data-testid="similar-jobs-career-resources"
+                          >
+                            → Career advancement resources & tips
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Call-to-Action Section */}
+                  <div className="mt-6 pt-4 border-t border-blue-200">
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+                      <Link
+                        href="/jobs"
+                        className="inline-flex items-center justify-center px-4 py-2 border border-blue-300 text-blue-700 hover:bg-blue-100 rounded-md font-medium transition-colors"
+                        data-testid="similar-jobs-browse-all"
+                      >
+                        Browse All Job Opportunities
+                      </Link>
+                      <Link
+                        href="/jobs?datePosted=today"
+                        className="inline-flex items-center justify-center px-4 py-2 border border-blue-300 text-blue-700 hover:bg-blue-100 rounded-md font-medium transition-colors"
+                        data-testid="similar-jobs-latest"
+                      >
+                        View Today's Latest Jobs
+                      </Link>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Mobile Related Jobs - Show below main content on mobile */}
               <div className="lg:hidden">
                 {relatedJobs && relatedJobs.length > 0 && (
@@ -1013,13 +1180,9 @@ export default function JobDetails() {
                         {relatedJobs.slice(0, 3).map((relatedJob) => (
                           <div key={relatedJob.id} className="border-b border-gray-100 pb-3 last:border-b-0">
                             <h4 className="font-medium text-sm mb-2 leading-tight">
-                              <Button
-                                variant="link"
-                                className="p-0 h-auto text-left font-medium text-blue-600 hover:text-blue-800 break-words hyphens-auto flex items-start gap-1"
-                                onClick={() => {
-                                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                                  setLocation(`/jobs/${relatedJob.id}`);
-                                }}
+                              <Link
+                                href={`/jobs/${relatedJob.id}`}
+                                className="font-medium text-blue-600 hover:text-blue-800 break-words hyphens-auto flex items-start gap-1 no-underline"
                                 style={{ 
                                   wordBreak: 'break-word',
                                   overflowWrap: 'break-word',
@@ -1035,7 +1198,7 @@ export default function JobDetails() {
                                   <Briefcase className="h-3 w-3 mt-0.5 flex-shrink-0 text-blue-600" />
                                 )}
                                 <span className="flex-1">{relatedJob.title}</span>
-                              </Button>
+                              </Link>
                             </h4>
                             <p className="text-xs text-muted-foreground mb-1 break-words">
                               {relatedJob.organization}
