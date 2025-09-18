@@ -19,6 +19,7 @@ import {
   generateJobDetailsHTML, 
   extractJobIdFromSlug as ssrExtractJobIdFromSlug 
 } from "./utils/ssrUtils";
+import { jobsCache } from "./services/jobsCache";
 
 const JWT_SECRET = process.env.JWT_SECRET || "jobconnect-secret-key-change-in-production";
 
@@ -67,6 +68,13 @@ const jobFiltersSchema = z.object({
   sector: arrayTransform.optional(),
   datePosted: z.string().optional(),
   search: z.string().optional(),
+});
+
+const lightweightJobFiltersSchema = z.object({
+  country: arrayTransform.optional(),
+  sector: arrayTransform.optional(),
+  search: z.string().optional(),
+  limit: z.string().optional().transform((val) => val ? parseInt(val) : undefined),
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -141,7 +149,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.send(html);
     } catch (error) {
       console.error('Error generating homepage SSR:', error);
-      res.status(500).json({ error: 'SSR generation failed', message: error.message });
+      res.status(500).json({ 
+        error: 'SSR generation failed', 
+        message: error instanceof Error ? error.message : 'Unknown error' 
+      });
     }
   });
 
@@ -470,6 +481,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error approving user:", error);
       res.status(500).json({ message: "Failed to approve user" });
+    }
+  });
+
+  // Lightweight jobs list endpoint with ETag caching for sub-100ms performance
+  app.get("/api/jobs/list", async (req, res) => {
+    try {
+      const filters = lightweightJobFiltersSchema.parse(req.query);
+      const startTime = Date.now();
+      
+      // Generate ETag based on current jobs version and query
+      const etag = jobsCache.generateETag(filters);
+      
+      // Check if client has cached version
+      const clientETag = req.headers['if-none-match'];
+      if (clientETag === etag) {
+        // Client has up-to-date version, return 304 Not Modified
+        res.status(304).end();
+        console.log(`Jobs list cache hit - 304 response in ${Date.now() - startTime}ms`);
+        return;
+      }
+
+      // Check cache first
+      let cachedEntry = jobsCache.getCachedJobs(filters);
+      
+      if (cachedEntry) {
+        // Cache hit - return cached data with ETag
+        res.setHeader('ETag', cachedEntry.etag);
+        res.setHeader('Cache-Control', 'public, max-age=30'); // Browser cache for 30s
+        res.json({
+          jobs: cachedEntry.data,
+          cached: true,
+          responseTime: Date.now() - startTime
+        });
+        console.log(`Jobs list cache hit - ${cachedEntry.data.length} jobs in ${Date.now() - startTime}ms`);
+        return;
+      }
+
+      // Cache miss - fetch from database
+      const jobs = await storage.getLightweightJobs(filters);
+      
+      // Cache the results
+      const cacheEntry = jobsCache.setCachedJobs(filters, jobs);
+      
+      // Return response with ETag
+      res.setHeader('ETag', cacheEntry.etag);
+      res.setHeader('Cache-Control', 'public, max-age=30'); // Browser cache for 30s
+      res.json({
+        jobs: cacheEntry.data,
+        cached: false,
+        responseTime: Date.now() - startTime
+      });
+      
+      console.log(`Jobs list database query - ${jobs.length} jobs in ${Date.now() - startTime}ms`);
+    } catch (error) {
+      console.error("Error fetching lightweight jobs:", error);
+      res.status(500).json({ message: "Failed to fetch jobs" });
     }
   });
 

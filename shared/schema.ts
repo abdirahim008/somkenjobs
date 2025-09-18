@@ -50,6 +50,19 @@ export const insertJobSchema = createInsertSchema(jobs).omit({
 export type InsertJob = z.infer<typeof insertJobSchema>;
 export type Job = typeof jobs.$inferSelect;
 
+// Lightweight job type for list endpoints (minimal fields for performance)
+export type LightweightJob = {
+  id: number;
+  title: string;
+  organization: string;
+  country: string;
+  location: string;
+  datePosted: Date;
+  sector: string | null;
+  type: string;
+  slug: string;
+};
+
 // User schema for employers/recruiters with admin approval
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),

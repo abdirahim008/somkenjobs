@@ -1,6 +1,8 @@
-import { jobs, type Job, type InsertJob, users, type User, type InsertUser, invoices, type Invoice, type InsertInvoice, countries, type Country, type InsertCountry, cities, type City, type InsertCity, sectors, type Sector, type InsertSector } from "@shared/schema";
+import { jobs, type Job, type InsertJob, type LightweightJob, users, type User, type InsertUser, invoices, type Invoice, type InsertInvoice, countries, type Country, type InsertCountry, cities, type City, type InsertCity, sectors, type Sector, type InsertSector } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, gte, ilike } from "drizzle-orm";
+import { generateJobSlug } from "@shared/utils";
+import { jobsCache } from "./services/jobsCache";
 
 export interface IStorage {
   // User authentication methods
@@ -29,6 +31,19 @@ export interface IStorage {
     sector?: string[];
     datePosted?: string;
   }): Promise<Job[]>;
+
+  // Lightweight job methods for performance
+  getLightweightJobs(filters?: {
+    country?: string[];
+    sector?: string[];
+    search?: string;
+    limit?: number;
+  }): Promise<LightweightJob[]>;
+  getLightweightJobStats(): Promise<{
+    totalJobs: number;
+    organizations: number;
+    newToday: number;
+  }>;
 
   // Invoice methods
   getAllInvoices(): Promise<Invoice[]>;
@@ -261,7 +276,8 @@ export class MemStorage implements IStorage {
       status: insertJob.status || "published",
       type: insertJob.type || "job",
       attachmentUrl: insertJob.attachmentUrl || null,
-      createdBy: insertJob.createdBy ?? null
+      createdBy: insertJob.createdBy ?? null,
+      jobNumber: insertJob.jobNumber ?? null
     };
     this.jobs.set(id, job);
     return job;
@@ -379,7 +395,7 @@ export class MemStorage implements IStorage {
 
   async getOrganizations(search?: string): Promise<string[]> {
     const allJobs = Array.from(this.jobs.values());
-    const organizations = [...new Set(allJobs.map(job => job.organization))];
+    const organizations = Array.from(new Set(allJobs.map(job => job.organization)));
     
     if (search) {
       const lowerSearch = search.toLowerCase();
@@ -389,6 +405,23 @@ export class MemStorage implements IStorage {
     }
     
     return organizations.sort();
+  }
+
+  async getLightweightJobs(filters?: {
+    country?: string[];
+    sector?: string[];
+    search?: string;
+    limit?: number;
+  }): Promise<LightweightJob[]> {
+    throw new Error("Lightweight job operations not supported in MemStorage");
+  }
+
+  async getLightweightJobStats(): Promise<{
+    totalJobs: number;
+    organizations: number;
+    newToday: number;
+  }> {
+    throw new Error("Lightweight job stats not supported in MemStorage");
   }
 
   async getCountries(search?: string): Promise<string[]> {
@@ -516,6 +549,10 @@ export class DatabaseStorage implements IStorage {
       .insert(jobs)
       .values(jobData)
       .returning();
+    
+    // Invalidate cache after job creation
+    jobsCache.invalidateCache();
+    
     return job;
   }
 
@@ -525,12 +562,25 @@ export class DatabaseStorage implements IStorage {
       .set(updateData)
       .where(eq(jobs.id, id))
       .returning();
+    
+    // Invalidate cache after job update
+    if (job) {
+      jobsCache.invalidateCache();
+    }
+    
     return job || undefined;
   }
 
   async deleteJob(id: number): Promise<boolean> {
     const result = await db.delete(jobs).where(eq(jobs.id, id));
-    return (result.rowCount ?? 0) > 0;
+    const deleted = (result.rowCount ?? 0) > 0;
+    
+    // Invalidate cache after job deletion
+    if (deleted) {
+      jobsCache.invalidateCache();
+    }
+    
+    return deleted;
   }
 
   async searchJobs(query: string): Promise<Job[]> {
@@ -795,13 +845,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSectors(search?: string): Promise<string[]> {
-    let query = db.selectDistinct({ name: sectors.name }).from(sectors);
+    const baseQuery = db.selectDistinct({ name: sectors.name }).from(sectors);
     
+    let result;
     if (search) {
-      query = query.where(ilike(sectors.name, `%${search}%`));
+      result = await baseQuery
+        .where(ilike(sectors.name, `%${search}%`))
+        .orderBy(sectors.name);
+    } else {
+      result = await baseQuery.orderBy(sectors.name);
     }
     
-    const result = await query.orderBy(sectors.name);
     return result.map(row => row.name);
   }
 
@@ -823,6 +877,130 @@ export class DatabaseStorage implements IStorage {
       }
       throw error;
     }
+  }
+
+  // Lightweight job methods for performance optimization
+  async getLightweightJobs(filters?: {
+    country?: string[];
+    sector?: string[];
+    search?: string;
+    limit?: number;
+  }): Promise<LightweightJob[]> {
+    // Build conditions array
+    const conditions = [
+      eq(jobs.status, 'published'),
+      eq(jobs.type, 'job')
+    ];
+
+    // Add country filter
+    if (filters?.country && filters.country.length > 0) {
+      const validCountries = filters.country.filter(country => country && typeof country === 'string');
+      if (validCountries.length === 1) {
+        conditions.push(eq(jobs.country, validCountries[0]));
+      } else if (validCountries.length > 1) {
+        const countryConditions = validCountries.map(country => eq(jobs.country, country));
+        const orCondition = or(...countryConditions);
+        if (orCondition) {
+          conditions.push(orCondition);
+        }
+      }
+    }
+
+    // Add sector filter
+    if (filters?.sector && filters.sector.length > 0) {
+      const validSectors = filters.sector.filter(sector => sector && typeof sector === 'string');
+      if (validSectors.length === 1) {
+        conditions.push(eq(jobs.sector, validSectors[0]));
+      } else if (validSectors.length > 1) {
+        const sectorConditions = validSectors.map(sector => eq(jobs.sector, sector));
+        const orCondition = or(...sectorConditions);
+        if (orCondition) {
+          conditions.push(orCondition);
+        }
+      }
+    }
+
+    // Add search filter
+    if (filters?.search && typeof filters.search === 'string') {
+      const searchTerm = `%${filters.search.toLowerCase()}%`;
+      const searchCondition = or(
+        ilike(jobs.title, searchTerm),
+        ilike(jobs.organization, searchTerm),
+        ilike(jobs.sector, searchTerm)
+      );
+      if (searchCondition) {
+        conditions.push(searchCondition);
+      }
+    }
+
+    // Build and execute query
+    const baseQuery = db
+      .select({
+        id: jobs.id,
+        title: jobs.title,
+        organization: jobs.organization,
+        country: jobs.country,
+        location: jobs.location,
+        datePosted: jobs.datePosted,
+        sector: jobs.sector,
+        type: jobs.type
+      })
+      .from(jobs)
+      .where(and(...conditions))
+      .orderBy(desc(jobs.datePosted));
+
+    const results = filters?.limit 
+      ? await baseQuery.limit(filters.limit)
+      : await baseQuery;
+    
+    // Transform to LightweightJob with slug generation
+    return results.map(job => ({
+      ...job,
+      slug: generateJobSlug(job.title, job.id)
+    }));
+  }
+
+  async getLightweightJobStats(): Promise<{
+    totalJobs: number;
+    organizations: number;
+    newToday: number;
+  }> {
+    // Get total count of published jobs
+    const totalJobsResult = await db
+      .select({ count: jobs.id })
+      .from(jobs)
+      .where(and(
+        eq(jobs.status, 'published'),
+        eq(jobs.type, 'job')
+      ));
+
+    // Get unique organization count
+    const organizationsResult = await db
+      .selectDistinct({ organization: jobs.organization })
+      .from(jobs)
+      .where(and(
+        eq(jobs.status, 'published'),
+        eq(jobs.type, 'job')
+      ));
+
+    // Get jobs posted today
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    const newTodayResult = await db
+      .select({ count: jobs.id })
+      .from(jobs)
+      .where(and(
+        eq(jobs.status, 'published'),
+        eq(jobs.type, 'job'),
+        gte(jobs.datePosted, startOfDay)
+      ));
+
+    return {
+      totalJobs: totalJobsResult.length,
+      organizations: organizationsResult.length,
+      newToday: newTodayResult.length
+    };
   }
 }
 
