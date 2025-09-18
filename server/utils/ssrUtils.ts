@@ -14,29 +14,14 @@ export function isBotUserAgent(userAgent: string): boolean {
   if (!userAgent) return false;
   
   const botPatterns = [
-    // Search engine crawlers
     'googlebot', 'bingbot', 'slurp', 'duckduckbot', 'baiduspider',
-    'yandexbot', 'yahoobot', 'msnbot', 'archiver', 'crawler',
-    
-    // Social media crawlers
-    'facebookexternalhit', 'twitterbot', 'linkedinbot', 'pinterest',
-    'whatsapp', 'flipboard', 'tumblr', 'slackbot', 'telegrambot',
-    'discordbot', 'vkshare', 'nuzzel', 'skypeuripreview',
-    
-    // SEO audit and monitoring tools
-    'seobility', 'screamingfrog', 'ahrefs', 'semrush', 'moz',
-    'sistrix', 'deepcrawl', 'searchmetrics', 'majestic', 'spyfu',
-    'serpstat', 'cognitiveseo', 'ryte', 'oncrawl', 'botify',
-    'screaming frog', 'lighthouse', 'google page speed', 'pagespeed',
-    'gtmetrix', 'pingdom', 'uptime robot', 'site24x7',
-    
-    // Development and testing tools
-    'rogerbot', 'embedly', 'quora link preview', 'showyoubot',
-    'outbrain', 'developers.google.com/+/web/snippet', 'w3c_validator',
-    'redditbot', 'applebot', 'bitlybot', 'qwantify',
-    
-    // Generic bot patterns
-    'bot', 'spider', 'crawl', 'scraper', 'checker', 'monitor'
+    'yandexbot', 'facebookexternalhit', 'twitterbot', 'rogerbot',
+    'linkedinbot', 'embedly', 'quora link preview', 'showyoubot',
+    'outbrain', 'pinterest/0.', 'developers.google.com/+/web/snippet',
+    'slackbot', 'vkshare', 'w3c_validator', 'redditbot', 'applebot',
+    'whatsapp', 'flipboard', 'tumblr', 'bitlybot', 'skypeuripreview',
+    'nuzzel', 'discordbot', 'google page speed', 'qwantify',
+    'telegrambot', 'lighthouse'
   ];
   
   const lowerUserAgent = userAgent.toLowerCase();
