@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import compression from "compression";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -6,6 +7,19 @@ const app = express();
 
 // Remove X-Powered-By header for security and SEO
 app.disable('x-powered-by');
+
+// Enable GZip/Brotli compression for better performance and SEO
+app.use(compression({
+  filter: (req, res) => {
+    // Compress all responses except for already compressed content
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    return compression.filter(req, res);
+  },
+  threshold: 1024, // Only compress responses larger than 1KB
+  level: 6, // Compression level (1-9, 6 is default balance of speed/compression)
+}));
 
 // Domain consolidation middleware - redirect www to non-www for canonical domain
 app.use((req, res, next) => {
