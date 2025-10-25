@@ -34,7 +34,7 @@ export default function Jobs() {
   const [sortBy, setSortBy] = useState("newest");
 
   const { data: jobsData, isLoading } = useQuery({
-    queryKey: ["/api/jobs", { ...filters, search: searchTerm }],
+    queryKey: ["/api/jobs/list", { ...filters, search: searchTerm }],
     staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
     refetchInterval: false, // Disable automatic refetch for low bandwidth
   });

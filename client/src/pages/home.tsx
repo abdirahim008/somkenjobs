@@ -47,7 +47,7 @@ export default function Home() {
   const [displayCount, setDisplayCount] = useState(8); // Show fewer jobs initially for faster loading
 
   const { data, isLoading, refetch } = useQuery<JobsResponse>({
-    queryKey: ['/api/jobs', filters],
+    queryKey: ['/api/jobs/list', filters],
     refetchInterval: false, // Disable automatic refetch for low bandwidth
     staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
   });
