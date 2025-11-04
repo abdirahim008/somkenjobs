@@ -509,29 +509,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Cache hit - return cached data with ETag
         res.setHeader('ETag', cachedEntry.etag);
         res.setHeader('Cache-Control', 'public, max-age=30'); // Browser cache for 30s
-        res.json({
-          jobs: cachedEntry.data,
-          cached: true,
-          responseTime: Date.now() - startTime
-        });
-        console.log(`Jobs list cache hit - ${cachedEntry.data.length} jobs in ${Date.now() - startTime}ms`);
+        res.json(cachedEntry.data);
+        console.log(`Jobs list cache hit - ${cachedEntry.data.jobs.length} jobs in ${Date.now() - startTime}ms`);
         return;
       }
 
       // Cache miss - fetch from database
       const jobs = await storage.getLightweightJobs(filters);
       
+      // Get all jobs for stats and filter options (use simple getAllJobs for speed)
+      const allJobs = await storage.getAllJobs();
+      
+      // Calculate stats
+      const stats = {
+        totalJobs: allJobs.length,
+        organizations: new Set(allJobs.map(job => job.organization)).size,
+        newToday: allJobs.filter(job => {
+          const today = new Date();
+          const jobDate = new Date(job.datePosted);
+          return jobDate.toDateString() === today.toDateString();
+        }).length
+      };
+      
+      // Get unique filter values
+      const filterOptions = {
+        countries: Array.from(new Set(allJobs.map(job => job.country))),
+        organizations: Array.from(new Set(allJobs.map(job => job.organization))),
+        sectors: Array.from(new Set(allJobs.map(job => job.sector).filter(Boolean)))
+      };
+      
+      const responseData = {
+        jobs,
+        stats,
+        filters: filterOptions
+      };
+      
       // Cache the results
-      const cacheEntry = jobsCache.setCachedJobs(filters, jobs);
+      jobsCache.setCachedJobs(filters, responseData);
       
       // Return response with ETag
-      res.setHeader('ETag', cacheEntry.etag);
+      res.setHeader('ETag', etag);
       res.setHeader('Cache-Control', 'public, max-age=30'); // Browser cache for 30s
-      res.json({
-        jobs: cacheEntry.data,
-        cached: false,
-        responseTime: Date.now() - startTime
-      });
+      res.json(responseData);
       
       console.log(`Jobs list database query - ${jobs.length} jobs in ${Date.now() - startTime}ms`);
     } catch (error) {
