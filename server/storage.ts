@@ -1,6 +1,6 @@
 import { jobs, type Job, type InsertJob, type LightweightJob, users, type User, type InsertUser, invoices, type Invoice, type InsertInvoice, countries, type Country, type InsertCountry, cities, type City, type InsertCity, sectors, type Sector, type InsertSector } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, or, gte, ilike } from "drizzle-orm";
+import { eq, desc, and, or, gte, ilike, isNull } from "drizzle-orm";
 import { generateJobSlug } from "@shared/utils";
 import { jobsCache } from "./services/jobsCache";
 
@@ -231,13 +231,16 @@ export class MemStorage implements IStorage {
 
   // Job methods
   async getAllJobs(): Promise<Job[]> {
-    return Array.from(this.jobs.values()).sort(
-      (a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime()
-    );
+    const now = new Date();
+    return Array.from(this.jobs.values())
+      .filter(job => !job.deadline || new Date(job.deadline) >= now)
+      .sort(
+        (a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime()
+      );
   }
 
   async getAllJobsWithDetails(): Promise<Job[]> {
-    // Same as getAllJobs for MemStorage, but provides distinct endpoint for admin use
+    // This includes expired jobs for admin use
     return Array.from(this.jobs.values()).sort(
       (a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime()
     );
@@ -298,13 +301,20 @@ export class MemStorage implements IStorage {
 
   async searchJobs(query: string): Promise<Job[]> {
     const lowerQuery = query.toLowerCase();
+    const now = new Date();
     return Array.from(this.jobs.values())
-      .filter(job => 
-        job.title.toLowerCase().includes(lowerQuery) ||
-        job.organization.toLowerCase().includes(lowerQuery) ||
-        job.description.toLowerCase().includes(lowerQuery) ||
-        (job.sector && job.sector.toLowerCase().includes(lowerQuery))
-      )
+      .filter(job => {
+        // Exclude expired jobs
+        if (job.deadline && new Date(job.deadline) < now) {
+          return false;
+        }
+        return (
+          job.title.toLowerCase().includes(lowerQuery) ||
+          job.organization.toLowerCase().includes(lowerQuery) ||
+          job.description.toLowerCase().includes(lowerQuery) ||
+          (job.sector && job.sector.toLowerCase().includes(lowerQuery))
+        );
+      })
       .sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime());
   }
 
@@ -314,7 +324,13 @@ export class MemStorage implements IStorage {
     sector?: string[];
     datePosted?: string;
   }): Promise<Job[]> {
+    const now = new Date();
     let filteredJobs = Array.from(this.jobs.values());
+
+    // Always exclude expired jobs
+    filteredJobs = filteredJobs.filter(job => 
+      !job.deadline || new Date(job.deadline) >= now
+    );
 
     if (filters.country && filters.country.length > 0) {
       filteredJobs = filteredJobs.filter(job => 
@@ -337,7 +353,6 @@ export class MemStorage implements IStorage {
     }
 
     if (filters.datePosted) {
-      const now = new Date();
       let cutoffDate: Date;
       
       switch (filters.datePosted) {
@@ -512,12 +527,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllJobs(): Promise<Job[]> {
-    return await db.select().from(jobs).orderBy(desc(jobs.datePosted));
+    const now = new Date();
+    return await db
+      .select()
+      .from(jobs)
+      .where(
+        or(
+          isNull(jobs.deadline),
+          gte(jobs.deadline, now)
+        )
+      )
+      .orderBy(desc(jobs.datePosted));
   }
 
   async getAllJobsWithDetails(): Promise<Job[]> {
-    // This could include additional joins or enriched data in the future
-    // For now, it's the same as getAllJobs but provides a distinct endpoint for admin use
+    // This includes expired jobs for admin use
     return await db.select().from(jobs).orderBy(desc(jobs.datePosted));
   }
 
@@ -585,15 +609,23 @@ export class DatabaseStorage implements IStorage {
 
   async searchJobs(query: string): Promise<Job[]> {
     const searchTerm = `%${query.toLowerCase()}%`;
+    const now = new Date();
     return await db
       .select()
       .from(jobs)
       .where(
-        or(
-          ilike(jobs.title, searchTerm),
-          ilike(jobs.organization, searchTerm),
-          ilike(jobs.description, searchTerm),
-          ilike(jobs.sector, searchTerm)
+        and(
+          or(
+            ilike(jobs.title, searchTerm),
+            ilike(jobs.organization, searchTerm),
+            ilike(jobs.description, searchTerm),
+            ilike(jobs.sector, searchTerm)
+          ),
+          // Exclude expired jobs
+          or(
+            isNull(jobs.deadline),
+            gte(jobs.deadline, now)
+          )
         )
       )
       .orderBy(desc(jobs.datePosted));
@@ -605,7 +637,16 @@ export class DatabaseStorage implements IStorage {
     sector?: string[];
     datePosted?: string;
   }): Promise<Job[]> {
+    const now = new Date();
     let whereConditions = [];
+
+    // Always exclude expired jobs
+    whereConditions.push(
+      or(
+        isNull(jobs.deadline),
+        gte(jobs.deadline, now)
+      )
+    );
 
     if (filters.country && filters.country.length > 0) {
       whereConditions.push(
@@ -626,7 +667,6 @@ export class DatabaseStorage implements IStorage {
     }
 
     if (filters.datePosted) {
-      const now = new Date();
       let cutoffDate: Date;
       
       switch (filters.datePosted) {
@@ -887,9 +927,15 @@ export class DatabaseStorage implements IStorage {
     limit?: number;
   }): Promise<LightweightJob[]> {
     // Build conditions array
+    const now = new Date();
     const conditions = [
       eq(jobs.status, 'published'),
-      eq(jobs.type, 'job')
+      eq(jobs.type, 'job'),
+      // Exclude expired jobs: show only jobs with no deadline or deadline in the future
+      or(
+        isNull(jobs.deadline),
+        gte(jobs.deadline, now)
+      )
     ];
 
     // Add country filter
