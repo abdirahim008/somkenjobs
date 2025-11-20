@@ -4,6 +4,7 @@ import * as cron from "node-cron";
 
 
 const RELIEFWEB_API_URL = "https://api.reliefweb.int/v1/jobs";
+const UNTALENT_API_URL = "https://untalent.org/api/v1/jobs";
 const UNJOBS_RSS_URL = "https://jobs.un.org/rss";
 const UNJOBS_API_URL = "https://jobs.un.org/api/v1/jobs";
 
@@ -54,6 +55,30 @@ interface ReliefWebJob {
 interface ReliefWebResponse {
   data: ReliefWebJob[];
   totalCount: number;
+}
+
+interface UNTalentJob {
+  slug: string;
+  title: string;
+  company: string;
+  location: string;
+  is_homebased: boolean;
+  shortDescription?: string;
+  description?: string;
+  expiresAt?: string;
+  areaSlugs?: string[];
+  locationSlugs?: string[];
+  jobLevel?: string;
+  contractType?: string;
+  url?: string;
+}
+
+interface UNTalentResponse {
+  data: UNTalentJob[];
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+  };
 }
 
 export class JobFetcher {
@@ -210,6 +235,154 @@ export class JobFetcher {
     }
   }
 
+  async fetchUNTalentJobs(): Promise<void> {
+    try {
+      console.log("Fetching jobs from UN Talent...");
+      
+      // East African country location slugs for UN Talent API
+      const locationMap: { [key: string]: string } = {
+        "Kenya": "kenya",
+        "Somalia": "somalia",
+        "Ethiopia": "ethiopia",
+        "Uganda": "uganda",
+        "Tanzania": "tanzania"
+      };
+
+      let totalNewJobs = 0;
+      let totalSkippedJobs = 0;
+
+      for (const [countryName, locationSlug] of Object.entries(locationMap)) {
+        try {
+          // Build URL with location filter - fetch multiple pages for comprehensive coverage
+          const url = `${UNTALENT_API_URL}?locationSlugs=${locationSlug}`;
+          console.log(`Fetching ${countryName} jobs from UN Talent...`);
+
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'JobConnect-EastAfrica/1.0'
+            }
+          });
+
+          if (!response.ok) {
+            console.error(`UN Talent API error for ${countryName}: ${response.status} ${response.statusText}`);
+            continue;
+          }
+
+          const data: UNTalentResponse = await response.json();
+          
+          if (!data.data || data.data.length === 0) {
+            console.log(`No jobs found for ${countryName} from UN Talent`);
+            continue;
+          }
+
+          console.log(`UN Talent returned ${data.data.length} jobs for ${countryName}`);
+
+          let newJobsCount = 0;
+          let skippedJobsCount = 0;
+
+          for (const unJob of data.data) {
+            // Create unique external ID
+            const externalId = `untalent-${unJob.slug}`;
+            const existingJob = await storage.getJobByExternalId(externalId);
+            
+            if (existingJob) {
+              skippedJobsCount++;
+              console.log(`Skipping existing job: ${unJob.slug} - ${unJob.title}`);
+              continue;
+            }
+
+            // Extract location - use provided location or fall back to country name
+            let location = unJob.location || countryName;
+            
+            // Clean up location if it includes country name twice
+            if (location.toLowerCase().includes(countryName.toLowerCase())) {
+              location = location;
+            } else {
+              location = `${location}, ${countryName}`;
+            }
+
+            // Create description from shortDescription or description field
+            const rawDescription = unJob.description || unJob.shortDescription || "";
+            const description = rawDescription
+              .replace(/<[^>]*>/g, "")
+              .replace(/\s+/g, " ")
+              .trim()
+              .substring(0, 800) || "No description available";
+
+            // Map job level to experience
+            const experienceMapping: { [key: string]: string } = {
+              "Entry": "Entry level",
+              "Mid": "Mid-level / 3-5 years",
+              "Senior": "Senior level / 5-10 years", 
+              "Leadership": "Leadership / 10+ years",
+              "Executive": "Executive level"
+            };
+            const experience = unJob.jobLevel ? experienceMapping[unJob.jobLevel] || unJob.jobLevel : null;
+
+            // Map area slugs to sector
+            const sectorMapping: { [key: string]: string } = {
+              "human-resources": "Human Resources",
+              "finance": "Finance",
+              "logistics": "Logistics",
+              "health": "Health",
+              "education": "Education",
+              "protection": "Protection",
+              "wash": "WASH",
+              "food-security": "Food Security",
+              "it-telecom": "Information Technology"
+            };
+            
+            const sector = unJob.areaSlugs && unJob.areaSlugs.length > 0
+              ? sectorMapping[unJob.areaSlugs[0]] || "General"
+              : "General";
+
+            // Job URL - construct from slug
+            const jobUrl = unJob.url || `https://untalent.org/jobs/${unJob.slug}`;
+
+            const job: InsertJob = {
+              title: unJob.title,
+              organization: unJob.company || "UN Organization",
+              location: location,
+              country: countryName,
+              description: description,
+              url: jobUrl,
+              datePosted: new Date(), // UN Talent doesn't provide posted date in API
+              deadline: unJob.expiresAt ? new Date(unJob.expiresAt) : null,
+              sector: sector,
+              source: "untalent",
+              externalId: externalId,
+              howToApply: `Apply directly through UN Talent: ${jobUrl}`,
+              experience: experience,
+              qualifications: null,
+              responsibilities: null,
+              bodyHtml: rawDescription || null,
+              type: "job"
+            };
+
+            await storage.createJob(job);
+            newJobsCount++;
+            console.log(`Created new job: ${unJob.slug} - ${unJob.title}`);
+          }
+
+          totalNewJobs += newJobsCount;
+          totalSkippedJobs += skippedJobsCount;
+          console.log(`Fetched ${data.data.length} jobs from UN Talent for ${countryName} - ${newJobsCount} new, ${skippedJobsCount} existing`);
+
+        } catch (countryError) {
+          console.error(`Error fetching UN Talent jobs for ${countryName}:`, countryError);
+          continue;
+        }
+      }
+
+      console.log(`UN Talent fetch completed - Total: ${totalNewJobs} new jobs, ${totalSkippedJobs} existing`);
+
+    } catch (error) {
+      console.error("Error fetching UN Talent jobs:", error);
+    }
+  }
+
   async fetchUNJobs(): Promise<void> {
     try {
       console.log("Fetching jobs from UN Jobs RSS...");
@@ -287,10 +460,13 @@ export class JobFetcher {
     }
 
     this.isRunning = true;
-    console.log("Fetching comprehensive jobs from ReliefWeb...");
+    console.log("Fetching comprehensive jobs from all sources...");
     try {
-      // Fetch from ReliefWeb (humanitarian jobs)
+      // Fetch from ReliefWeb (humanitarian jobs) - will be blocked until approved
       await this.fetchReliefWebJobs();
+      
+      // Fetch from UN Talent (UN organization jobs)
+      await this.fetchUNTalentJobs();
       
       console.log("Job fetch completed successfully");
     } catch (error) {
