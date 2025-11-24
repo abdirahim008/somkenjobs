@@ -94,7 +94,7 @@ export class JobFetcher {
       for (const country of countries) {
         // Build URL parameters for GET request
         const params = new URLSearchParams();
-        params.append('appname', 'jobconnect-eastafrica');
+        params.append('appname', 'jobconnect-eastafrica-w2ZduVJ8jH9');
         params.append('limit', '15');
         params.append('query[value]', country);
         params.append('query[fields][]', 'country.name');
@@ -357,7 +357,7 @@ export class JobFetcher {
               experience: experience,
               qualifications: null,
               responsibilities: null,
-              bodyHtml: rawDescription || null,
+              bodyHtml: rawDescription || undefined,
               type: "job"
             };
 
