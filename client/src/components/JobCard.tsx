@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
-import { Building2, MapPin, Calendar, ExternalLink, Bookmark, Briefcase, FileText, Share2 } from "lucide-react";
+import { Building2, MapPin, Calendar, ExternalLink, Bookmark, Briefcase, FileText, Share2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -150,6 +150,12 @@ export default function JobCard({ job }: JobCardProps) {
               <Calendar className="mr-2 h-5 w-5 flex-shrink-0" />
               <span className="whitespace-nowrap">{formatPostingDate(job.datePosted)}</span>
             </span>
+            {job.deadline && (
+              <span className="flex items-center flex-shrink-0">
+                <Clock className="mr-2 h-5 w-5 flex-shrink-0 text-orange-600" />
+                <span className="whitespace-nowrap font-semibold text-orange-600">{formatDeadline(job.deadline)}</span>
+              </span>
+            )}
           </div>
 
           <div className="flex items-center flex-wrap gap-2">
@@ -193,14 +199,7 @@ export default function JobCard({ job }: JobCardProps) {
         </div>
       </div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-border">
-        <div className="text-base text-muted-foreground">
-          {job.deadline && (
-            <>
-              Deadline: <span className="font-medium text-foreground">{formatDeadline(job.deadline)}</span>
-            </>
-          )}
-        </div>
-        <div className="flex items-center gap-3 ml-4">
+        <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
             <Share2 className="h-3 w-3" />
             Share:
