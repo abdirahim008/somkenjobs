@@ -1920,6 +1920,89 @@ ${jobUrls}
     }
   });
 
+  // RSS Feed endpoint for job listings
+  app.get('/feed', async (req, res) => {
+    try {
+      res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8');
+      
+      // Get latest 50 jobs
+      const jobs = await storage.getAllJobs();
+      const latestJobs = jobs.slice(0, 50);
+      
+      const formatDate = (date: Date | string) => {
+        return new Date(date).toUTCString();
+      };
+
+      const escapeXml = (text: string) => {
+        return text
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      };
+
+      const jobItems = latestJobs.map(job => {
+        const jobSlug = generateJobSlug(job.title, job.id);
+        const jobUrl = `https://somkenjobs.com/jobs/${jobSlug}`;
+        const description = job.description 
+          ? escapeXml(job.description.substring(0, 500)) + (job.description.length > 500 ? '...' : '')
+          : 'No description available';
+        
+        const deadlineInfo = job.deadline 
+          ? `Application Deadline: ${new Date(job.deadline).toLocaleDateString()}` 
+          : '';
+
+        return `    <item>
+      <title>${escapeXml(job.title)}</title>
+      <link>${jobUrl}</link>
+      <guid isPermaLink="true">${jobUrl}</guid>
+      <pubDate>${formatDate(job.datePosted)}</pubDate>
+      <description><![CDATA[
+        <strong>Organization:</strong> ${escapeXml(job.organization)}<br/>
+        <strong>Location:</strong> ${escapeXml(job.location)}, ${escapeXml(job.country)}<br/>
+        ${job.sector ? `<strong>Sector:</strong> ${escapeXml(job.sector)}<br/>` : ''}
+        ${deadlineInfo ? `<strong>${deadlineInfo}</strong><br/><br/>` : ''}
+        ${description}
+      ]]></description>
+      <category>${escapeXml(job.country)}</category>
+      ${job.sector ? `<category>${escapeXml(job.sector)}</category>` : ''}
+      <source url="https://somkenjobs.com">Somken Jobs</source>
+    </item>`;
+      }).join('\n');
+
+      const rssFeed = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Somken Jobs - East Africa Humanitarian Jobs</title>
+    <link>https://somkenjobs.com</link>
+    <description>Latest humanitarian job opportunities across Kenya, Somalia, Ethiopia, Uganda, and Tanzania from leading UN agencies, NGOs, and international organizations.</description>
+    <language>en-us</language>
+    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+    <pubDate>${latestJobs.length > 0 ? formatDate(latestJobs[0].datePosted) : new Date().toUTCString()}</pubDate>
+    <ttl>60</ttl>
+    <atom:link href="https://somkenjobs.com/feed" rel="self" type="application/rss+xml"/>
+    <image>
+      <url>https://somkenjobs.com/favicon.ico</url>
+      <title>Somken Jobs</title>
+      <link>https://somkenjobs.com</link>
+    </image>
+${jobItems}
+  </channel>
+</rss>`;
+
+      res.send(rssFeed);
+    } catch (error) {
+      console.error('Error generating RSS feed:', error);
+      res.status(500).send('Error generating RSS feed');
+    }
+  });
+
+  // Alternative RSS feed URL (some readers expect /rss)
+  app.get('/rss', async (req, res) => {
+    res.redirect(301, '/feed');
+  });
+
   // Download route for job attachments
   app.get('/download/:filename', async (req, res) => {
     try {
@@ -1969,8 +2052,9 @@ Disallow: /internal
 Disallow: /dashboard
 Disallow: /preview
 
-# Reference to sitemap
-Sitemap: https://somkenjobs.com/sitemap.xml`;
+# Reference to sitemap and RSS feed
+Sitemap: https://somkenjobs.com/sitemap.xml
+RSS Feed: https://somkenjobs.com/feed`;
 
     res.send(robotsTxt);
   });
