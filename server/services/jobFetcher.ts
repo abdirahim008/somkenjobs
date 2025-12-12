@@ -453,6 +453,165 @@ export class JobFetcher {
     }
   }
 
+  async fetchUNGMTenders(): Promise<void> {
+    try {
+      console.log("Fetching tenders from UNGM...");
+      
+      // East African country codes for UNGM filtering
+      const countries = [
+        { name: "Kenya", code: "KE" },
+        { name: "Somalia", code: "SO" },
+        { name: "Ethiopia", code: "ET" },
+        { name: "Uganda", code: "UG" },
+        { name: "Tanzania", code: "TZ" }
+      ];
+
+      let totalNewTenders = 0;
+      let totalSkippedTenders = 0;
+
+      for (const country of countries) {
+        try {
+          // UNGM public notices page with country filter
+          const url = `https://www.ungm.org/Public/Notice`;
+          console.log(`Fetching tenders for ${country.name} from UNGM...`);
+
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Accept': 'text/html,application/xhtml+xml',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+          });
+
+          if (!response.ok) {
+            console.error(`UNGM error for ${country.name}: ${response.status} ${response.statusText}`);
+            continue;
+          }
+
+          const html = await response.text();
+          
+          // Parse tender listings from HTML
+          // Look for tender cards/items containing country name
+          const tenderPattern = /<div[^>]*class="[^"]*notice[^"]*"[^>]*>([\s\S]*?)<\/div>/gi;
+          const titlePattern = /<a[^>]*href="([^"]*)"[^>]*>([^<]+)<\/a>/i;
+          const datePattern = /(\d{1,2}[-\/]\w{3}[-\/]\d{4}|\d{4}[-\/]\d{2}[-\/]\d{2})/g;
+          const orgPattern = /(UNDP|UNICEF|WHO|WFP|FAO|UNHCR|IOM|UNOPS|UNESCO|UNFPA|UN Women|UNEP)/gi;
+
+          // Simple approach: look for links to notice pages
+          const noticeLinks = html.match(/\/Public\/Notice\/(\d+)/g) || [];
+          const uniqueNoticeIds = [...new Set(noticeLinks.map(link => link.match(/(\d+)$/)?.[1]).filter(Boolean))];
+
+          console.log(`Found ${uniqueNoticeIds.length} potential tenders on UNGM`);
+
+          // For each notice, check if it's relevant to East African countries
+          for (const noticeId of uniqueNoticeIds.slice(0, 20)) { // Limit to 20 per run
+            try {
+              const noticeUrl = `https://www.ungm.org/Public/Notice/${noticeId}`;
+              const noticeResponse = await fetch(noticeUrl, {
+                headers: {
+                  'Accept': 'text/html',
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+              });
+
+              if (!noticeResponse.ok) continue;
+
+              const noticeHtml = await noticeResponse.text();
+              
+              // Check if notice mentions any East African country
+              const countryMentioned = countries.some(c => 
+                noticeHtml.toLowerCase().includes(c.name.toLowerCase())
+              );
+
+              if (!countryMentioned) continue;
+
+              // Extract tender details
+              const titleMatch = noticeHtml.match(/<h1[^>]*>([^<]+)<\/h1>/i) ||
+                                noticeHtml.match(/<title>([^<]+)<\/title>/i);
+              const title = titleMatch ? titleMatch[1].replace(/\s+/g, ' ').trim() : `UNGM Tender ${noticeId}`;
+
+              // Extract organization
+              const orgMatch = noticeHtml.match(orgPattern);
+              const organization = orgMatch ? orgMatch[0] : "United Nations";
+
+              // Extract deadline
+              const deadlineMatch = noticeHtml.match(/deadline[:\s]*([^<\n]+)/i) ||
+                                   noticeHtml.match(/closing[:\s]*([^<\n]+)/i);
+              let deadline: Date | null = null;
+              if (deadlineMatch) {
+                const dateStr = deadlineMatch[1].match(datePattern);
+                if (dateStr) {
+                  deadline = new Date(dateStr[0]);
+                  if (isNaN(deadline.getTime())) deadline = null;
+                }
+              }
+
+              // Determine country
+              let tenderCountry = "Kenya";
+              for (const c of countries) {
+                if (noticeHtml.toLowerCase().includes(c.name.toLowerCase())) {
+                  tenderCountry = c.name;
+                  break;
+                }
+              }
+
+              // Extract description
+              const descMatch = noticeHtml.match(/<div[^>]*class="[^"]*description[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+              const description = descMatch 
+                ? descMatch[1].replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().substring(0, 800)
+                : `UN procurement opportunity for ${tenderCountry}`;
+
+              const externalId = `ungm-${noticeId}`;
+              const existingJob = await storage.getJobByExternalId(externalId);
+              
+              if (existingJob) {
+                totalSkippedTenders++;
+                continue;
+              }
+
+              const tender: InsertJob = {
+                title: title.substring(0, 500),
+                organization: organization,
+                location: tenderCountry,
+                country: tenderCountry,
+                description: description,
+                url: noticeUrl,
+                datePosted: new Date(),
+                deadline: deadline,
+                sector: "Procurement",
+                source: "ungm",
+                externalId: externalId,
+                howToApply: `Submit through UNGM: ${noticeUrl}`,
+                experience: null,
+                qualifications: null,
+                responsibilities: null,
+                bodyHtml: undefined,
+                type: "tender"
+              };
+
+              await storage.createJob(tender);
+              totalNewTenders++;
+              console.log(`Created new tender: ${noticeId} - ${title.substring(0, 60)}...`);
+
+            } catch (noticeError) {
+              console.error(`Error fetching UNGM notice ${noticeId}:`, noticeError);
+              continue;
+            }
+          }
+
+        } catch (countryError) {
+          console.error(`Error fetching UNGM tenders for ${country.name}:`, countryError);
+          continue;
+        }
+      }
+
+      console.log(`UNGM fetch completed - Total: ${totalNewTenders} new tenders, ${totalSkippedTenders} existing`);
+
+    } catch (error) {
+      console.error("Error fetching UNGM tenders:", error);
+    }
+  }
+
   async fetchAllJobs(): Promise<void> {
     if (this.isRunning) {
       console.log("Job fetch already in progress, skipping...");
@@ -460,15 +619,18 @@ export class JobFetcher {
     }
 
     this.isRunning = true;
-    console.log("Fetching comprehensive jobs from all sources...");
+    console.log("Fetching comprehensive jobs and tenders from all sources...");
     try {
-      // Fetch from ReliefWeb (humanitarian jobs) - will be blocked until approved
+      // Fetch from ReliefWeb (humanitarian jobs)
       await this.fetchReliefWebJobs();
       
       // Fetch from UN Talent (UN organization jobs)
       await this.fetchUNTalentJobs();
       
-      console.log("Job fetch completed successfully");
+      // Fetch from UNGM (UN procurement tenders)
+      await this.fetchUNGMTenders();
+      
+      console.log("Job and tender fetch completed successfully");
     } catch (error) {
       console.error("Error in job fetch:", error);
     } finally {
