@@ -1545,6 +1545,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // SSR route for tenders listing page
+  app.get('/tenders', async (req, res, next) => {
+    try {
+      // Only apply SSR for page loads, not API calls
+      const acceptHeader = req.get('Accept') || '';
+      if (!acceptHeader.includes('text/html')) {
+        return next();
+      }
+
+      const allJobs = await storage.getAllJobs();
+      const tenders = allJobs.filter(job => job.type === 'tender');
+      
+      const pageUrl = 'https://somkenjobs.com/tenders';
+      const pageTitle = `Humanitarian Tenders in East Africa | ${tenders.length}+ Active Opportunities | Somken Jobs`;
+      const pageDescription = `Browse ${tenders.length}+ humanitarian tenders across Kenya, Somalia, Ethiopia, Uganda, and Tanzania. Find procurement opportunities from UN agencies, NGOs, and international organizations.`;
+      
+      const __dirname = path.dirname(fileURLToPath(import.meta.url));
+      const htmlPath = path.join(__dirname, '../dist/public/index.html');
+      let html = '';
+      
+      try {
+        html = fs.readFileSync(htmlPath, 'utf-8');
+      } catch (err) {
+        const devHtmlPath = path.join(__dirname, '../client/index.html');
+        html = fs.readFileSync(devHtmlPath, 'utf-8');
+      }
+      
+      html = html.replace(/<title>[^<]*<\/title>/, `<title>${pageTitle}</title>`);
+      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${pageDescription}">`);
+      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${pageTitle}">`);
+      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${pageDescription}">`);
+      html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${pageUrl}">`);
+      html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${pageUrl}">`);
+      
+      const breadcrumbData = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://somkenjobs.com/" },
+          { "@type": "ListItem", "position": 2, "name": "Tenders", "item": pageUrl }
+        ]
+      };
+      
+      const additionalTags = `
+    <script type="application/ld+json">${JSON.stringify(breadcrumbData)}</script>`;
+      
+      html = html.replace(/<\/head>/, `${additionalTags}\n  </head>`);
+      
+      res.send(html);
+    } catch (error) {
+      console.error('Error serving tenders page:', error);
+      next();
+    }
+  });
+
   // Server-side rendering route for job pages to inject meta tags
   app.get('/jobs/:id', async (req, res) => {
     try {
@@ -1996,6 +2051,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
 
+      // Breadcrumb structured data for enhanced search appearance
+      const breadcrumbData = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://somkenjobs.com/" },
+          { "@type": "ListItem", "position": 2, "name": "Jobs", "item": "https://somkenjobs.com/jobs" },
+          { "@type": "ListItem", "position": 3, "name": job.country, "item": `https://somkenjobs.com/jobs/country/${job.country.toLowerCase()}` },
+          { "@type": "ListItem", "position": 4, "name": job.title.substring(0, 50), "item": jobUrl }
+        ]
+      };
+
       // Add job-specific Open Graph properties for richer Facebook previews (no duplicate og:type)
       const additionalMetaTags = `
     <!-- Job-specific meta tags for enhanced social media previews -->
@@ -2020,6 +2087,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     <!-- Google Jobs JobPosting Structured Data -->
     <script type="application/ld+json">
 ${JSON.stringify(jobStructuredData, null, 2)}
+    </script>
+    
+    <!-- Breadcrumb Structured Data for enhanced search appearance -->
+    <script type="application/ld+json">
+${JSON.stringify(breadcrumbData, null, 2)}
     </script>`;
 
       // Insert additional meta tags before the closing head tag
