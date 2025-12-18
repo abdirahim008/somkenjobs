@@ -1835,10 +1835,17 @@ ${JSON.stringify(jobStructuredData, null, 2)}
       // Set proper XML content type
       res.setHeader('Content-Type', 'application/xml');
       
-      // Get all published jobs from the database
-      const jobs = await storage.getAllJobs();
+      // Get ALL jobs including expired ones for comprehensive indexing
+      // Expired jobs are still valuable for SEO as they show historical presence
+      const allJobs = await storage.getAllJobsWithDetails();
       
-      console.log(`Generating sitemap with ${jobs.length} jobs`);
+      // Filter to only include jobs from the last 6 months for sitemap (fresher content)
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      
+      const jobs = allJobs.filter(job => new Date(job.datePosted) >= sixMonthsAgo);
+      
+      console.log(`Generating sitemap with ${jobs.length} jobs (from ${allJobs.length} total)`);
       
       // Generate job URLs
       const jobUrls = jobs.map(job => {
