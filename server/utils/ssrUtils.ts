@@ -28,13 +28,48 @@ export function isBotUserAgent(userAgent: string): boolean {
   return botPatterns.some(pattern => lowerUserAgent.includes(pattern));
 }
 
+// Strip markdown and HTML from text for clean meta descriptions
+export function stripMarkdownAndHtml(text: string, maxLength: number = 160): string {
+  if (!text) return '';
+  
+  let cleaned = text
+    .replace(/<[^>]*>/g, '') // Remove HTML tags
+    .replace(/#{1,6}\s*/g, '') // Remove markdown headers
+    .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove bold markdown, keep text
+    .replace(/\*([^*]+)\*/g, '$1') // Remove italic markdown, keep text
+    .replace(/__([^_]+)__/g, '$1') // Remove underscore bold
+    .replace(/_([^_]+)_/g, '$1') // Remove underscore italic
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links, keep text
+    .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+    .replace(/`([^`]+)`/g, '$1') // Remove inline code, keep text
+    .replace(/^\s*[-*+]\s+/gm, '') // Remove list markers
+    .replace(/^\s*\d+\.\s+/gm, '') // Remove numbered list markers
+    .replace(/^\s*>/gm, '') // Remove blockquotes
+    .replace(/\n+/g, ' ') // Replace line breaks with spaces
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .replace(/&[^;]+;/g, '') // Remove HTML entities
+    .trim();
+  
+  // Truncate to maxLength
+  if (cleaned.length > maxLength) {
+    cleaned = cleaned.substring(0, maxLength);
+    const lastSpace = cleaned.lastIndexOf(' ');
+    if (lastSpace > maxLength - 30) {
+      cleaned = cleaned.substring(0, lastSpace);
+    }
+    cleaned = cleaned.trim() + '...';
+  }
+  
+  return cleaned;
+}
+
 // Generate structured data for a job
 export function generateJobStructuredData(job: Job): string {
   const cleanDescription = job.description 
-    ? job.description.replace(/<[^>]*>/g, '').substring(0, 5000)
+    ? stripMarkdownAndHtml(job.description, 5000)
     : `Join ${job.organization || 'our humanitarian organization'} in their mission to provide humanitarian aid in ${job.location || 'the field'}, ${job.country || 'East Africa'}. This position offers the opportunity to make a meaningful impact in humanitarian work.`;
 
-  const jobStructuredData = {
+  const jobStructuredData: Record<string, any> = {
     "@context": "https://schema.org/",
     "@type": "JobPosting",
     "title": job.title.substring(0, 100),

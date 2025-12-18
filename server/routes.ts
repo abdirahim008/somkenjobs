@@ -1339,6 +1339,212 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return `${phrase} ${job.title} position in ${job.location}, ${job.country} with ${job.organization}${deadline}`;
   }
 
+  // Country landing pages for SEO - e.g., /jobs/country/kenya
+  const SUPPORTED_COUNTRIES = ['kenya', 'somalia', 'ethiopia', 'uganda', 'tanzania'];
+  const COUNTRY_DISPLAY_NAMES: Record<string, string> = {
+    'kenya': 'Kenya',
+    'somalia': 'Somalia', 
+    'ethiopia': 'Ethiopia',
+    'uganda': 'Uganda',
+    'tanzania': 'Tanzania'
+  };
+  const COUNTRY_DESCRIPTIONS: Record<string, string> = {
+    'kenya': 'Kenya serves as East Africa\'s humanitarian hub, with Nairobi hosting regional headquarters for numerous international organizations.',
+    'somalia': 'Somalia offers unique opportunities for humanitarian professionals to contribute to post-conflict recovery and stabilization efforts.',
+    'ethiopia': 'Ethiopia presents vast opportunities for development and humanitarian professionals working across diverse contexts including refugee response.',
+    'uganda': 'Uganda offers meaningful opportunities in refugee response, health programming, and development initiatives.',
+    'tanzania': 'Tanzania provides opportunities in development programming, refugee support, and health initiatives.'
+  };
+
+  app.get('/jobs/country/:country', async (req, res) => {
+    try {
+      const countryParam = req.params.country.toLowerCase();
+      
+      if (!SUPPORTED_COUNTRIES.includes(countryParam)) {
+        return res.status(404).send('Country not found');
+      }
+      
+      const countryName = COUNTRY_DISPLAY_NAMES[countryParam];
+      const countryDescription = COUNTRY_DESCRIPTIONS[countryParam];
+      
+      // Get jobs for this country
+      const allJobs = await storage.getAllJobs();
+      const countryJobs = allJobs.filter(job => 
+        job.country.toLowerCase() === countryParam
+      );
+      
+      const pageUrl = `https://somkenjobs.com/jobs/country/${countryParam}`;
+      const pageTitle = `Humanitarian Jobs in ${countryName} | ${countryJobs.length}+ Current Openings | Somken Jobs`;
+      const pageDescription = `Find ${countryJobs.length}+ humanitarian and development jobs in ${countryName}. ${countryDescription} Browse NGO, UN, and international organization positions.`;
+      
+      // Read HTML template
+      const __dirname = path.dirname(fileURLToPath(import.meta.url));
+      const htmlPath = path.join(__dirname, '../dist/public/index.html');
+      let html = '';
+      
+      try {
+        html = fs.readFileSync(htmlPath, 'utf-8');
+      } catch (err) {
+        const devHtmlPath = path.join(__dirname, '../client/index.html');
+        html = fs.readFileSync(devHtmlPath, 'utf-8');
+      }
+      
+      // Replace meta tags
+      html = html.replace(/<title>[^<]*<\/title>/, `<title>${pageTitle}</title>`);
+      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${pageDescription}">`);
+      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${pageTitle}">`);
+      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${pageDescription}">`);
+      html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${pageUrl}">`);
+      html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${pageUrl}">`);
+      
+      // Add structured data for ItemList
+      const structuredData = {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": `Humanitarian Jobs in ${countryName}`,
+        "description": pageDescription,
+        "numberOfItems": countryJobs.length,
+        "itemListElement": countryJobs.slice(0, 10).map((job, index) => ({
+          "@type": "ListItem",
+          "position": index + 1,
+          "item": {
+            "@type": "JobPosting",
+            "title": job.title,
+            "hiringOrganization": { "@type": "Organization", "name": job.organization },
+            "jobLocation": { "@type": "Place", "address": { "@type": "PostalAddress", "addressLocality": job.location, "addressCountry": countryName } },
+            "url": `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`
+          }
+        }))
+      };
+      
+      // Add breadcrumb structured data
+      const breadcrumbData = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://somkenjobs.com/" },
+          { "@type": "ListItem", "position": 2, "name": "Jobs", "item": "https://somkenjobs.com/jobs" },
+          { "@type": "ListItem", "position": 3, "name": countryName, "item": pageUrl }
+        ]
+      };
+      
+      const additionalTags = `
+    <script type="application/ld+json">${JSON.stringify(structuredData)}</script>
+    <script type="application/ld+json">${JSON.stringify(breadcrumbData)}</script>`;
+      
+      html = html.replace(/<\/head>/, `${additionalTags}\n  </head>`);
+      
+      res.send(html);
+    } catch (error) {
+      console.error('Error serving country page:', error);
+      res.status(500).send('Error loading page');
+    }
+  });
+
+  // Sector landing pages for SEO - e.g., /jobs/sector/health
+  const SUPPORTED_SECTORS = ['health', 'education', 'protection', 'wash', 'food-security', 'logistics', 'emergency-response'];
+  const SECTOR_DISPLAY_NAMES: Record<string, string> = {
+    'health': 'Health',
+    'education': 'Education',
+    'protection': 'Protection',
+    'wash': 'WASH',
+    'food-security': 'Food Security',
+    'logistics': 'Logistics',
+    'emergency-response': 'Emergency Response'
+  };
+  const SECTOR_DESCRIPTIONS: Record<string, string> = {
+    'health': 'The health sector presents opportunities for medical professionals, public health specialists, and healthcare program managers.',
+    'education': 'Education programming offers opportunities in learning access, teacher training, and curriculum development.',
+    'protection': 'Protection work focuses on safeguarding vulnerable populations including refugees and displaced persons.',
+    'wash': 'Water, Sanitation, and Hygiene programming addresses critical infrastructure and behavior change.',
+    'food-security': 'Food security programming encompasses emergency food assistance and agriculture development.',
+    'logistics': 'Logistics roles involve supply chain management, procurement, and operational support.',
+    'emergency-response': 'Emergency response roles involve rapid assessment, program design, and crisis coordination.'
+  };
+
+  app.get('/jobs/sector/:sector', async (req, res) => {
+    try {
+      const sectorParam = req.params.sector.toLowerCase();
+      
+      if (!SUPPORTED_SECTORS.includes(sectorParam)) {
+        return res.status(404).send('Sector not found');
+      }
+      
+      const sectorName = SECTOR_DISPLAY_NAMES[sectorParam];
+      const sectorDescription = SECTOR_DESCRIPTIONS[sectorParam];
+      
+      // Get jobs for this sector
+      const allJobs = await storage.getAllJobs();
+      const sectorJobs = allJobs.filter(job => 
+        job.sector && job.sector.toLowerCase().includes(sectorParam.replace('-', ' '))
+      );
+      
+      const pageUrl = `https://somkenjobs.com/jobs/sector/${sectorParam}`;
+      const pageTitle = `${sectorName} Jobs in East Africa | ${sectorJobs.length}+ Humanitarian Positions | Somken Jobs`;
+      const pageDescription = `Find ${sectorJobs.length}+ ${sectorName.toLowerCase()} sector jobs across Kenya, Somalia, Ethiopia, Uganda, Tanzania. ${sectorDescription}`;
+      
+      // Read HTML template
+      const __dirname = path.dirname(fileURLToPath(import.meta.url));
+      const htmlPath = path.join(__dirname, '../dist/public/index.html');
+      let html = '';
+      
+      try {
+        html = fs.readFileSync(htmlPath, 'utf-8');
+      } catch (err) {
+        const devHtmlPath = path.join(__dirname, '../client/index.html');
+        html = fs.readFileSync(devHtmlPath, 'utf-8');
+      }
+      
+      // Replace meta tags
+      html = html.replace(/<title>[^<]*<\/title>/, `<title>${pageTitle}</title>`);
+      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${pageDescription}">`);
+      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${pageTitle}">`);
+      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${pageDescription}">`);
+      html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${pageUrl}">`);
+      html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${pageUrl}">`);
+      
+      // Add structured data
+      const structuredData = {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": `${sectorName} Jobs in East Africa`,
+        "description": pageDescription,
+        "numberOfItems": sectorJobs.length,
+        "itemListElement": sectorJobs.slice(0, 10).map((job, index) => ({
+          "@type": "ListItem",
+          "position": index + 1,
+          "item": {
+            "@type": "JobPosting",
+            "title": job.title,
+            "hiringOrganization": { "@type": "Organization", "name": job.organization },
+            "url": `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`
+          }
+        }))
+      };
+      
+      const breadcrumbData = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://somkenjobs.com/" },
+          { "@type": "ListItem", "position": 2, "name": "Jobs", "item": "https://somkenjobs.com/jobs" },
+          { "@type": "ListItem", "position": 3, "name": sectorName, "item": pageUrl }
+        ]
+      };
+      
+      const additionalTags = `
+    <script type="application/ld+json">${JSON.stringify(structuredData)}</script>
+    <script type="application/ld+json">${JSON.stringify(breadcrumbData)}</script>`;
+      
+      html = html.replace(/<\/head>/, `${additionalTags}\n  </head>`);
+      
+      res.send(html);
+    } catch (error) {
+      console.error('Error serving sector page:', error);
+      res.status(500).send('Error loading page');
+    }
+  });
+
   // Server-side rendering route for job pages to inject meta tags
   app.get('/jobs/:id', async (req, res) => {
     try {
@@ -1916,6 +2122,78 @@ ${JSON.stringify(jobStructuredData, null, 2)}
     <lastmod>${new Date().toISOString()}</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/jobs/country/kenya</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/jobs/country/somalia</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/jobs/country/ethiopia</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/jobs/country/uganda</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/jobs/country/tanzania</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/jobs/sector/health</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/jobs/sector/education</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/jobs/sector/protection</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/jobs/sector/wash</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/jobs/sector/food-security</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/jobs/sector/logistics</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/jobs/sector/emergency-response</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
   </url>
 ${jobUrls}
 </urlset>`;
