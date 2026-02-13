@@ -38,5 +38,5 @@ waitForPort = 5000
 [userenv]
 
 [userenv.shared]
-SOMKEN_URL = "https://web-production-3ac3.up.railway.app"
+SOMKEN_URL = "https://somkenjobs.com"
 SCHEDULE_HOURS = "12"
