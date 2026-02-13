@@ -34,3 +34,9 @@ author = "agent"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[userenv]
+
+[userenv.shared]
+SOMKEN_URL = "https://web-production-3ac3.up.railway.app"
+SCHEDULE_HOURS = "12"
