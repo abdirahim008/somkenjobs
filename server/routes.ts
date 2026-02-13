@@ -1069,27 +1069,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Maximum 500 jobs per upload. Please split your data into smaller batches." });
       }
 
-      const results = { success: 0, failed: 0, errors: [] as { index: number; title?: string; error: string }[] };
+      const results = { successCount: 0, failureCount: 0, errors: [] as { index: number; title?: string; error: string }[] };
+
+      const parseFuzzyDate = (dateStr: string | undefined | null): Date => {
+        if (!dateStr) return new Date();
+        const lower = dateStr.toLowerCase().trim();
+        if (lower === 'yesterday') {
+          const d = new Date(); d.setDate(d.getDate() - 1); return d;
+        }
+        if (lower === 'today') return new Date();
+        const monthMatch = lower.match(/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[,.\s]+(\d{1,2})$/i);
+        if (monthMatch) {
+          const months: Record<string, number> = { jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11 };
+          const m = months[monthMatch[1].toLowerCase().slice(0, 3)];
+          const day = parseInt(monthMatch[2]);
+          const year = new Date().getFullYear();
+          return new Date(year, m, day);
+        }
+        const parsed = new Date(dateStr);
+        return isNaN(parsed.getTime()) ? new Date() : parsed;
+      };
 
       for (let i = 0; i < jobsArray.length; i++) {
         const rawJob = jobsArray[i];
         try {
           const jobDataWithDefaults = {
-            ...rawJob,
-            createdBy: userId,
+            title: rawJob.title,
+            organization: rawJob.organization,
+            location: rawJob.location,
+            country: rawJob.country,
+            description: rawJob.description || "",
+            url: rawJob.url || "",
+            datePosted: parseFuzzyDate(rawJob.datePosted),
+            deadline: rawJob.deadline ? parseFuzzyDate(rawJob.deadline) : null,
+            sector: rawJob.sector || null,
             source: rawJob.source || "user",
             externalId: rawJob.externalId || `user-${userId}-${Date.now()}-${i}`,
-            datePosted: rawJob.datePosted || new Date(),
-            url: rawJob.url || "",
+            howToApply: rawJob.howToApply || null,
+            experience: rawJob.experience || null,
+            qualifications: rawJob.qualifications || null,
+            responsibilities: rawJob.responsibilities || null,
+            bodyHtml: rawJob.bodyHtml || null,
+            createdBy: userId,
             status: rawJob.status || "published",
             type: rawJob.type || "job",
+            attachmentUrl: rawJob.attachmentUrl || null,
+            jobNumber: rawJob.jobNumber || null,
           };
 
           const jobData = insertJobSchema.parse(jobDataWithDefaults);
           await storage.createJob(jobData);
-          results.success++;
+          results.successCount++;
         } catch (error) {
-          results.failed++;
+          results.failureCount++;
           let errorMsg = "Unknown error";
           if (error instanceof z.ZodError) {
             errorMsg = error.errors.map(e => `${e.path.join(".")}: ${e.message}`).join("; ");
@@ -1101,10 +1133,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.status(200).json({
-        message: `Bulk upload complete. ${results.success} succeeded, ${results.failed} failed.`,
-        success: results.success,
-        failed: results.failed,
-        total: jobsArray.length,
+        message: `Bulk upload complete. ${results.successCount} succeeded, ${results.failureCount} failed.`,
+        totalProcessed: jobsArray.length,
+        successCount: results.successCount,
+        failureCount: results.failureCount,
         errors: results.errors,
       });
     } catch (error) {

@@ -31,20 +31,21 @@ export const jobs = pgTable("jobs", {
 export const insertJobSchema = createInsertSchema(jobs).omit({
   id: true,
 }).extend({
-  // Make these fields optional for user-created jobs
   url: z.string().optional(),
   source: z.string().optional(), 
   externalId: z.string().optional(),
   datePosted: z.union([z.date(), z.string().transform((str) => new Date(str))]).optional(),
   deadline: z.union([z.date(), z.string().transform((str) => new Date(str)), z.null()]).optional(),
-  // Allow bodyHtml to be optional since it's for scraped jobs
-  bodyHtml: z.string().optional(),
-  // Add validation for type field
+  bodyHtml: z.string().nullable().optional(),
   type: z.enum(["job", "tender"]).default("job"),
-  // Attachment URL is optional
-  attachmentUrl: z.string().optional(),
-  // Job number is optional for user identification
-  jobNumber: z.string().optional(),
+  attachmentUrl: z.string().nullable().optional(),
+  jobNumber: z.string().nullable().optional(),
+  howToApply: z.string().nullable().optional(),
+  experience: z.string().nullable().optional(),
+  qualifications: z.string().nullable().optional(),
+  responsibilities: z.string().nullable().optional(),
+  sector: z.string().nullable().optional(),
+  createdBy: z.number().nullable().optional(),
 });
 
 export type InsertJob = z.infer<typeof insertJobSchema>;
