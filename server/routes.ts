@@ -12,6 +12,8 @@ import { Request, Response, NextFunction } from "express";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from 'url';
+import multer from "multer";
+import { parse as csvParse } from "csv-parse/sync";
 import { 
   isBotUserAgent, 
   generateHomepageHTML, 
@@ -22,6 +24,8 @@ import {
 import { jobsCache } from "./services/jobsCache";
 
 const JWT_SECRET = process.env.JWT_SECRET || "jobconnect-secret-key-change-in-production";
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 interface AuthRequest extends Request {
   user?: User;
@@ -1015,6 +1019,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error("Error creating job:", error);
       res.status(500).json({ message: "Failed to create job" });
+    }
+  });
+
+  // Bulk upload jobs (authenticated users only) - accepts JSON array or CSV file
+  app.post("/api/jobs/bulk-upload", authenticate, upload.single("file"), async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      let jobsArray: any[] = [];
+
+      if (req.file) {
+        const fileContent = req.file.buffer.toString("utf-8");
+        const ext = (req.file.originalname || "").toLowerCase();
+
+        if (ext.endsWith(".csv")) {
+          try {
+            jobsArray = csvParse(fileContent, {
+              columns: true,
+              skip_empty_lines: true,
+              trim: true,
+              relaxColumnCount: true,
+            });
+          } catch (parseErr: any) {
+            return res.status(400).json({ message: "Failed to parse CSV file", error: parseErr.message });
+          }
+        } else if (ext.endsWith(".json")) {
+          try {
+            const parsed = JSON.parse(fileContent);
+            jobsArray = Array.isArray(parsed) ? parsed : [parsed];
+          } catch {
+            return res.status(400).json({ message: "Failed to parse JSON file" });
+          }
+        } else {
+          return res.status(400).json({ message: "Unsupported file type. Please upload a .csv or .json file." });
+        }
+      } else if (req.body && Array.isArray(req.body.jobs)) {
+        jobsArray = req.body.jobs;
+      } else if (req.body && Array.isArray(req.body)) {
+        jobsArray = req.body;
+      } else {
+        return res.status(400).json({ message: "Please provide a JSON array of jobs in the request body (as { \"jobs\": [...] } or [...]) or upload a CSV/JSON file." });
+      }
+
+      if (jobsArray.length === 0) {
+        return res.status(400).json({ message: "No jobs found in the uploaded data." });
+      }
+
+      if (jobsArray.length > 500) {
+        return res.status(400).json({ message: "Maximum 500 jobs per upload. Please split your data into smaller batches." });
+      }
+
+      const results = { success: 0, failed: 0, errors: [] as { index: number; title?: string; error: string }[] };
+
+      for (let i = 0; i < jobsArray.length; i++) {
+        const rawJob = jobsArray[i];
+        try {
+          const jobDataWithDefaults = {
+            ...rawJob,
+            createdBy: userId,
+            source: rawJob.source || "user",
+            externalId: rawJob.externalId || `user-${userId}-${Date.now()}-${i}`,
+            datePosted: rawJob.datePosted || new Date(),
+            url: rawJob.url || "",
+            status: rawJob.status || "published",
+            type: rawJob.type || "job",
+          };
+
+          const jobData = insertJobSchema.parse(jobDataWithDefaults);
+          await storage.createJob(jobData);
+          results.success++;
+        } catch (error) {
+          results.failed++;
+          let errorMsg = "Unknown error";
+          if (error instanceof z.ZodError) {
+            errorMsg = error.errors.map(e => `${e.path.join(".")}: ${e.message}`).join("; ");
+          } else if (error instanceof Error) {
+            errorMsg = error.message;
+          }
+          results.errors.push({ index: i + 1, title: rawJob.title || undefined, error: errorMsg });
+        }
+      }
+
+      res.status(200).json({
+        message: `Bulk upload complete. ${results.success} succeeded, ${results.failed} failed.`,
+        success: results.success,
+        failed: results.failed,
+        total: jobsArray.length,
+        errors: results.errors,
+      });
+    } catch (error) {
+      console.error("Error in bulk job upload:", error);
+      res.status(500).json({ message: "Failed to process bulk upload" });
     }
   });
 
