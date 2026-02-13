@@ -1083,8 +1083,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const months: Record<string, number> = { jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11 };
           const m = months[monthMatch[1].toLowerCase().slice(0, 3)];
           const day = parseInt(monthMatch[2]);
-          const year = new Date().getFullYear();
-          return new Date(year, m, day);
+          let year = new Date().getFullYear();
+          let result = new Date(year, m, day);
+          if (result.getTime() > Date.now() + 90 * 24 * 60 * 60 * 1000) {
+            result = new Date(year - 1, m, day);
+          }
+          return result;
         }
         const parsed = new Date(dateStr);
         return isNaN(parsed.getTime()) ? new Date() : parsed;

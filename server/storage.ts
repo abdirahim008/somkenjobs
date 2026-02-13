@@ -1,6 +1,6 @@
 import { jobs, type Job, type InsertJob, type LightweightJob, users, type User, type InsertUser, invoices, type Invoice, type InsertInvoice, countries, type Country, type InsertCountry, cities, type City, type InsertCity, sectors, type Sector, type InsertSector } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, or, gte, ilike, isNull } from "drizzle-orm";
+import { eq, desc, and, or, gte, lt, ilike, isNull } from "drizzle-orm";
 import { generateJobSlug } from "@shared/utils";
 import { jobsCache } from "./services/jobsCache";
 
@@ -24,6 +24,7 @@ export interface IStorage {
   createJob(job: InsertJob): Promise<Job>;
   updateJob(id: number, job: Partial<InsertJob>): Promise<Job | undefined>;
   deleteJob(id: number): Promise<boolean>;
+  archiveExpiredJobs(): Promise<number>;
   searchJobs(query: string): Promise<Job[]>;
   filterJobs(filters: {
     country?: string[];
@@ -297,6 +298,18 @@ export class MemStorage implements IStorage {
 
   async deleteJob(id: number): Promise<boolean> {
     return this.jobs.delete(id);
+  }
+
+  async archiveExpiredJobs(): Promise<number> {
+    const now = new Date();
+    let count = 0;
+    for (const [id, job] of this.jobs.entries()) {
+      if (job.deadline && new Date(job.deadline) < now && job.status === 'published') {
+        this.jobs.set(id, { ...job, status: 'archived' });
+        count++;
+      }
+    }
+    return count;
   }
 
   async searchJobs(query: string): Promise<Job[]> {
@@ -599,12 +612,30 @@ export class DatabaseStorage implements IStorage {
     const result = await db.delete(jobs).where(eq(jobs.id, id));
     const deleted = (result.rowCount ?? 0) > 0;
     
-    // Invalidate cache after job deletion
     if (deleted) {
       jobsCache.invalidateCache();
     }
     
     return deleted;
+  }
+
+  async archiveExpiredJobs(): Promise<number> {
+    const now = new Date();
+    const result = await db
+      .update(jobs)
+      .set({ status: 'archived' })
+      .where(
+        and(
+          eq(jobs.status, 'published'),
+          lt(jobs.deadline, now)
+        )
+      );
+    const count = result.rowCount ?? 0;
+    if (count > 0) {
+      console.log(`Archived ${count} expired jobs`);
+      jobsCache.invalidateCache();
+    }
+    return count;
   }
 
   async searchJobs(query: string): Promise<Job[]> {

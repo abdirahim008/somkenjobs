@@ -23,6 +23,7 @@ export default function JobCard({ job }: JobCardProps) {
     const diffTime = now.getTime() - d.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     
+    if (diffDays < 0) return d.toLocaleDateString();
     if (diffDays === 0) return "Today";
     if (diffDays === 1) return "1 day ago";
     if (diffDays < 7) return `${diffDays} days ago`;
