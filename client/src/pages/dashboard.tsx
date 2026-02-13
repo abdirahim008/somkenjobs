@@ -1370,7 +1370,7 @@ export default function Dashboard() {
                     <Input
                       id="attachments"
                       type="file"
-                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.txt,.xlsx,.xls,.ppt,.pptx"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.txt,.xlsx,.xls,.ppt,.pptx,.zip,.rar,.7z"
                       multiple
                       onChange={(e) => {
                         const files = Array.from(e.target.files || []);
