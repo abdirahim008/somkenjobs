@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, FileText, CheckCircle, ArrowLeft, Edit, Trash2, Eye, Receipt, Download, DollarSign, Pen, Upload } from "lucide-react";
+import { Plus, Users, FileText, CheckCircle, ArrowLeft, Edit, Trash2, Eye, Receipt, Download, DollarSign, Pen, Upload, UploadCloud, AlertCircle, CheckCircle2, XCircle, FileUp } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -46,6 +46,85 @@ export default function Dashboard() {
 
   // Tab management state
   const [activeTab, setActiveTab] = useState("my-jobs");
+
+  // Bulk upload state
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvPreview, setCsvPreview] = useState<any[]>([]);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [bulkUploadResult, setBulkUploadResult] = useState<any>(null);
+  const [isBulkUploading, setIsBulkUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+
+  const parseCsvLocally = (text: string) => {
+    const lines = text.split('\n').filter(line => line.trim());
+    if (lines.length < 2) return { headers: [], rows: [] };
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+    const rows = lines.slice(1).map(line => {
+      const values: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        if (line[i] === '"') {
+          inQuotes = !inQuotes;
+        } else if (line[i] === ',' && !inQuotes) {
+          values.push(current.trim());
+          current = '';
+        } else {
+          current += line[i];
+        }
+      }
+      values.push(current.trim());
+      const obj: any = {};
+      headers.forEach((h, idx) => { obj[h] = values[idx] || ''; });
+      return obj;
+    });
+    return { headers, rows };
+  };
+
+  const handleCsvFile = (file: File) => {
+    setCsvFile(file);
+    setBulkUploadResult(null);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const { headers, rows } = parseCsvLocally(text);
+      setCsvHeaders(headers);
+      setCsvPreview(rows.slice(0, 10));
+    };
+    reader.readAsText(file);
+  };
+
+  const handleBulkUpload = async () => {
+    if (!csvFile) return;
+    setIsBulkUploading(true);
+    setBulkUploadResult(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', csvFile);
+      const response = await fetch('/api/jobs/bulk-upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+        body: formData,
+      });
+      const result = await response.json();
+      setBulkUploadResult(result);
+      if (result.successCount > 0) {
+        queryClient.invalidateQueries({ queryKey: ['/api/user/jobs'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/jobs'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+        showSuccessToast('Bulk Upload Complete', `${result.successCount} job(s) uploaded successfully`);
+      }
+      if (result.failureCount > 0) {
+        showErrorToast('Some Jobs Failed', `${result.failureCount} job(s) failed to upload`);
+      }
+    } catch (error: any) {
+      showErrorToast('Upload Failed', error.message || 'Failed to upload CSV file');
+    } finally {
+      setIsBulkUploading(false);
+    }
+  };
 
   // Helper function to get today's date in YYYY-MM-DD format
   const getTodaysDate = () => {
@@ -1137,6 +1216,17 @@ export default function Dashboard() {
                     >
                       <Users className="h-4 w-4 lg:h-5 lg:w-5 flex-shrink-0" />
                       <span className="truncate">All Users</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("bulk-upload")}
+                      className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-lg transition-colors flex items-center gap-2 lg:gap-3 text-sm lg:text-base ${
+                        activeTab === "bulk-upload"
+                          ? "bg-[#0077B5] text-white"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <UploadCloud className="h-4 w-4 lg:h-5 lg:w-5 flex-shrink-0" />
+                      <span className="truncate">Bulk Upload</span>
                     </button>
                   </div>
                 </div>
@@ -2504,6 +2594,210 @@ export default function Dashboard() {
               </Card>
             </TabsContent>
           )}
+
+            {isAdmin && (
+              <TabsContent value="bulk-upload">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <UploadCloud className="h-5 w-5" />
+                      Bulk Upload Jobs via CSV
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h3 className="font-medium text-blue-900 mb-2">CSV Format Guide</h3>
+                      <p className="text-sm text-blue-800 mb-2">Your CSV file should have these column headers:</p>
+                      <code className="text-xs bg-blue-100 px-2 py-1 rounded block overflow-x-auto">
+                        title,organization,location,country,type,sector,deadline,url,description
+                      </code>
+                      <p className="text-xs text-blue-700 mt-2">Required fields: title, organization, location, country. Other fields are optional.</p>
+                    </div>
+
+                    <div
+                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                        dragOver
+                          ? "border-[#0077B5] bg-blue-50"
+                          : csvFile
+                          ? "border-green-400 bg-green-50"
+                          : "border-gray-300 hover:border-gray-400"
+                      }`}
+                      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                      onDragLeave={() => setDragOver(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setDragOver(false);
+                        const file = e.dataTransfer.files[0];
+                        if (file && file.name.endsWith('.csv')) {
+                          handleCsvFile(file);
+                        } else {
+                          showErrorToast('Invalid File', 'Please upload a .csv file');
+                        }
+                      }}
+                    >
+                      {csvFile ? (
+                        <div className="space-y-2">
+                          <FileUp className="h-10 w-10 text-green-500 mx-auto" />
+                          <p className="font-medium text-green-700">{csvFile.name}</p>
+                          <p className="text-sm text-green-600">{(csvFile.size / 1024).toFixed(1)} KB</p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setCsvFile(null);
+                              setCsvPreview([]);
+                              setCsvHeaders([]);
+                              setBulkUploadResult(null);
+                            }}
+                          >
+                            Remove File
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <UploadCloud className="h-12 w-12 text-gray-400 mx-auto" />
+                          <div>
+                            <p className="font-medium text-gray-700">Drag and drop your CSV file here</p>
+                            <p className="text-sm text-gray-500">or click to browse</p>
+                          </div>
+                          <input
+                            type="file"
+                            accept=".csv"
+                            className="hidden"
+                            id="csv-upload-input"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleCsvFile(file);
+                            }}
+                          />
+                          <Button
+                            variant="outline"
+                            onClick={() => document.getElementById('csv-upload-input')?.click()}
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Browse Files
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {csvPreview.length > 0 && (
+                      <div>
+                        <h3 className="font-medium text-gray-900 mb-3">Preview (first {Math.min(csvPreview.length, 10)} rows)</h3>
+                        <div className="overflow-x-auto border rounded-lg">
+                          <table className="min-w-full text-sm">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                                {csvHeaders.map((h) => (
+                                  <th key={h} className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                              {csvPreview.map((row, idx) => (
+                                <tr key={idx} className="hover:bg-gray-50">
+                                  <td className="px-3 py-2 text-gray-500">{idx + 1}</td>
+                                  {csvHeaders.map((h) => (
+                                    <td key={h} className="px-3 py-2 max-w-[200px] truncate" title={row[h]}>{row[h]}</td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {csvFile && !bulkUploadResult && (
+                      <div className="flex justify-end">
+                        <Button
+                          onClick={handleBulkUpload}
+                          disabled={isBulkUploading}
+                          className="bg-[#0077B5] hover:bg-[#005f8d]"
+                        >
+                          {isBulkUploading ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <UploadCloud className="h-4 w-4 mr-2" />
+                              Upload All Jobs
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+
+                    {bulkUploadResult && (
+                      <div className="space-y-4">
+                        <h3 className="font-medium text-gray-900">Upload Results</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                            <p className="text-2xl font-bold text-blue-700">{bulkUploadResult.totalProcessed || 0}</p>
+                            <p className="text-sm text-blue-600">Total Processed</p>
+                          </div>
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                            <div className="flex items-center justify-center gap-1 mb-1">
+                              <CheckCircle2 className="h-5 w-5 text-green-600" />
+                            </div>
+                            <p className="text-2xl font-bold text-green-700">{bulkUploadResult.successCount || 0}</p>
+                            <p className="text-sm text-green-600">Succeeded</p>
+                          </div>
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                            <div className="flex items-center justify-center gap-1 mb-1">
+                              <XCircle className="h-5 w-5 text-red-600" />
+                            </div>
+                            <p className="text-2xl font-bold text-red-700">{bulkUploadResult.failureCount || 0}</p>
+                            <p className="text-sm text-red-600">Failed</p>
+                          </div>
+                        </div>
+
+                        {bulkUploadResult.errors && bulkUploadResult.errors.length > 0 && (
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <h4 className="font-medium text-red-800 mb-2 flex items-center gap-2">
+                              <AlertCircle className="h-4 w-4" />
+                              Error Details
+                            </h4>
+                            <div className="space-y-2 max-h-60 overflow-y-auto">
+                              {bulkUploadResult.errors.map((err: any, idx: number) => (
+                                <div key={idx} className="text-sm bg-white border border-red-100 rounded p-2">
+                                  <span className="font-medium text-red-700">Row {err.index || idx + 1}:</span>{' '}
+                                  <span className="text-red-600">{err.error || err.message || JSON.stringify(err)}</span>
+                                  {err.title && <span className="text-gray-500 ml-1">({err.title})</span>}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex gap-3">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setCsvFile(null);
+                              setCsvPreview([]);
+                              setCsvHeaders([]);
+                              setBulkUploadResult(null);
+                            }}
+                          >
+                            Upload Another File
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setActiveTab("manage-all-jobs")}
+                          >
+                            View All Jobs
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
 
             {isAdmin && (
               <TabsContent value="system-users">
