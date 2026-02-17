@@ -26,10 +26,12 @@ export const jobs = pgTable("jobs", {
   status: text("status").notNull().default("published"), // 'draft' or 'published'
   type: text("type").notNull().default("job"), // 'job' or 'tender'
   attachmentUrl: text("attachment_url"), // URL to uploaded attachment file for tenders
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const insertJobSchema = createInsertSchema(jobs).omit({
   id: true,
+  createdAt: true,
 }).extend({
   url: z.string().optional(),
   source: z.string().optional(), 

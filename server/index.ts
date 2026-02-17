@@ -58,6 +58,26 @@ app.use((req, res, next) => {
   next();
 });
 
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err.message);
+  if (err.message.includes('terminating connection') || 
+      err.message.includes('Connection terminated') ||
+      (err as any).code === '57P01') {
+    console.log('Database connection dropped, process will continue...');
+    return;
+  }
+});
+
+process.on('unhandledRejection', (reason: any) => {
+  console.error('Unhandled rejection:', reason?.message || reason);
+  if (reason?.message?.includes('terminating connection') ||
+      reason?.message?.includes('Connection terminated') ||
+      reason?.code === '57P01') {
+    console.log('Database connection dropped, process will continue...');
+    return;
+  }
+});
+
 (async () => {
   const server = await registerRoutes(app);
 
@@ -66,7 +86,6 @@ app.use((req, res, next) => {
     const message = err.message || "Internal Server Error";
 
     res.status(status).json({ message });
-    throw err;
   });
 
   // importantly only setup vite in development and after

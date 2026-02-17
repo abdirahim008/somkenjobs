@@ -143,7 +143,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newToday: allJobs.filter(job => {
           const today = new Date();
           const jobDate = new Date(job.datePosted);
-          return jobDate.toDateString() === today.toDateString();
+          const createdDate = (job as any).createdAt ? new Date((job as any).createdAt) : null;
+          return jobDate.toDateString() === today.toDateString() || 
+                 (createdDate && createdDate.toDateString() === today.toDateString());
         }).length
       };
 
@@ -229,7 +231,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           newToday: allJobs.filter(job => {
             const today = new Date();
             const jobDate = new Date(job.datePosted);
-            return jobDate.toDateString() === today.toDateString();
+            const createdDate = (job as any).createdAt ? new Date((job as any).createdAt) : null;
+            return jobDate.toDateString() === today.toDateString() || 
+                   (createdDate && createdDate.toDateString() === today.toDateString());
           }).length
         };
 
@@ -298,7 +302,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newToday: allJobs.filter(job => {
           const today = new Date();
           const jobDate = new Date(job.datePosted);
-          return jobDate.toDateString() === today.toDateString();
+          const createdDate = (job as any).createdAt ? new Date((job as any).createdAt) : null;
+          return jobDate.toDateString() === today.toDateString() || 
+                 (createdDate && createdDate.toDateString() === today.toDateString());
         }).length
       };
       
@@ -531,7 +537,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newToday: allJobs.filter(job => {
           const today = new Date();
           const jobDate = new Date(job.datePosted);
-          return jobDate.toDateString() === today.toDateString();
+          const createdDate = (job as any).createdAt ? new Date((job as any).createdAt) : null;
+          return jobDate.toDateString() === today.toDateString() || 
+                 (createdDate && createdDate.toDateString() === today.toDateString());
         }).length
       };
       
@@ -645,7 +653,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newToday: allJobs.filter(job => {
           const today = new Date();
           const jobDate = new Date(job.datePosted);
-          return jobDate.toDateString() === today.toDateString();
+          const createdDate = (job as any).createdAt ? new Date((job as any).createdAt) : null;
+          return jobDate.toDateString() === today.toDateString() || 
+                 (createdDate && createdDate.toDateString() === today.toDateString());
         }).length
       };
 
@@ -675,17 +685,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const param = req.params.id;
       let jobId: number;
       
-      // Check if it's a numeric ID or a slug
       if (/^\d+$/.test(param)) {
-        // It's a numeric ID
         jobId = parseInt(param);
       } else {
-        // It's a slug, extract the ID
         const extractedId = extractJobIdFromSlug(param);
         if (!extractedId) {
           return res.status(404).json({ message: "Job not found" });
         }
         jobId = extractedId;
+      }
+      
+      if (isNaN(jobId) || jobId > 2147483647 || jobId < 1) {
+        return res.status(404).json({ message: "Job not found" });
       }
       
       const job = await storage.getJobById(jobId);
@@ -707,17 +718,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const param = req.params.id;
       let jobId: number;
       
-      // Check if it's a numeric ID or a slug
       if (/^\d+$/.test(param)) {
-        // It's a numeric ID
         jobId = parseInt(param);
       } else {
-        // It's a slug, extract the ID
         const extractedId = extractJobIdFromSlug(param);
         if (!extractedId) {
           return res.status(404).json({ message: "Job not found" });
         }
         jobId = extractedId;
+      }
+      
+      if (isNaN(jobId) || jobId > 2147483647 || jobId < 1) {
+        return res.status(404).json({ message: "Job not found" });
       }
       
       const currentJob = await storage.getJobById(jobId);
@@ -1073,16 +1085,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const parseFuzzyDate = (dateStr: string | undefined | null): Date => {
         if (!dateStr) return new Date();
-        const lower = dateStr.toLowerCase().trim();
+        const trimmed = dateStr.trim();
+        const lower = trimmed.toLowerCase();
         if (lower === 'yesterday') {
           const d = new Date(); d.setDate(d.getDate() - 1); return d;
         }
         if (lower === 'today') return new Date();
-        const monthMatch = lower.match(/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[,.\s]+(\d{1,2})$/i);
-        if (monthMatch) {
-          const months: Record<string, number> = { jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11 };
-          const m = months[monthMatch[1].toLowerCase().slice(0, 3)];
-          const day = parseInt(monthMatch[2]);
+        if (/^\d+ days? ago$/i.test(lower)) {
+          const days = parseInt(lower);
+          const d = new Date(); d.setDate(d.getDate() - days); return d;
+        }
+        const months: Record<string, number> = { jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11 };
+        const monthDayMatch = lower.match(/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[,.\s]+(\d{1,2})$/i);
+        if (monthDayMatch) {
+          const m = months[monthDayMatch[1].toLowerCase().slice(0, 3)];
+          const day = parseInt(monthDayMatch[2]);
           let year = new Date().getFullYear();
           let result = new Date(year, m, day);
           if (result.getTime() > Date.now() + 90 * 24 * 60 * 60 * 1000) {
@@ -1090,8 +1107,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           return result;
         }
-        const parsed = new Date(dateStr);
-        return isNaN(parsed.getTime()) ? new Date() : parsed;
+        const monthDayYearMatch = lower.match(/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[,.\s]+(\d{1,2})[,.\s]+(\d{4})$/i);
+        if (monthDayYearMatch) {
+          const m = months[monthDayYearMatch[1].toLowerCase().slice(0, 3)];
+          const day = parseInt(monthDayYearMatch[2]);
+          const year = parseInt(monthDayYearMatch[3]);
+          return new Date(year, m, day);
+        }
+        const dayMonthMatch = lower.match(/^(\d{1,2})[\/\-\s]+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[,.\s]*(\d{4})?$/i);
+        if (dayMonthMatch) {
+          const day = parseInt(dayMonthMatch[1]);
+          const m = months[dayMonthMatch[2].toLowerCase().slice(0, 3)];
+          const year = dayMonthMatch[3] ? parseInt(dayMonthMatch[3]) : new Date().getFullYear();
+          return new Date(year, m, day);
+        }
+        const parsed = new Date(trimmed);
+        if (!isNaN(parsed.getTime())) return parsed;
+        const cleaned = trimmed.replace(/[^\w\s\-\/,:]/g, '').trim();
+        const retryParsed = new Date(cleaned);
+        return isNaN(retryParsed.getTime()) ? new Date() : retryParsed;
       };
 
       for (let i = 0; i < jobsArray.length; i++) {
@@ -1737,17 +1771,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const param = req.params.id;
       let jobId: number;
       
-      // Check if it's a numeric ID or a slug
       if (/^\d+$/.test(param)) {
-        // It's a numeric ID
         jobId = parseInt(param);
       } else {
-        // It's a slug, extract the ID
         const extractedId = extractJobIdFromSlug(param);
         if (!extractedId) {
           return res.status(404).send('Job not found');
         }
         jobId = extractedId;
+      }
+
+      if (isNaN(jobId) || jobId > 2147483647 || jobId < 1) {
+        return res.status(404).send('Job not found');
       }
 
       const job = await storage.getJobById(jobId);

@@ -782,10 +782,12 @@ export function generateJobDetailsHTML(job: Job): string {
   return applySanitychecks(finalHtml, 'Job Details');
 }
 
-// Helper function to extract job ID from slug
 export function extractJobIdFromSlug(slug: string): number | null {
   const match = slug.match(/-(\d+)$/);
-  return match ? parseInt(match[1], 10) : null;
+  if (!match) return null;
+  const id = parseInt(match[1], 10);
+  if (isNaN(id) || id > 2147483647 || id < 1) return null;
+  return id;
 }
 
 // Initialize validation at module load to prevent regressions

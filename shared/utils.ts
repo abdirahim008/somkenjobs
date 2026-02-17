@@ -13,7 +13,9 @@ export function generateJobSlug(title: string, id: number): string {
 }
 
 export function extractJobIdFromSlug(slug: string): number | null {
-  // Extract the ID from the end of the slug
   const match = slug.match(/-(\d+)$/);
-  return match ? parseInt(match[1], 10) : null;
+  if (!match) return null;
+  const id = parseInt(match[1], 10);
+  if (isNaN(id) || id > 2147483647 || id < 1) return null;
+  return id;
 }
