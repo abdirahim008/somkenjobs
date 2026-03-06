@@ -11,6 +11,27 @@ import { type Job } from "./schema";
  * - Strategic keyword placement for better SEO performance
  */
 
+function stripMarkdown(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/<[^>]*>/g, '')
+    .replace(/#{1,6}\s*/g, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/^\s*[-*+]\s+/gm, '')
+    .replace(/^\s*\d+\.\s+/gm, '')
+    .replace(/^\s*>/gm, '')
+    .replace(/&[^;]+;/g, '')
+    .replace(/\n+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 interface SEOOptions {
   maxTitleLength?: number;
   maxDescriptionLength?: number;
@@ -205,7 +226,7 @@ export function generateOptimizedDescription(
       
     case 'job-detail':
       if (organization && location && country) {
-        let desc = `${primaryContent.replace(/<[^>]*>/g, '').substring(0, 80)}... Join ${organization} in ${location}, ${country}.`;
+        let desc = `${stripMarkdown(primaryContent).substring(0, 80)}... Join ${organization} in ${location}, ${country}.`;
         if (sector) desc += ` ${sector} sector position.`;
         if (deadline) {
           const deadlineDate = new Date(deadline);
@@ -217,7 +238,7 @@ export function generateOptimizedDescription(
         desc += " Apply now on Somken Jobs.";
         description = desc;
       } else {
-        description = smartTruncate(primaryContent.replace(/<[^>]*>/g, ''), maxDescriptionLength - 20) + " Apply now.";
+        description = smartTruncate(stripMarkdown(primaryContent), maxDescriptionLength - 20) + " Apply now.";
       }
       break;
       
