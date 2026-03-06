@@ -958,29 +958,50 @@ export default function Dashboard() {
       pdf.text('Note: Please send a remittance advice by email to billing@somkenjobs.com', margin, currentY);
       
       currentY += 15;
-      
-      // Digital signature section matching reference (very compact)
+
+      // Company seal section
+      const sealSize = 45;
+      const sealX = pageWidth - margin - sealSize;
+      const sealY = currentY;
+
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(14);
-      pdf.setTextColor(0, 119, 181); // LinkedIn blue
-      pdf.text('DIGITALLY SIGNED & AUTHENTICATED', margin, currentY);
-      
-      currentY += 10;
-      
-      // Document details with very compact spacing
-      pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(9);
       pdf.setTextColor(0, 0, 0);
-      
-      const documentId = `INV-${Date.now()}-NF8DI-${Math.random().toString(36).substr(2, 11).toUpperCase()}`;
-      const digitalSignature = `SHA256-${Math.random().toString(36).substr(2, 20).toUpperCase()}`;
-      const currentDate = new Date().toLocaleDateString('en-GB');
-      const currentTime = new Date().toLocaleTimeString('en-GB', { hour12: false });
-      
-      pdf.text(`Document ID: ${documentId}`, margin, currentY);
-      pdf.text(`Digital Signature: ${digitalSignature}`, margin, currentY + 8);
-      pdf.text(`Authenticated: ${currentDate}, ${currentTime}`, margin, currentY + 16);
-      
+      pdf.text('Authorized Seal:', margin, sealY + 5);
+
+      try {
+        const sealResponse = await fetch('/company-seal.jpg');
+        if (sealResponse.ok) {
+          const blob = await sealResponse.blob();
+          const sealDataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          pdf.addImage(sealDataUrl, 'JPEG', sealX, sealY, sealSize, sealSize);
+        } else {
+          throw new Error('Seal not found');
+        }
+      } catch {
+        const cx = sealX + sealSize / 2;
+        const cy = sealY + sealSize / 2;
+        const r = sealSize / 2 - 1;
+        pdf.setDrawColor(0, 119, 181);
+        pdf.setLineWidth(1.5);
+        pdf.circle(cx, cy, r, 'S');
+        pdf.setLineWidth(0.5);
+        pdf.circle(cx, cy, r - 3, 'S');
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(6);
+        pdf.setTextColor(0, 119, 181);
+        pdf.text('SOMKEN JOBS', cx, cy - 4, { align: 'center' });
+        pdf.text('AUTHORIZED', cx, cy + 3, { align: 'center' });
+        pdf.text('SEAL', cx, cy + 10, { align: 'center' });
+      }
+
+      currentY += sealSize + 5;
+
       // Footer branding at bottom of page
       const footerY = pageHeight - 20; // 20mm from bottom
       pdf.setFont('helvetica', 'normal');
