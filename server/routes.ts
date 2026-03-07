@@ -2273,168 +2273,198 @@ ${JSON.stringify(breadcrumbData, null, 2)}
     }
   });
 
+  // Sitemap cache — regenerated at most once per hour
+  const sitemapCache: { xml: string | null; generatedAt: Date | null } = { xml: null, generatedAt: null };
+
   // Dynamic sitemap.xml endpoint
   app.get('/sitemap.xml', async (req, res) => {
     try {
-      // Set proper XML content type
       res.setHeader('Content-Type', 'application/xml');
-      
-      // Get ALL jobs including expired ones for comprehensive indexing
-      // Expired jobs are still valuable for SEO as they show historical presence
+
+      // Return cached version if less than 1 hour old
+      const ONE_HOUR = 60 * 60 * 1000;
+      if (sitemapCache.xml && sitemapCache.generatedAt && (Date.now() - sitemapCache.generatedAt.getTime()) < ONE_HOUR) {
+        return res.send(sitemapCache.xml);
+      }
+
       const allJobs = await storage.getAllJobsWithDetails();
-      
-      // Filter to only include jobs from the last 6 months for sitemap (fresher content)
+
+      // Only include jobs from the last 6 months
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-      
       const jobs = allJobs.filter(job => new Date(job.datePosted) >= sixMonthsAgo);
-      
+
       console.log(`Generating sitemap with ${jobs.length} jobs (from ${allJobs.length} total)`);
-      
-      // Generate job URLs
+
+      const now = Date.now();
+      const DAY = 24 * 60 * 60 * 1000;
+
+      // Helper: get most recent datePosted among a subset of jobs
+      const latestDate = (subset: typeof jobs) => {
+        if (!subset.length) return sixMonthsAgo.toISOString().split('T')[0];
+        const max = subset.reduce((a, b) => new Date(a.datePosted) > new Date(b.datePosted) ? a : b);
+        return new Date(max.datePosted).toISOString().split('T')[0];
+      };
+
+      // Most recent job date overall — used for dynamic listing pages
+      const newestJobDate = latestDate(jobs);
+
+      // Most recent per country and sector
+      const countries = ['Kenya', 'Somalia', 'Ethiopia', 'Uganda', 'Tanzania'];
+      const sectors = ['Health', 'Education', 'Protection', 'WASH', 'Food Security', 'Logistics', 'Emergency Response'];
+      const countryLatest: Record<string, string> = {};
+      const sectorLatest: Record<string, string> = {};
+      countries.forEach(c => { countryLatest[c] = latestDate(jobs.filter(j => j.country === c)); });
+      sectors.forEach(s => { sectorLatest[s] = latestDate(jobs.filter(j => j.sector === s)); });
+
+      // Generate job URLs with smart changefreq and priority based on age
       const jobUrls = jobs.map(job => {
         const jobSlug = generateJobSlug(job.title, job.id);
-        const lastModified = new Date(job.datePosted).toISOString();
-        
+        const lastmod = new Date(job.datePosted).toISOString().split('T')[0];
+        const ageInDays = (now - new Date(job.datePosted).getTime()) / DAY;
+        const changefreq = ageInDays <= 7 ? 'daily' : ageInDays <= 30 ? 'weekly' : 'monthly';
+        const priority = ageInDays <= 7 ? '0.9' : ageInDays <= 30 ? '0.8' : '0.6';
         return `  <url>
     <loc>https://somkenjobs.com/jobs/${jobSlug}</loc>
-    <lastmod>${lastModified}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>${changefreq}</changefreq>
+    <priority>${priority}</priority>
   </url>`;
       }).join('\n');
-      
-      // Generate sitemap XML
+
       const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://somkenjobs.com/</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>${newestJobDate}</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://somkenjobs.com/jobs</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>${newestJobDate}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://somkenjobs.com/tenders</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>${newestJobDate}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://somkenjobs.com/about</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>2025-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://somkenjobs.com/contact</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>2025-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://somkenjobs.com/career-resources</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>2025-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://somkenjobs.com/help</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>2025-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://somkenjobs.com/privacy</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>2025-01-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
     <loc>https://somkenjobs.com/terms</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>2025-01-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
     <loc>https://somkenjobs.com/jobs/country/kenya</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>${countryLatest['Kenya']}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://somkenjobs.com/jobs/country/somalia</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>${countryLatest['Somalia']}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://somkenjobs.com/jobs/country/ethiopia</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>${countryLatest['Ethiopia']}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://somkenjobs.com/jobs/country/uganda</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>${countryLatest['Uganda']}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://somkenjobs.com/jobs/country/tanzania</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>${countryLatest['Tanzania']}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://somkenjobs.com/jobs/sector/health</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>${sectorLatest['Health']}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://somkenjobs.com/jobs/sector/education</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>${sectorLatest['Education']}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://somkenjobs.com/jobs/sector/protection</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>${sectorLatest['Protection']}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://somkenjobs.com/jobs/sector/wash</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>${sectorLatest['WASH']}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://somkenjobs.com/jobs/sector/food-security</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>${sectorLatest['Food Security']}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://somkenjobs.com/jobs/sector/logistics</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>${sectorLatest['Logistics']}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://somkenjobs.com/jobs/sector/emergency-response</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>${sectorLatest['Emergency Response']}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
 ${jobUrls}
 </urlset>`;
+
+      sitemapCache.xml = sitemapXml;
+      sitemapCache.generatedAt = new Date();
 
       res.send(sitemapXml);
     } catch (error) {
