@@ -952,21 +952,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (jobData.qualifications) jobData.qualifications = cleanMicrosoftText(jobData.qualifications);
       if (jobData.howToApply) jobData.howToApply = cleanMicrosoftText(jobData.howToApply);
       
-      // Convert date strings to Date objects if they exist
+      // Build transformed data — strip createdAt (must never change) and convert all date strings to Date objects
+      const { createdAt: _omitCreatedAt, ...jobDataWithoutCreatedAt } = jobData;
       const transformedData = {
-        ...jobData,
-        updatedAt: new Date()
+        ...jobDataWithoutCreatedAt,
+        updatedAt: new Date(),
+        ...(jobData.deadline ? { deadline: new Date(jobData.deadline) } : {}),
+        ...(jobData.datePosted ? { datePosted: new Date(jobData.datePosted) } : {}),
       };
-      
-      // Convert deadline to Date if it's a string
-      if (transformedData.deadline && typeof transformedData.deadline === 'string') {
-        transformedData.deadline = new Date(transformedData.deadline);
-      }
-      
-      // Convert datePosted to Date if it's a string
-      if (transformedData.datePosted && typeof transformedData.datePosted === 'string') {
-        transformedData.datePosted = new Date(transformedData.datePosted);
-      }
       
       const updatedJob = await storage.updateJob(jobId, transformedData);
 
@@ -1250,24 +1243,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const jobId = parseInt(req.params.id);
       
-      // Validate and transform job data
+      // Validate and transform job data — strip createdAt and convert all date strings to Date objects
       const jobData = req.body;
-      
-      // Convert date strings to Date objects if they exist
+      const { createdAt: _omitCreatedAt, ...jobDataWithoutCreatedAt } = jobData;
       const transformedData = {
-        ...jobData,
-        updatedAt: new Date()
+        ...jobDataWithoutCreatedAt,
+        updatedAt: new Date(),
+        ...(jobData.deadline ? { deadline: new Date(jobData.deadline) } : {}),
+        ...(jobData.datePosted ? { datePosted: new Date(jobData.datePosted) } : {}),
       };
-      
-      // Convert deadline to Date if it's a string
-      if (transformedData.deadline && typeof transformedData.deadline === 'string') {
-        transformedData.deadline = new Date(transformedData.deadline);
-      }
-      
-      // Convert datePosted to Date if it's a string
-      if (transformedData.datePosted && typeof transformedData.datePosted === 'string') {
-        transformedData.datePosted = new Date(transformedData.datePosted);
-      }
       
       const updatedJob = await storage.updateJob(jobId, transformedData);
 
