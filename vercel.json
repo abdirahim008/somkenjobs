@@ -1,15 +1,19 @@
 {
   "version": 2,
-  "buildCommand": "vite build && esbuild server/vercel-entry.ts --platform=node --packages=external --bundle --format=esm --outfile=api/server.js && cp -r dist/public api/public",
-  "routes": [
-    { "src": "/(.*)", "dest": "/api/server" }
-  ],
-  "functions": {
-    "api/server.js": {
-      "maxDuration": 30,
-      "includeFiles": "api/public/**"
+  "buildCommand": "npm run build && mkdir -p api && cp -r dist/public api/public",
+  "builds": [
+    {
+      "src": "server/vercel-entry.ts",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": "api/public/**",
+        "maxDuration": 30
+      }
     }
-  },
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "/server/vercel-entry.ts" }
+  ],
   "crons": [
     {
       "path": "/api/trigger-fetch",

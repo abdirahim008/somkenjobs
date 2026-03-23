@@ -789,20 +789,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Vercel Cron / GitHub Actions trigger endpoint — fetches fresh jobs
-  // Vercel automatically sends Authorization: Bearer {CRON_SECRET} for cron jobs
+  // Vercel Cron / GitHub Actions trigger endpoint — fetches fresh jobs.
+  // CRON_SECRET must be set; Vercel automatically sends Authorization: Bearer {CRON_SECRET}.
   app.get("/api/trigger-fetch", async (req, res) => {
     try {
       const cronSecret = process.env.CRON_SECRET;
-      if (cronSecret) {
-        const authHeader = req.headers.authorization;
-        if (authHeader !== `Bearer ${cronSecret}`) {
-          return res.status(401).json({ message: "Unauthorized" });
-        }
+      if (!cronSecret || req.headers.authorization !== `Bearer ${cronSecret}`) {
+        return res.status(401).json({ message: "Unauthorized" });
       }
       console.log("Job fetch triggered via /api/trigger-fetch");
-      jobFetcher.fetchAllJobs(); // fire and forget — don't block the response
-      res.json({ message: "Job fetch started", timestamp: new Date().toISOString() });
+      await jobFetcher.fetchAllJobs();
+      res.json({ message: "Job fetch completed", timestamp: new Date().toISOString() });
     } catch (error) {
       console.error("Error triggering job fetch:", error);
       res.status(500).json({ message: "Failed to trigger job fetch" });

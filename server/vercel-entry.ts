@@ -40,19 +40,12 @@ process.on('uncaughtException', (err) => {
   if (err.message.includes('terminating connection') ||
       err.message.includes('Connection terminated') ||
       (err as any).code === '57P01') {
-    console.log('Database connection dropped, continuing...');
     return;
   }
 });
 
 process.on('unhandledRejection', (reason: any) => {
   console.error('Unhandled rejection:', reason?.message || reason);
-  if (reason?.message?.includes('terminating connection') ||
-      reason?.message?.includes('Connection terminated') ||
-      reason?.code === '57P01') {
-    console.log('Database connection dropped, continuing...');
-    return;
-  }
 });
 
 await registerRoutes(app);
@@ -64,15 +57,18 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   res.status(status).json({ message });
 });
 
-// Serve static frontend files from api/public (copied there by vercel.json build command)
-const publicPath = path.resolve(import.meta.dirname, "public");
+// Serve static frontend files.
+// On Vercel: vercel.json buildCommand copies dist/public → api/public, and
+// includeFiles bundles api/public/** with the function. Files land at
+// process.cwd()/api/public in the Vercel runtime (/var/task/api/public).
+const publicPath = path.join(process.cwd(), "api", "public");
 if (fs.existsSync(publicPath)) {
   app.use(express.static(publicPath));
   app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(publicPath, "index.html"));
+    res.sendFile(path.join(publicPath, "index.html"));
   });
 } else {
-  console.warn("Static files not found at", publicPath, "— frontend may not be served correctly.");
+  console.warn("Static files not found at", publicPath);
 }
 
 export default app;

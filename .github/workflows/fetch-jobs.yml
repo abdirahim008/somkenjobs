@@ -10,14 +10,19 @@ jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger job fetch
-        run: |
-          curl -X GET "${{ secrets.VERCEL_APP_URL }}/api/trigger-fetch" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            -H "Content-Type: application/json" \
-            --fail \
-            --silent \
-            --show-error
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run job fetcher
+        run: npx tsx scripts/fetchJobs.ts
         env:
-          VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
