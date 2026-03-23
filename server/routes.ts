@@ -799,6 +799,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.log("Job fetch triggered via /api/trigger-fetch");
       await jobFetcher.fetchAllJobs();
+      await storage.archiveExpiredJobs();
       res.json({ message: "Job fetch completed", timestamp: new Date().toISOString() });
     } catch (error) {
       console.error("Error triggering job fetch:", error);

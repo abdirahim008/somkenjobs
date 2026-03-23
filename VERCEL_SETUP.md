@@ -75,13 +75,15 @@ First deploy takes about 2–3 minutes.
 
 GitHub Actions runs the job fetcher **directly** (connects to your Neon database, no HTTP timeout risk). This is recommended alongside or instead of Vercel Cron.
 
+> **Important**: GitHub scheduled workflows only run from the **default branch** of your repository. If your default branch on GitHub is `main`, the workflow in `main` runs automatically. If you want the `vercel` branch to run it, either set `vercel` as your default branch or keep the workflow on `main` (which it already is after pushing both branches).
+
 1. In your GitHub repository → **Settings → Secrets and variables → Actions → Repository secrets**
 2. Add one secret:
-   - `DATABASE_URL` = your full Neon connection string
+   - `DATABASE_URL` = your full Neon connection string (same as used in Vercel)
 
-The workflow file is already at `.github/workflows/fetch-jobs.yml`. It will run automatically at 8 AM and 2 PM UTC every day.
+The workflow file is already at `.github/workflows/fetch-jobs.yml`. Once the secret is added, it runs automatically at 8 AM and 2 PM UTC every day from your default branch.
 
-To manually trigger it: GitHub → **Actions tab** → **Fetch Jobs** → **Run workflow**.
+To manually trigger it: GitHub → **Actions** tab → **Fetch Jobs** → **Run workflow**.
 
 ---
 
