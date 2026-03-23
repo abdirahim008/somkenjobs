@@ -85,8 +85,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Seed database with sample data on startup
   await seedDatabase();
   
-  // Start the job scheduler
-  jobFetcher.startScheduler();
+  // Start the job scheduler (skip on Vercel — handled by Vercel Cron via /api/trigger-fetch)
+  if (!process.env.VERCEL) {
+    jobFetcher.startScheduler();
+  }
 
   // 301 Redirects for SEO - Handle old URL patterns
   app.get("/help-center", (req, res) => {
@@ -784,6 +786,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error refreshing jobs:", error);
       res.status(500).json({ message: "Failed to refresh jobs" });
+    }
+  });
+
+  // Vercel Cron / GitHub Actions trigger endpoint — fetches fresh jobs
+  // Vercel automatically sends Authorization: Bearer {CRON_SECRET} for cron jobs
+  app.get("/api/trigger-fetch", async (req, res) => {
+    try {
+      const cronSecret = process.env.CRON_SECRET;
+      if (cronSecret) {
+        const authHeader = req.headers.authorization;
+        if (authHeader !== `Bearer ${cronSecret}`) {
+          return res.status(401).json({ message: "Unauthorized" });
+        }
+      }
+      console.log("Job fetch triggered via /api/trigger-fetch");
+      jobFetcher.fetchAllJobs(); // fire and forget — don't block the response
+      res.json({ message: "Job fetch started", timestamp: new Date().toISOString() });
+    } catch (error) {
+      console.error("Error triggering job fetch:", error);
+      res.status(500).json({ message: "Failed to trigger job fetch" });
     }
   });
 

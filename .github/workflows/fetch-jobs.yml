@@ -1,0 +1,23 @@
+name: Fetch Jobs
+
+on:
+  schedule:
+    - cron: '0 8 * * *'   # 8 AM UTC daily
+    - cron: '0 14 * * *'  # 2 PM UTC daily
+  workflow_dispatch:        # Allow manual trigger from GitHub Actions tab
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger job fetch
+        run: |
+          curl -X GET "${{ secrets.VERCEL_APP_URL }}/api/trigger-fetch" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail \
+            --silent \
+            --show-error
+        env:
+          VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
