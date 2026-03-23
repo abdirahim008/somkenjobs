@@ -1,0 +1,50 @@
+13:56:08.604 Running build in Washington, D.C., USA (East) – iad1
+13:56:08.604 Build machine configuration: 2 cores, 8 GB
+13:56:08.716 Cloning github.com/abdirahim008/somkenjobs (Branch: main, Commit: 71b84fb)
+13:56:08.717 Previous build caches not available.
+13:56:11.068 Cloning completed: 2.352s
+13:56:11.564 Running "vercel build"
+13:56:12.220 Vercel CLI 50.35.0
+13:56:12.314 WARNING! Due to `builds` existing in your configuration file, the Build and Development Settings defined in your Project Settings will not apply. Learn More: https://vercel.link/unused-build-settings
+13:56:14.006 Installing dependencies...
+13:56:17.166 npm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
+13:56:18.561 npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+13:56:18.670 npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+13:56:25.097 
+13:56:25.098 added 593 packages in 11s
+13:56:25.099 
+13:56:25.099 79 packages are looking for funding
+13:56:25.099   run `npm fund` for details
+13:56:25.350 Using TypeScript 5.6.3 (local user-provided)
+13:56:32.503 server/routes.ts(525,63): error TS2339: Property 'jobs' does not exist on type 'LightweightJob[]'.
+13:56:32.503 server/routes.ts(562,40): error TS2345: Argument of type '{ jobs: LightweightJob[]; stats: { totalJobs: number; organizations: number; newToday: number; }; filters: { countries: string[]; organizations: string[]; sectors: (string | null)[]; }; }' is not assignable to parameter of type 'LightweightJob[]'.
+13:56:32.504   Type '{ jobs: LightweightJob[]; stats: { totalJobs: number; organizations: number; newToday: number; }; filters: { countries: string[]; organizations: string[]; sectors: (string | null)[]; }; }' is missing the following properties from type 'LightweightJob[]': length, pop, push, concat, and 35 more.
+13:56:32.504 
+13:56:32.884 server/storage.ts(266,11): error TS2741: Property 'createdAt' is missing in type '{ id: number; url: string; source: string; externalId: string; datePosted: Date; sector: string | null; deadline: Date | null; howToApply: string | null; experience: string | null; ... 12 more ...; description: string; }' but required in type '{ url: string; id: number; createdAt: Date | null; status: string; type: string; country: string; organization: string; sector: string | null; datePosted: Date; title: string; jobNumber: string | null; ... 11 more ...; attachmentUrl: string | null; }'.
+13:56:32.887 server/storage.ts(844,23): error TS7006: Parameter 'row' implicitly has an 'any' type.
+13:56:32.887 server/storage.ts(856,23): error TS7006: Parameter 'row' implicitly has an 'any' type.
+13:56:32.888 server/storage.ts(875,23): error TS7006: Parameter 'row' implicitly has an 'any' type.
+13:56:32.888 server/storage.ts(930,23): error TS7006: Parameter 'row' implicitly has an 'any' type.
+13:56:32.888 server/storage.ts(1034,24): error TS7006: Parameter 'job' implicitly has an 'any' type.
+13:56:32.888 
+13:56:32.958 server/seed.ts(41,5): error TS2741: Property 'type' is missing in type '{ title: string; organization: string; location: string; country: string; description: string; url: string; datePosted: Date; deadline: Date; sector: string; source: string; externalId: string; }' but required in type '{ type: "job" | "tender"; country: string; organization: string; title: string; location: string; description: string; url?: string | undefined; status?: string | undefined; sector?: string | null | undefined; ... 11 more ...; attachmentUrl?: string | ... 1 more ... | undefined; }'.
+13:56:32.959 server/seed.ts(54,5): error TS2741: Property 'type' is missing in type '{ title: string; organization: string; location: string; country: string; description: string; url: string; datePosted: Date; deadline: Date; sector: string; source: string; externalId: string; }' but required in type '{ type: "job" | "tender"; country: string; organization: string; title: string; location: string; description: string; url?: string | undefined; status?: string | undefined; sector?: string | null | undefined; ... 11 more ...; attachmentUrl?: string | ... 1 more ... | undefined; }'.
+13:56:32.960 server/seed.ts(67,5): error TS2741: Property 'type' is missing in type '{ title: string; organization: string; location: string; country: string; description: string; url: string; datePosted: Date; deadline: Date; sector: string; source: string; externalId: string; }' but required in type '{ type: "job" | "tender"; country: string; organization: string; title: string; location: string; description: string; url?: string | undefined; status?: string | undefined; sector?: string | null | undefined; ... 11 more ...; attachmentUrl?: string | ... 1 more ... | undefined; }'.
+13:56:32.961 server/seed.ts(80,5): error TS2741: Property 'type' is missing in type '{ title: string; organization: string; location: string; country: string; description: string; url: string; datePosted: Date; deadline: Date; sector: string; source: string; externalId: string; }' but required in type '{ type: "job" | "tender"; country: string; organization: string; title: string; location: string; description: string; url?: string | undefined; status?: string | undefined; sector?: string | null | undefined; ... 11 more ...; attachmentUrl?: string | ... 1 more ... | undefined; }'.
+13:56:32.961 server/seed.ts(93,5): error TS2741: Property 'type' is missing in type '{ title: string; organization: string; location: string; country: string; description: string; url: string; datePosted: Date; deadline: Date; sector: string; source: string; externalId: string; }' but required in type '{ type: "job" | "tender"; country: string; organization: string; title: string; location: string; description: string; url?: string | undefined; status?: string | undefined; sector?: string | null | undefined; ... 11 more ...; attachmentUrl?: string | ... 1 more ... | undefined; }'.
+13:56:32.961 server/seed.ts(111,57): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+13:56:32.961   Type 'undefined' is not assignable to type 'string'.
+13:56:32.961 
+13:56:33.176 server/utils/ssrUtils.ts(185,10): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'Readonly<{ Somalia: "Somalia offers unique opportunities for humanitarian professionals to contribute to post-conflict recovery and stabilization efforts. Based in dynamic locations like Mogadishu, Hargeisa, Kismayo, and Baidoa, professionals work on critical programs addressing food security, protection, health, an...'.
+13:56:33.181   No index signature with a parameter of type 'string' was found on type 'Readonly<{ Somalia: "Somalia offers unique opportunities for humanitarian professionals to contribute to post-conflict recovery and stabilization efforts. Based in dynamic locations like Mogadishu, Hargeisa, Kismayo, and Baidoa, professionals work on critical programs addressing food security, protection, health, an...'.
+13:56:33.181 server/utils/ssrUtils.ts(189,10): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'Readonly<{ Health: "The health sector across East Africa presents critical opportunities for medical professionals, public health specialists, epidemiologists, and healthcare program managers to address ongoing challenges including infectious disease control, maternal and child health, nutrition programming, and hea...'.
+13:56:33.182   No index signature with a parameter of type 'string' was found on type 'Readonly<{ Health: "The health sector across East Africa presents critical opportunities for medical professionals, public health specialists, epidemiologists, and healthcare program managers to address ongoing challenges including infectious disease control, maternal and child health, nutrition programming, and hea...'.
+13:56:33.182 server/utils/ssrUtils.ts(257,67): error TS18046: 'error' is of type 'unknown'.
+13:56:33.182 
+13:56:35.676 Build Completed in /vercel/output [22s]
+13:56:36.137 Deploying outputs...
+13:56:41.147 Deployment completed
+13:56:42.132 Creating build cache...
+13:56:55.403 Created build cache: 13s
+13:56:55.403 Uploading build cache [94.54 MB]
+13:56:57.234 Build cache uploaded: 1.834s

@@ -1,0 +1,40 @@
+13:56:32.958 
+server/seed.ts(41,5): error TS2741: Property 'type' is missing in type '{ title: string; organization: string; location: string; country: string; description: string; url: string; datePosted: Date; deadline: Date; sector: string; source: string; externalId: string; }' but required in type '{ type: "job" | "tender"; country: string; organization: string; title: string; location: string; description: string; url?: string | undefined; status?: string | undefined; sector?: string | null | undefined; ... 11 more ...; attachmentUrl?: string | ... 1 more ... | undefined; }'.
+13:56:32.959 
+server/seed.ts(54,5): error TS2741: Property 'type' is missing in type '{ title: string; organization: string; location: string; country: string; description: string; url: string; datePosted: Date; deadline: Date; sector: string; source: string; externalId: string; }' but required in type '{ type: "job" | "tender"; country: string; organization: string; title: string; location: string; description: string; url?: string | undefined; status?: string | undefined; sector?: string | null | undefined; ... 11 more ...; attachmentUrl?: string | ... 1 more ... | undefined; }'.
+13:56:32.960 
+server/seed.ts(67,5): error TS2741: Property 'type' is missing in type '{ title: string; organization: string; location: string; country: string; description: string; url: string; datePosted: Date; deadline: Date; sector: string; source: string; externalId: string; }' but required in type '{ type: "job" | "tender"; country: string; organization: string; title: string; location: string; description: string; url?: string | undefined; status?: string | undefined; sector?: string | null | undefined; ... 11 more ...; attachmentUrl?: string | ... 1 more ... | undefined; }'.
+13:56:32.961 
+server/seed.ts(80,5): error TS2741: Property 'type' is missing in type '{ title: string; organization: string; location: string; country: string; description: string; url: string; datePosted: Date; deadline: Date; sector: string; source: string; externalId: string; }' but required in type '{ type: "job" | "tender"; country: string; organization: string; title: string; location: string; description: string; url?: string | undefined; status?: string | undefined; sector?: string | null | undefined; ... 11 more ...; attachmentUrl?: string | ... 1 more ... | undefined; }'.
+13:56:32.961 
+server/seed.ts(93,5): error TS2741: Property 'type' is missing in type '{ title: string; organization: string; location: string; country: string; description: string; url: string; datePosted: Date; deadline: Date; sector: string; source: string; externalId: string; }' but required in type '{ type: "job" | "tender"; country: string; organization: string; title: string; location: string; description: string; url?: string | undefined; status?: string | undefined; sector?: string | null | undefined; ... 11 more ...; attachmentUrl?: string | ... 1 more ... | undefined; }'.
+13:56:32.961 
+server/seed.ts(111,57): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+13:56:32.961 
+  Type 'undefined' is not assignable to type 'string'.
+13:56:32.961 
+13:56:33.176 
+server/utils/ssrUtils.ts(185,10): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'Readonly<{ Somalia: "Somalia offers unique opportunities for humanitarian professionals to contribute to post-conflict recovery and stabilization efforts. Based in dynamic locations like Mogadishu, Hargeisa, Kismayo, and Baidoa, professionals work on critical programs addressing food security, protection, health, an...'.
+13:56:33.181 
+  No index signature with a parameter of type 'string' was found on type 'Readonly<{ Somalia: "Somalia offers unique opportunities for humanitarian professionals to contribute to post-conflict recovery and stabilization efforts. Based in dynamic locations like Mogadishu, Hargeisa, Kismayo, and Baidoa, professionals work on critical programs addressing food security, protection, health, an...'.
+13:56:33.181 
+server/utils/ssrUtils.ts(189,10): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'Readonly<{ Health: "The health sector across East Africa presents critical opportunities for medical professionals, public health specialists, epidemiologists, and healthcare program managers to address ongoing challenges including infectious disease control, maternal and child health, nutrition programming, and hea...'.
+13:56:33.182 
+  No index signature with a parameter of type 'string' was found on type 'Readonly<{ Health: "The health sector across East Africa presents critical opportunities for medical professionals, public health specialists, epidemiologists, and healthcare program managers to address ongoing challenges including infectious disease control, maternal and child health, nutrition programming, and hea...'.
+13:56:33.182 
+server/utils/ssrUtils.ts(257,67): error TS18046: 'error' is of type 'unknown'.
+13:56:33.182 
+13:56:35.676 
+Build Completed in /vercel/output [22s]
+13:56:36.137 
+Deploying outputs...
+13:56:41.147 
+Deployment completed
+13:56:42.132 
+Creating build cache...
+13:56:55.403 
+Created build cache: 13s
+13:56:55.403 
+Uploading build cache [94.54 MB]
+13:56:57.234 
+Build cache uploaded: 1.834s
