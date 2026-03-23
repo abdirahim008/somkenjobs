@@ -1,8 +1,14 @@
 import crypto from "crypto";
 import { LightweightJob } from "@shared/schema";
 
+interface JobsListResponse {
+  jobs: LightweightJob[];
+  stats: { totalJobs: number; organizations: number; newToday: number };
+  filters: { countries: string[]; organizations: string[]; sectors: (string | null)[] };
+}
+
 interface CacheEntry {
-  data: LightweightJob[];
+  data: JobsListResponse;
   timestamp: number;
   etag: string;
 }
@@ -93,12 +99,12 @@ export class JobsCache {
   /**
    * Cache jobs data with generated ETag
    */
-  setCachedJobs(filters: QueryFilters, jobs: LightweightJob[]): CacheEntry {
+  setCachedJobs(filters: QueryFilters, data: JobsListResponse): CacheEntry {
     const cacheKey = this.generateCacheKey(filters);
     const etag = this.generateETag(filters);
     
     const entry: CacheEntry = {
-      data: jobs,
+      data,
       timestamp: Date.now(),
       etag
     };
@@ -163,46 +169,6 @@ export class JobsCache {
     };
   }
 
-  /**
-   * Pre-warm cache with common queries
-   * Called during background job fetching
-   */
-  preWarmCache(allJobs: LightweightJob[]): void {
-    // Pre-warm most common queries
-    const commonQueries: QueryFilters[] = [
-      {}, // All jobs
-      { country: ['Kenya'] },
-      { country: ['Somalia'] },
-      { sector: ['Health'] },
-      { sector: ['Food Security'] },
-      { limit: 20 }
-    ];
-
-    for (const filters of commonQueries) {
-      // Filter jobs based on query (simplified for pre-warming)
-      let filteredJobs = allJobs;
-      
-      if (filters.country?.length) {
-        filteredJobs = filteredJobs.filter(job => 
-          filters.country!.includes(job.country)
-        );
-      }
-      
-      if (filters.sector?.length) {
-        filteredJobs = filteredJobs.filter(job => 
-          job.sector && filters.sector!.includes(job.sector)
-        );
-      }
-
-      if (filters.limit) {
-        filteredJobs = filteredJobs.slice(0, filters.limit);
-      }
-
-      this.setCachedJobs(filters, filteredJobs);
-    }
-
-    console.log(`Pre-warmed cache with ${commonQueries.length} common queries`);
-  }
 }
 
 // Global cache instance

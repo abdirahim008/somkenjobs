@@ -266,6 +266,7 @@ export class MemStorage implements IStorage {
     const job: Job = { 
       ...insertJob, 
       id,
+      createdAt: new Date(),
       url: insertJob.url || "",
       source: insertJob.source || "user",
       externalId: insertJob.externalId || `user-${insertJob.createdBy}-${Date.now()}`,
@@ -833,46 +834,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOrganizations(search?: string): Promise<string[]> {
-    const query = db.selectDistinct({ organization: jobs.organization }).from(jobs);
-    
-    if (search) {
-      const searchCondition = ilike(jobs.organization, `%${search}%`);
-      query.where(searchCondition);
-    }
-    
-    const result = await query.orderBy(jobs.organization);
-    return result.map(row => row.organization);
+    const baseQuery = db.selectDistinct({ organization: jobs.organization }).from(jobs);
+    const result = search
+      ? await baseQuery.where(ilike(jobs.organization, `%${search}%`)).orderBy(jobs.organization)
+      : await baseQuery.orderBy(jobs.organization);
+    return result.map((row: { organization: string }) => row.organization);
   }
 
   async getCountries(search?: string): Promise<string[]> {
-    const query = db.selectDistinct({ name: countries.name }).from(countries);
-    
-    if (search) {
-      const searchCondition = ilike(countries.name, `%${search}%`);
-      query.where(searchCondition);
-    }
-    
-    const result = await query.orderBy(countries.name);
-    return result.map(row => row.name);
+    const baseQuery = db.selectDistinct({ name: countries.name }).from(countries);
+    const result = search
+      ? await baseQuery.where(ilike(countries.name, `%${search}%`)).orderBy(countries.name)
+      : await baseQuery.orderBy(countries.name);
+    return result.map((row: { name: string }) => row.name);
   }
 
   async getCities(search?: string, country?: string): Promise<string[]> {
-    const query = db.selectDistinct({ name: cities.name }).from(cities);
-    
     const conditions = [];
-    if (search) {
-      conditions.push(ilike(cities.name, `%${search}%`));
-    }
-    if (country) {
-      conditions.push(eq(cities.country, country));
-    }
-    
-    if (conditions.length > 0) {
-      query.where(and(...conditions));
-    }
-    
-    const result = await query.orderBy(cities.name);
-    return result.map(row => row.name);
+    if (search) conditions.push(ilike(cities.name, `%${search}%`));
+    if (country) conditions.push(eq(cities.country, country));
+
+    const baseQuery = db.selectDistinct({ name: cities.name }).from(cities);
+    const result = conditions.length > 0
+      ? await baseQuery.where(and(...conditions)).orderBy(cities.name)
+      : await baseQuery.orderBy(cities.name);
+    return result.map((row: { name: string }) => row.name);
   }
 
   async addCountry(name: string): Promise<Country> {
@@ -917,17 +903,10 @@ export class DatabaseStorage implements IStorage {
 
   async getSectors(search?: string): Promise<string[]> {
     const baseQuery = db.selectDistinct({ name: sectors.name }).from(sectors);
-    
-    let result;
-    if (search) {
-      result = await baseQuery
-        .where(ilike(sectors.name, `%${search}%`))
-        .orderBy(sectors.name);
-    } else {
-      result = await baseQuery.orderBy(sectors.name);
-    }
-    
-    return result.map(row => row.name);
+    const result = search
+      ? await baseQuery.where(ilike(sectors.name, `%${search}%`)).orderBy(sectors.name)
+      : await baseQuery.orderBy(sectors.name);
+    return result.map((row: { name: string }) => row.name);
   }
 
   async addSector(name: string): Promise<Sector> {
@@ -1031,7 +1010,7 @@ export class DatabaseStorage implements IStorage {
       : await baseQuery;
     
     // Transform to LightweightJob with slug generation
-    return results.map(job => ({
+    return results.map((job: { id: number; title: string; organization: string; country: string; location: string; datePosted: Date; sector: string | null; type: string }) => ({
       ...job,
       slug: generateJobSlug(job.title, job.id)
     }));

@@ -182,11 +182,11 @@ const SECTOR_CONTEXTS = Object.freeze({
 
 // Pure context provider functions - return only plain strings
 function getCountryContext(country: string): string {
-  return COUNTRY_CONTEXTS[country] || COUNTRY_CONTEXTS.default;
+  return (COUNTRY_CONTEXTS as Record<string, string>)[country] || COUNTRY_CONTEXTS.default;
 }
 
 function getSectorContext(sector: string): string {
-  return SECTOR_CONTEXTS[sector] || SECTOR_CONTEXTS.default;
+  return (SECTOR_CONTEXTS as Record<string, string>)[sector] || SECTOR_CONTEXTS.default;
 }
 
 // SSR HTML sanity check functions - prevent orphaned fragments
@@ -254,7 +254,7 @@ function applySanitychecks(htmlContent: string, pageName: string): string {
     assertMinWordCount(htmlContent, 250);
     console.log(`✅ ${pageName} SSR HTML passed all sanity checks`);
   } catch (error) {
-    console.error(`❌ ${pageName} SSR HTML failed sanity checks:`, error.message);
+    console.error(`❌ ${pageName} SSR HTML failed sanity checks:`, error instanceof Error ? error.message : error);
     throw error;
   }
   
