@@ -168,11 +168,12 @@ export default function JobDetails() {
   const formatDeadline = (date: Date | string) => {
     const d = new Date(date);
     const now = new Date();
-    const diffTime = d.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+    const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const diffDays = Math.round((dDay.getTime() - nowDay.getTime()) / (1000 * 60 * 60 * 24));
+
     if (diffDays < 0) return "Expired";
-    if (diffDays === 0) return "Today";
+    if (diffDays === 0) return "Closes today";
     if (diffDays === 1) return "1 day left";
     return `${diffDays} days left`;
   };

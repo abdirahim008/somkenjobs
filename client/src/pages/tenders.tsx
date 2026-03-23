@@ -47,10 +47,12 @@ export default function Tenders() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    
+    const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dateDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diffInDays = Math.round((nowDay.getTime() - dateDay.getTime()) / (1000 * 60 * 60 * 24));
+
     if (diffInDays === 0) return "Today";
-    if (diffInDays === 1) return "1 day ago";
+    if (diffInDays === 1) return "Yesterday";
     if (diffInDays < 7) return `${diffInDays} days ago`;
     if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
     return `${Math.floor(diffInDays / 30)} months ago`;
@@ -59,10 +61,12 @@ export default function Tenders() {
   const formatDeadline = (dateString: string) => {
     const deadline = new Date(dateString);
     const now = new Date();
-    const diffInDays = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    
+    const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const deadlineDay = new Date(deadline.getFullYear(), deadline.getMonth(), deadline.getDate());
+    const diffInDays = Math.round((deadlineDay.getTime() - nowDay.getTime()) / (1000 * 60 * 60 * 24));
+
     if (diffInDays < 0) return "Expired";
-    if (diffInDays === 0) return "Today";
+    if (diffInDays === 0) return "Closes today";
     if (diffInDays === 1) return "1 day left";
     return `${diffInDays} days left`;
   };

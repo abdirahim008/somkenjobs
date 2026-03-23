@@ -20,25 +20,29 @@ export default function JobCard({ job }: JobCardProps) {
   const formatPostingDate = (date: Date | string) => {
     const d = new Date(date);
     const now = new Date();
-    const diffTime = now.getTime() - d.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
+    // Compare by calendar day to avoid misclassifying e.g. "11 PM yesterday" as "Today"
+    const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const diffDays = Math.round((nowDay.getTime() - dDay.getTime()) / (1000 * 60 * 60 * 24));
+
     if (diffDays < 0) return d.toLocaleDateString();
     if (diffDays === 0) return "Today";
-    if (diffDays === 1) return "1 day ago";
+    if (diffDays === 1) return "Yesterday";
     if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
     return d.toLocaleDateString();
   };
 
   const formatDeadline = (date: Date | string) => {
     const d = new Date(date);
     const now = new Date();
-    const diffTime = d.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+    // Compare by calendar day so deadlines don't flip status mid-day
+    const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const diffDays = Math.round((dDay.getTime() - nowDay.getTime()) / (1000 * 60 * 60 * 24));
+
     if (diffDays < 0) return "Expired";
-    if (diffDays === 0) return "Today";
+    if (diffDays === 0) return "Closes today";
     if (diffDays === 1) return "1 day left";
     return `${diffDays} days left`;
   };
