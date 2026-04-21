@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, FileText, CheckCircle, ArrowLeft, Edit, Trash2, Eye, Receipt, Download, DollarSign, Pen, Upload, UploadCloud, AlertCircle, CheckCircle2, XCircle, FileUp } from "lucide-react";
+import { Plus, Users, FileText, CheckCircle, ArrowLeft, Edit, Trash2, Eye, Receipt, Download, DollarSign, Pen, Upload, UploadCloud, AlertCircle, CheckCircle2, XCircle, FileUp, Lock, Globe, Copy, Link2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -154,7 +154,8 @@ export default function Dashboard() {
     status: "draft", // Add status field
     type: "job" as "job" | "tender", // Add type field
     attachmentUrls: [] as string[], // Add multiple attachment URLs field
-    postingDate: getTodaysDate() // Add posting date field with today's date as default
+    postingDate: getTodaysDate(), // Add posting date field with today's date as default
+    visibility: "public" as "public" | "private" // Visibility: public (searchable) or private (link only)
   });
 
   // Update organization field when user data loads and initialize profile form
@@ -308,6 +309,12 @@ export default function Dashboard() {
     },
     onSuccess: (data: any, variables: any) => {
       showSuccessToast("Job Created Successfully", variables.status === 'draft' ? "Your job posting has been saved as a draft. You can publish it from your job list." : "Your job posting has been created and published!");
+      if (data?.visibility === 'private' && data?.privateToken) {
+        const slug = data.title ? `${data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${data.id}` : `${data.id}`;
+        setPrivateJobLink(`${window.location.origin}/jobs/${slug}?token=${data.privateToken}`);
+      } else {
+        setPrivateJobLink(null);
+      }
       setJobForm({
         title: "",
         jobNumber: "",
@@ -324,7 +331,8 @@ export default function Dashboard() {
         status: "draft",
         type: "job",
         attachmentUrls: [],
-        postingDate: getTodaysDate()
+        postingDate: getTodaysDate(),
+        visibility: "public"
       });
       queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
     },
@@ -488,6 +496,9 @@ export default function Dashboard() {
       showErrorToast("Failed to Delete Jobs", error.message || "Failed to delete selected jobs");
     },
   });
+
+  // Private job link shown after creating a private job
+  const [privateJobLink, setPrivateJobLink] = useState<string | null>(null);
 
   // Edit mode state
   const [editingJob, setEditingJob] = useState<any>(null);
@@ -1062,6 +1073,7 @@ export default function Dashboard() {
       qualifications: jobForm.qualifications,
       status: editingJob ? jobForm.status : 'draft', // Force draft for new jobs, use form status for edits
       type: jobForm.type, // Include type field
+      visibility: jobForm.visibility, // Include visibility field
       attachmentUrls: jobForm.attachmentUrls, // Include attachment URLs
       bodyHtml: `
         <div>
@@ -1288,7 +1300,8 @@ export default function Dashboard() {
                         status: "draft",
                         type: "job",
                         attachmentUrls: [],
-                        postingDate: getTodaysDate()
+                        postingDate: getTodaysDate(),
+                        visibility: "public"
                       });
                     }}
                     className="mt-2"
@@ -1574,6 +1587,75 @@ export default function Dashboard() {
                     </p>
                   </div>
 
+                  <div>
+                    <Label>Visibility</Label>
+                    <div className="grid grid-cols-2 gap-3 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => setJobForm({ ...jobForm, visibility: "public" })}
+                        className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-colors ${
+                          jobForm.visibility === "public"
+                            ? "border-[#0077B5] bg-blue-50"
+                            : "border-gray-200 hover:border-gray-300 bg-white"
+                        }`}
+                      >
+                        <Globe className={`h-5 w-5 ${jobForm.visibility === "public" ? "text-[#0077B5]" : "text-gray-400"}`} />
+                        <span className={`text-sm font-medium ${jobForm.visibility === "public" ? "text-[#0077B5]" : "text-gray-600"}`}>Public</span>
+                        <span className="text-xs text-gray-500 text-center">Visible to all job seekers</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setJobForm({ ...jobForm, visibility: "private" })}
+                        className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-colors ${
+                          jobForm.visibility === "private"
+                            ? "border-[#0077B5] bg-blue-50"
+                            : "border-gray-200 hover:border-gray-300 bg-white"
+                        }`}
+                      >
+                        <Lock className={`h-5 w-5 ${jobForm.visibility === "private" ? "text-[#0077B5]" : "text-gray-400"}`} />
+                        <span className={`text-sm font-medium ${jobForm.visibility === "private" ? "text-[#0077B5]" : "text-gray-600"}`}>Private Link</span>
+                        <span className="text-xs text-gray-500 text-center">Only accessible via link</span>
+                      </button>
+                    </div>
+                    {jobForm.visibility === "private" && (
+                      <p className="text-sm text-amber-600 mt-2 flex items-center gap-1">
+                        <Lock className="h-3 w-3" />
+                        This job won't appear in search results. Share the private link with specific people.
+                      </p>
+                    )}
+                  </div>
+
+                  {privateJobLink && !editingJob && (
+                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Link2 className="h-4 w-4 text-amber-600" />
+                        <span className="text-sm font-semibold text-amber-800">Your Private Job Link</span>
+                      </div>
+                      <p className="text-xs text-amber-700 mb-3">Share this link with the specific people you want to apply. Anyone without this link cannot find the job.</p>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          readOnly
+                          value={privateJobLink}
+                          className="flex-1 text-xs bg-white border border-amber-300 rounded px-3 py-2 text-gray-700 select-all"
+                          onClick={(e) => (e.target as HTMLInputElement).select()}
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="border-amber-300 text-amber-700 hover:bg-amber-100 shrink-0"
+                          onClick={() => {
+                            navigator.clipboard.writeText(privateJobLink);
+                            toast({ title: "Copied!", description: "Private link copied to clipboard." });
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-3">
                     <LoadingButton 
                       type="submit" 
@@ -1834,7 +1916,7 @@ export default function Dashboard() {
                         </div>
                         
                         {/* Status column */}
-                        <div className="w-24">
+                        <div className="w-24 flex flex-col gap-1">
                           <Badge 
                             variant={job.status === 'published' ? 'default' : 'secondary'}
                             className={
@@ -1845,6 +1927,11 @@ export default function Dashboard() {
                           >
                             {job.status === 'published' ? 'Live' : 'Draft'}
                           </Badge>
+                          {job.visibility === 'private' && (
+                            <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 flex items-center gap-1 w-fit">
+                              <Lock className="h-2.5 w-2.5" />Private
+                            </Badge>
+                          )}
                         </div>
 
                         {/* Actions column */}
@@ -1869,6 +1956,22 @@ export default function Dashboard() {
                             </Button>
                           )}
                           
+                          {job.visibility === 'private' && job.privateToken && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                const slug = generateJobSlug(job.title, job.id);
+                                const link = `${window.location.origin}/jobs/${slug}?token=${job.privateToken}`;
+                                navigator.clipboard.writeText(link);
+                                toast({ title: "Copied!", description: "Private link copied to clipboard." });
+                              }}
+                              className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 p-1"
+                              title="Copy Private Link"
+                            >
+                              <Link2 className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="ghost"
@@ -1902,7 +2005,8 @@ export default function Dashboard() {
                                 status: (job as any).status || 'published',
                                 type: (job as any).type || 'job',
                                 attachmentUrls: (job as any).attachmentUrls || [],
-                                postingDate: job.datePosted ? new Date(job.datePosted).toISOString().split('T')[0] : getTodaysDate()
+                                postingDate: job.datePosted ? new Date(job.datePosted).toISOString().split('T')[0] : getTodaysDate(),
+                                visibility: ((job as any).visibility || 'public') as "public" | "private"
                               });
                               // Switch to create-job tab
                               setActiveTab("create-job");
@@ -2582,7 +2686,8 @@ export default function Dashboard() {
                                   status: (job as any).status || 'published',
                                   type: (job as any).type || 'job',
                                   attachmentUrls: (job as any).attachmentUrls || [],
-                                  postingDate: job.datePosted ? new Date(job.datePosted).toISOString().split('T')[0] : getTodaysDate()
+                                  postingDate: job.datePosted ? new Date(job.datePosted).toISOString().split('T')[0] : getTodaysDate(),
+                                  visibility: ((job as any).visibility || 'public') as "public" | "private"
                                 });
                                 setEditingJob(job);
                                 setActiveTab("create-job");

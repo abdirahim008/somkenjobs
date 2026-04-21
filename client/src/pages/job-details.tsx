@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useRoute, useLocation, Link } from "wouter";
-import { ArrowLeft, Calendar, MapPin, Building2, ExternalLink, Clock, Users, ChevronDown, ChevronUp, Briefcase, FileText, Share2 } from "lucide-react";
+import { useRoute, useLocation, Link, useSearch } from "wouter";
+import { ArrowLeft, Calendar, MapPin, Building2, ExternalLink, Clock, Users, ChevronDown, ChevronUp, Briefcase, FileText, Share2, Lock } from "lucide-react";
 import { FaFacebook, FaWhatsapp, FaTwitter, FaLinkedin } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,9 @@ export default function JobDetails() {
   const [, setLocation] = useLocation();
   const [showFullDescription, setShowFullDescription] = useState(false);
   const jobId = params?.id;
+  const searchString = useSearch();
+  const token = new URLSearchParams(searchString).get("token") || undefined;
+  const apiUrl = token ? `/api/jobs/${jobId}?token=${encodeURIComponent(token)}` : `/api/jobs/${jobId}`;
 
   // Scroll to top when component mounts or job ID changes
   useEffect(() => {
@@ -27,7 +30,8 @@ export default function JobDetails() {
   }, [jobId]);
 
   const { data: job, isLoading, error } = useQuery<Job>({
-    queryKey: [`/api/jobs/${jobId}`],
+    queryKey: ['/api/jobs', jobId, token],
+    queryFn: () => fetch(apiUrl).then(r => { if (!r.ok) throw new Error('Job not found'); return r.json(); }),
     enabled: !!jobId,
   });
 
@@ -658,6 +662,14 @@ export default function JobDetails() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Jobs
         </Button>
+
+        {/* Private Job Banner */}
+        {(job as any).visibility === 'private' && (
+          <div className="mb-4 flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+            <Lock className="h-4 w-4 shrink-0" />
+            <span>This is a <strong>private job posting</strong> — it's only accessible via this link and won't appear in search results.</span>
+          </div>
+        )}
 
         {/* Desktop Layout with Sidebar */}
         <div className="lg:flex lg:gap-8">

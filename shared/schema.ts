@@ -27,6 +27,8 @@ export const jobs = pgTable("jobs", {
   type: text("type").notNull().default("job"), // 'job' or 'tender'
   attachmentUrl: text("attachment_url"), // URL to uploaded attachment file for tenders
   createdAt: timestamp("created_at").defaultNow(),
+  visibility: text("visibility").notNull().default("public"), // 'public' or 'private'
+  privateToken: text("private_token"), // Token for accessing private jobs via link
 });
 
 export const insertJobSchema = createInsertSchema(jobs).omit({
@@ -48,6 +50,8 @@ export const insertJobSchema = createInsertSchema(jobs).omit({
   responsibilities: z.string().nullable().optional(),
   sector: z.string().nullable().optional(),
   createdBy: z.number().nullable().optional(),
+  visibility: z.enum(["public", "private"]).default("public"),
+  privateToken: z.string().nullable().optional(),
 });
 
 export type InsertJob = z.infer<typeof insertJobSchema>;

@@ -701,7 +701,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Job not found" });
       }
       
-      const job = await storage.getJobById(jobId);
+      const token = typeof req.query.token === 'string' ? req.query.token : undefined;
+      const job = await storage.getJobById(jobId, token);
       
       if (!job) {
         return res.status(404).json({ message: "Job not found" });
@@ -934,7 +935,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isAdmin = req.user!.isAdmin;
       
       // Check if user owns this job OR user is super admin
-      const existingJob = await storage.getJobById(jobId);
+      const existingJob = await storage.getJobById(jobId, undefined, true);
       console.log(`Job update attempt - JobId: ${jobId}, UserId: ${userId}, IsAdmin: ${isAdmin}, JobCreatedBy: ${existingJob?.createdBy}`);
       
       if (!existingJob || (existingJob.createdBy !== userId && !isAdmin)) {
@@ -974,11 +975,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Build transformed data — strip createdAt (must never change) and convert all date strings to Date objects
       const { createdAt: _omitCreatedAt, ...jobDataWithoutCreatedAt } = jobData;
+      const isNowPrivate = jobData.visibility === 'private';
       const transformedData = {
         ...jobDataWithoutCreatedAt,
         updatedAt: new Date(),
         ...(jobData.deadline ? { deadline: new Date(jobData.deadline) } : {}),
         ...(jobData.datePosted ? { datePosted: new Date(jobData.datePosted) } : {}),
+        visibility: isNowPrivate ? 'private' : 'public',
+        privateToken: isNowPrivate
+          ? (jobData.privateToken || existingJob.privateToken || `${Math.random().toString(36).substring(2)}${Date.now().toString(36)}`)
+          : null,
       };
       
       const updatedJob = await storage.updateJob(jobId, transformedData);
@@ -1002,7 +1008,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isAdmin = req.user!.isAdmin;
       
       // Check if user owns this job OR user is super admin
-      const existingJob = await storage.getJobById(jobId);
+      const existingJob = await storage.getJobById(jobId, undefined, true);
       if (!existingJob || (existingJob.createdBy !== userId && !isAdmin)) {
         return res.status(403).json({ message: "You can only delete your own jobs" });
       }
@@ -1025,6 +1031,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user!.id;
       
       // Generate defaults for required fields that users don't need to provide
+      const isPrivate = req.body.visibility === 'private';
       const jobDataWithDefaults = {
         ...req.body,
         createdBy: userId,
@@ -1032,6 +1039,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         externalId: req.body.externalId || `user-${userId}-${Date.now()}`,
         datePosted: req.body.datePosted || new Date(),
         url: req.body.url || "",
+        visibility: isPrivate ? 'private' : 'public',
+        privateToken: isPrivate ? (req.body.privateToken || `${Math.random().toString(36).substring(2)}${Date.now().toString(36)}`) : null,
       };
       
       const jobData = insertJobSchema.parse(jobDataWithDefaults);

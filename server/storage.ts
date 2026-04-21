@@ -18,7 +18,7 @@ export interface IStorage {
   // Job methods
   getAllJobs(): Promise<Job[]>;
   getAllJobsWithDetails(): Promise<Job[]>;
-  getJobById(id: number): Promise<Job | undefined>;
+  getJobById(id: number, token?: string, skipPrivateCheck?: boolean): Promise<Job | undefined>;
   getJobByExternalId(externalId: string): Promise<Job | undefined>;
   getJobsByUserId(userId: number): Promise<Job[]>;
   createJob(job: InsertJob): Promise<Job>;
@@ -247,8 +247,11 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async getJobById(id: number): Promise<Job | undefined> {
-    return this.jobs.get(id);
+  async getJobById(id: number, token?: string, skipPrivateCheck?: boolean): Promise<Job | undefined> {
+    const job = this.jobs.get(id);
+    if (!job) return undefined;
+    if (!skipPrivateCheck && (job as any).visibility === 'private' && (job as any).privateToken !== token) return undefined;
+    return job;
   }
 
   async getJobByExternalId(externalId: string): Promise<Job | undefined> {
@@ -559,9 +562,11 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(jobs).orderBy(desc(jobs.datePosted));
   }
 
-  async getJobById(id: number): Promise<Job | undefined> {
+  async getJobById(id: number, token?: string, skipPrivateCheck?: boolean): Promise<Job | undefined> {
     const [job] = await db.select().from(jobs).where(eq(jobs.id, id));
-    return job || undefined;
+    if (!job) return undefined;
+    if (!skipPrivateCheck && job.visibility === 'private' && job.privateToken !== token) return undefined;
+    return job;
   }
 
   async getJobByExternalId(externalId: string): Promise<Job | undefined> {
@@ -941,6 +946,7 @@ export class DatabaseStorage implements IStorage {
     const conditions = [
       eq(jobs.status, 'published'),
       eq(jobs.type, 'job'),
+      eq(jobs.visibility, 'public'),
       // Exclude expired jobs: show only jobs with no deadline or deadline in the future
       or(
         isNull(jobs.deadline),
@@ -1021,13 +1027,14 @@ export class DatabaseStorage implements IStorage {
     organizations: number;
     newToday: number;
   }> {
-    // Get total count of published jobs
+    // Get total count of published public jobs
     const totalJobsResult = await db
       .select({ count: jobs.id })
       .from(jobs)
       .where(and(
         eq(jobs.status, 'published'),
-        eq(jobs.type, 'job')
+        eq(jobs.type, 'job'),
+        eq(jobs.visibility, 'public')
       ));
 
     // Get unique organization count
@@ -1036,7 +1043,8 @@ export class DatabaseStorage implements IStorage {
       .from(jobs)
       .where(and(
         eq(jobs.status, 'published'),
-        eq(jobs.type, 'job')
+        eq(jobs.type, 'job'),
+        eq(jobs.visibility, 'public')
       ));
 
     // Get jobs posted today
@@ -1049,6 +1057,7 @@ export class DatabaseStorage implements IStorage {
       .where(and(
         eq(jobs.status, 'published'),
         eq(jobs.type, 'job'),
+        eq(jobs.visibility, 'public'),
         gte(jobs.datePosted, startOfDay)
       ));
 
