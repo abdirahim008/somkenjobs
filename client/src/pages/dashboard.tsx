@@ -1927,11 +1927,6 @@ export default function Dashboard() {
                           >
                             {job.status === 'published' ? 'Live' : 'Draft'}
                           </Badge>
-                          {job.visibility === 'private' && (
-                            <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 flex items-center gap-1 w-fit">
-                              <Lock className="h-2.5 w-2.5" />Private
-                            </Badge>
-                          )}
                         </div>
 
                         {/* Actions column */}
@@ -2644,7 +2639,7 @@ export default function Dashboard() {
                             <h3 className="font-medium text-gray-900">{job.title}</h3>
                             <p className="text-sm text-gray-600">{job.organization} • {job.location}</p>
                           </div>
-                          <div className="w-24">
+                          <div className="w-24 flex flex-col gap-1">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                               job.status === 'published' 
                                 ? 'bg-green-100 text-green-800' 
@@ -2652,6 +2647,11 @@ export default function Dashboard() {
                             }`}>
                               {job.status === 'published' ? 'Live' : 'Draft'}
                             </span>
+                            {job.visibility === 'private' && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 w-fit">
+                                <Lock className="h-2.5 w-2.5" />Private
+                              </span>
+                            )}
                           </div>
                           <div className="w-40 flex items-center gap-2">
                             <Button
