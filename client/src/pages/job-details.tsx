@@ -314,6 +314,24 @@ export default function JobDetails() {
     return cleanedText;
   };
 
+  // Safe HTML renderer for rich content — preserves tables, lists, headings.
+  // Used instead of cleanText() for HTML content that comes from the editor.
+  const renderHtmlContent = (html: string): string => {
+    if (!html) return '';
+    return html
+      // Remove only dangerous/invisible elements
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<!--\[if[^>]*>[\s\S]*?<!\[endif\]-->/gi, '')
+      .replace(/<!--[^>]*-->/gi, '')
+      // Remove event handlers
+      .replace(/\s+on\w+="[^"]*"/gi, '')
+      .replace(/\s+on\w+='[^']*'/gi, '')
+      // Convert markdown bold/italic that may appear in plain-text fields
+      .replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
+  };
+
   // Helper function to convert URLs and emails to clickable links
   const convertUrlsToLinks = (text: string) => {
     if (!text) return text;
@@ -501,7 +519,7 @@ export default function JobDetails() {
           <div 
             className="space-y-4 break-words overflow-wrap-anywhere rich-text-content"
             dangerouslySetInnerHTML={{
-              __html: convertUrlsToLinks(cleanText(fullDescription))
+              __html: renderHtmlContent(fullDescription)
             }}
             style={{
               lineHeight: '1.6',
@@ -742,38 +760,6 @@ export default function JobDetails() {
                 </CardContent>
               </Card>
 
-              {/* Attachment Card - Sidebar */}
-              {job.attachmentUrl && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Attachment</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <div className="flex-shrink-0">
-                        <div className="w-8 h-8 bg-[#0077B5] rounded-md flex items-center justify-center">
-                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{job.attachmentUrl}</p>
-                        <p className="text-xs text-muted-foreground">Document</p>
-                      </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      className="w-full mt-3 bg-[#0077B5] hover:bg-[#005885] text-white"
-                      onClick={() => {
-                        window.open(`/download/${job.attachmentUrl}`, '_blank');
-                      }}
-                    >
-                      Download
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
 
               {/* Related Jobs Card */}
               {relatedJobs && relatedJobs.length > 0 && (
@@ -973,9 +959,9 @@ export default function JobDetails() {
                   <CardContent>
                     <div className="prose prose-gray max-w-none">
                       <div
-                        className="text-foreground leading-relaxed break-words"
+                        className="text-foreground leading-relaxed break-words rich-text-content"
                         dangerouslySetInnerHTML={{
-                          __html: convertUrlsToLinks(cleanText(job.qualifications))
+                          __html: renderHtmlContent(job.qualifications)
                         }}
                       />
                     </div>
@@ -997,7 +983,7 @@ export default function JobDetails() {
                         className="text-foreground leading-relaxed break-words overflow-wrap-anywhere text-sm md:text-base"
                         style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', maxWidth: '100%' }}
                         dangerouslySetInnerHTML={{
-                          __html: createApplyButton(cleanText(job.howToApply))
+                          __html: createApplyButton(renderHtmlContent(job.howToApply))
                         }}
                       />
                     </div>
