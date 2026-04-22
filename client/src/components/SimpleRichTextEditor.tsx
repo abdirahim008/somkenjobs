@@ -368,7 +368,10 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
 
   const insertTable = () => {
     const tableId = `table_${Date.now()}`;
-    const tableHTML = `<table id="${tableId}" style="border-collapse: collapse; width: 100%; margin: 10px 0; border: 2px solid #ccc;"><tr><td style="border: 1px solid #ccc; padding: 8px; background-color: #f5f5f5; font-weight: bold;">Header 1</td><td style="border: 1px solid #ccc; padding: 8px; background-color: #f5f5f5; font-weight: bold;">Header 2</td><td style="border: 1px solid #ccc; padding: 8px; background-color: #f5f5f5; font-weight: bold;">Header 3</td></tr><tr><td style="border: 1px solid #ccc; padding: 8px;">Cell 1</td><td style="border: 1px solid #ccc; padding: 8px;">Cell 2</td><td style="border: 1px solid #ccc; padding: 8px;">Cell 3</td></tr><tr><td style="border: 1px solid #ccc; padding: 8px;">Cell 4</td><td style="border: 1px solid #ccc; padding: 8px;">Cell 5</td><td style="border: 1px solid #ccc; padding: 8px;">Cell 6</td></tr></table>`;
+    const hStyle = `border: 1px solid #e5e7eb; padding: 10px 14px; text-align: left; vertical-align: top; position: relative; min-width: 60px; background-color: #f0f4f8; font-weight: 600; color: #1e3a5f; border-bottom: 2px solid #d1d5db;`;
+    const cStyle = `border: 1px solid #e5e7eb; padding: 10px 14px; text-align: left; vertical-align: top; position: relative; min-width: 60px;`;
+    const c2Style = `border: 1px solid #e5e7eb; padding: 10px 14px; text-align: left; vertical-align: top; position: relative; min-width: 60px; background-color: #fafafa;`;
+    const tableHTML = `<table id="${tableId}" style="border-collapse: collapse; width: 100%; margin: 14px 0; border: 1px solid #d1d5db; overflow: hidden; table-layout: auto; font-size: 14px; line-height: 1.5; box-shadow: 0 1px 3px rgba(0,0,0,0.08);"><tr><td style="${hStyle}">Header 1</td><td style="${hStyle}">Header 2</td><td style="${hStyle}">Header 3</td></tr><tr><td style="${cStyle}"></td><td style="${cStyle}"></td><td style="${cStyle}"></td></tr><tr><td style="${c2Style}"></td><td style="${c2Style}"></td><td style="${c2Style}"></td></tr></table>`;
     insertHTMLAtCursor(tableHTML);
     
     // Make table interactive after insertion
@@ -582,11 +585,12 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
     
     const newRow = document.createElement('tr');
     const cellCount = firstRow.children.length;
+    const isEven = table.rows.length % 2 === 0;
     
     for (let i = 0; i < cellCount; i++) {
       const cell = document.createElement('td');
-      cell.style.cssText = 'border: 1px solid #ccc; padding: 8px;';
-      cell.textContent = `Cell ${table.rows.length + 1}-${i + 1}`;
+      cell.style.cssText = `border: 1px solid #e5e7eb; padding: 10px 14px; text-align: left; vertical-align: top; position: relative; min-width: 60px; background-color: ${isEven ? '#fafafa' : '#ffffff'};`;
+      cell.textContent = '';
       newRow.appendChild(cell);
     }
     
@@ -595,62 +599,66 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
 
   const addTableColumn = (table: HTMLTableElement) => {
     const rows = table.querySelectorAll('tr');
+    const hasThCells = table.querySelectorAll('th').length > 0;
     rows.forEach((row, rowIndex) => {
+      const isHeader = rowIndex === 0 && !hasThCells;
       const cell = document.createElement('td');
-      cell.style.cssText = 'border: 1px solid #ccc; padding: 8px;';
-      cell.textContent = rowIndex === 0 ? `Header ${row.children.length + 1}` : `Cell ${rowIndex + 1}-${row.children.length + 1}`;
-      if (rowIndex === 0) {
-        cell.style.backgroundColor = '#f5f5f5';
-        cell.style.fontWeight = 'bold';
-      }
+      cell.style.cssText = `border: 1px solid #e5e7eb; padding: 10px 14px; text-align: left; vertical-align: top; position: relative; min-width: 60px; ${isHeader ? 'background-color: #f0f4f8; font-weight: 600; color: #1e3a5f; border-bottom: 2px solid #d1d5db;' : rowIndex % 2 === 0 ? 'background-color: #fafafa;' : 'background-color: #ffffff;'}`;
+      cell.textContent = '';
       row.appendChild(cell);
     });
   };
 
   const styleTable = (table: HTMLTableElement) => {
-    // Apply basic table styling for pasted tables
+    // Apply polished table styling — auto column widths based on content
     table.style.cssText = `
       border-collapse: collapse;
       width: 100%;
-      margin: 10px 0;
-      border: 1px solid #ccc;
-      resize: both;
-      overflow: auto;
-      min-width: 200px;
-      min-height: 100px;
-      table-layout: fixed;
+      margin: 14px 0;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      overflow: hidden;
+      table-layout: auto;
       border-spacing: 0;
+      font-size: 14px;
+      line-height: 1.5;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     `;
-    
-    // Style all cells and make them resizable
+
+    // Detect if there's a header row (first row or any <th> elements)
+    const rows = table.querySelectorAll('tr');
+    const firstRow = rows[0];
+    const hasThCells = table.querySelectorAll('th').length > 0;
+
+    // Style all cells
     const cells = table.querySelectorAll('td, th');
-    cells.forEach((cell, index) => {
+    cells.forEach((cell) => {
       const htmlCell = cell as HTMLElement;
+      const row = cell.parentElement as HTMLTableRowElement;
+      const rowIndex = row ? row.rowIndex : -1;
+      const isHeader = cell.tagName === 'TH' || (rowIndex === 0 && !hasThCells);
+      const isEvenRow = rowIndex % 2 === 0;
+
       htmlCell.style.cssText = `
-        border: 1px solid #ccc;
-        padding: 8px;
+        border: 1px solid #e5e7eb;
+        padding: 10px 14px;
         text-align: left;
         vertical-align: top;
         position: relative;
-        overflow: hidden;
-        resize: horizontal;
-        min-width: 50px;
+        white-space: normal;
+        word-break: break-word;
+        min-width: 60px;
+        ${isHeader
+          ? 'background-color: #f0f4f8; font-weight: 600; color: #1e3a5f; border-bottom: 2px solid #d1d5db; letter-spacing: 0.01em;'
+          : isEvenRow
+          ? 'background-color: #fafafa;'
+          : 'background-color: #ffffff;'
+        }
       `;
-      
-      // Style header row differently
-      const row = cell.parentElement as HTMLTableRowElement;
-      if (cell.tagName === 'TH' || (row && row.rowIndex === 0)) {
-        htmlCell.style.backgroundColor = '#f5f5f5';
-        htmlCell.style.fontWeight = 'bold';
-      }
-      
+
       // Add resize handle to each cell
       addCellResizeHandle(htmlCell);
     });
-    
-    // Make table resizable
-    table.style.resize = 'both';
-    table.style.overflow = 'auto';
   };
 
   const addCellResizeHandle = (cell: HTMLElement) => {
