@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRoute, useLocation, Link, useSearch } from "wouter";
-import { ArrowLeft, Calendar, MapPin, Building2, ExternalLink, Clock, Users, ChevronDown, ChevronUp, Briefcase, FileText, Share2, Lock } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Building2, ExternalLink, Clock, Users, ChevronDown, ChevronUp, Briefcase, FileText, Share2 } from "lucide-react";
 import { FaFacebook, FaWhatsapp, FaTwitter, FaLinkedin } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -663,13 +663,6 @@ export default function JobDetails() {
           Back to Jobs
         </Button>
 
-        {/* Private Job Banner */}
-        {(job as any).visibility === 'private' && (
-          <div className="mb-4 flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
-            <Lock className="h-4 w-4 shrink-0" />
-            <span>This is a <strong>private job posting</strong> — it's only accessible via this link and won't appear in search results.</span>
-          </div>
-        )}
 
         {/* Desktop Layout with Sidebar */}
         <div className="lg:flex lg:gap-8">
