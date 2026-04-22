@@ -1798,7 +1798,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).send('Job not found');
       }
 
-      const job = await storage.getJobById(jobId);
+      const ssrToken = typeof req.query.token === 'string' ? req.query.token : undefined;
+      const job = await storage.getJobById(jobId, ssrToken);
       if (!job) {
         return res.status(404).send('Job not found');
       }
