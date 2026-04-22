@@ -1083,7 +1083,7 @@ export default function Dashboard() {
           ${jobForm.qualifications && jobForm.qualifications.trim() ? `<h3>Qualifications & Requirements</h3><div>${jobForm.qualifications}</div>` : ''}
           ${jobForm.experience ? `<h3>Experience Level</h3><p>${jobForm.experience}</p>` : ''}
           ${jobForm.howToApply && jobForm.howToApply.trim() ? `<h3>How to Apply</h3><div>${jobForm.howToApply}</div>` : ''}
-          ${jobForm.attachmentUrls.length > 0 ? `<h3>Attachments</h3><ul>${jobForm.attachmentUrls.map(url => `<li>Document: ${url}</li>`).join('')}</ul>` : ''}
+          ${jobForm.attachmentUrls.length > 0 ? `<h3>Attachments</h3><ul>${jobForm.attachmentUrls.map(url => { const name = url.startsWith('/uploads/') ? decodeURIComponent(url.split('/').pop()?.replace(/^\d+-/, '') || url) : url; return `<li><a href="${url}" target="_blank" download>${name}</a></li>`; }).join('')}</ul>` : ''}
         </div>
       `.trim()
     };
@@ -1496,17 +1496,34 @@ export default function Dashboard() {
                       type="file"
                       accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.txt,.xlsx,.xls,.ppt,.pptx,.zip,.rar,.7z"
                       multiple
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const files = Array.from(e.target.files || []);
-                        if (files.length > 0) {
-                          // For now, we'll just store the filenames
-                          // In a real implementation, you'd upload to a file storage service
-                          const newAttachments = files.map(file => file.name);
-                          setJobForm({ 
-                            ...jobForm, 
-                            attachmentUrls: [...jobForm.attachmentUrls, ...newAttachments]
-                          });
+                        if (files.length === 0) return;
+                        const token = localStorage.getItem('auth_token');
+                        const uploaded: string[] = [];
+                        for (const file of files) {
+                          try {
+                            const fd = new FormData();
+                            fd.append('file', file);
+                            const res = await fetch('/api/upload', {
+                              method: 'POST',
+                              headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                              body: fd,
+                            });
+                            if (res.ok) {
+                              const data = await res.json();
+                              uploaded.push(data.url);
+                            }
+                          } catch {}
                         }
+                        if (uploaded.length > 0) {
+                          setJobForm(prev => ({
+                            ...prev,
+                            attachmentUrls: [...prev.attachmentUrls, ...uploaded]
+                          }));
+                        }
+                        // Reset the input so the same file can be re-selected
+                        e.target.value = '';
                       }}
                       className="file:mr-4 file:py-2.5 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#0077B5] file:text-white hover:file:bg-[#005582]"
                     />
@@ -1514,9 +1531,13 @@ export default function Dashboard() {
                       <div className="mt-3 space-y-2">
                         <p className="text-sm font-medium text-gray-700">Selected files:</p>
                         <div className="space-y-1">
-                          {jobForm.attachmentUrls.map((filename, index) => (
+                          {jobForm.attachmentUrls.map((fileUrl, index) => (
                             <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded-md">
-                              <span className="text-sm text-gray-700 truncate">{filename}</span>
+                              <span className="text-sm text-gray-700 truncate">
+                                {fileUrl.startsWith('/uploads/')
+                                  ? decodeURIComponent(fileUrl.split('/').pop()?.replace(/^\d+-/, '') || fileUrl)
+                                  : fileUrl}
+                              </span>
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -1999,7 +2020,11 @@ export default function Dashboard() {
                                 url: job.url || '',
                                 status: (job as any).status || 'published',
                                 type: (job as any).type || 'job',
-                                attachmentUrls: (job as any).attachmentUrls || [],
+                                attachmentUrls: (() => {
+                                  const raw = (job as any).attachmentUrl;
+                                  if (!raw) return [];
+                                  try { return raw.startsWith('[') ? JSON.parse(raw) : [raw]; } catch { return [raw]; }
+                                })(),
                                 postingDate: job.datePosted ? new Date(job.datePosted).toISOString().split('T')[0] : getTodaysDate(),
                                 visibility: ((job as any).visibility || 'public') as "public" | "private"
                               });
@@ -2685,7 +2710,11 @@ export default function Dashboard() {
                                   url: job.url || '',
                                   status: (job as any).status || 'published',
                                   type: (job as any).type || 'job',
-                                  attachmentUrls: (job as any).attachmentUrls || [],
+                                  attachmentUrls: (() => {
+                                    const raw = (job as any).attachmentUrl;
+                                    if (!raw) return [];
+                                    try { return raw.startsWith('[') ? JSON.parse(raw) : [raw]; } catch { return [raw]; }
+                                  })(),
                                   postingDate: job.datePosted ? new Date(job.datePosted).toISOString().split('T')[0] : getTodaysDate(),
                                   visibility: ((job as any).visibility || 'public') as "public" | "private"
                                 });

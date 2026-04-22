@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { jobFetcher } from "./services/jobFetcher";
@@ -89,6 +90,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   if (!process.env.VERCEL) {
     jobFetcher.startScheduler();
   }
+
+  // Set up uploads directory for file storage
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  // Serve uploaded files as static assets
+  app.use('/uploads', express.static(uploadsDir));
+
+  // File upload endpoint
+  app.post('/api/upload', authenticate, upload.single('file'), async (req: AuthRequest, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ message: 'No file provided' });
+      const safeName = req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const filename = `${Date.now()}-${safeName}`;
+      const filepath = path.join(uploadsDir, filename);
+      fs.writeFileSync(filepath, req.file.buffer);
+      res.json({ url: `/uploads/${filename}`, originalName: req.file.originalname });
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      res.status(500).json({ message: 'Failed to upload file' });
+    }
+  });
 
   // 301 Redirects for SEO - Handle old URL patterns
   app.get("/help-center", (req, res) => {
@@ -944,22 +968,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Clean Microsoft Office formatting artifacts from text fields
+      // Skip aggressive cleaning on content that contains table HTML (editor already cleaned it)
       const cleanMicrosoftText = (text: string): string => {
         if (!text) return text;
-        
+        // If the content has table structure, only do safe whitespace cleanup
+        if (text.includes('<table')) return text.replace(/\s{3,}/g, '  ').trim();
         return text
-          // Remove percentage-based CSS fragments that appear as text
-          .replace(/\d+%;[^">]*">/g, '')
-          .replace(/level\d+\s+lfo\d+"?>/g, '')
-          .replace(/color:#[0-9A-Fa-f]{6}"?>/g, '')
-          .replace(/line-height:\d+%[;"]*font-family:"?[^"]*"?[;"]*mso-fareast-font-family:[^;"]*[;"]*color:#[0-9A-Fa-f]{6}"?>/g, '')
-          .replace(/font-family:"?[^"]*"?[;"]*mso-fareast-font-family:[^;"]*[;"]*color:#[0-9A-Fa-f]{6}"?>/g, '')
-          .replace(/mso-fareast-font-family:"?[^"]*"?[;"]*color:#[0-9A-Fa-f]{6}"?>/g, '')
-          .replace(/font-family:"?[^"]*"?[;"]*color:#[0-9A-Fa-f]{6}"?>/g, '')
-          .replace(/color:[^;]*[;"]*mso-themecolor:[^;"]*[;"]*>/g, '')
-          .replace(/mso-[^;>"]*[;"]*>/g, '')
-          .replace(/tab-stops:[^;"]*[;"]*>/g, '')
-          .replace(/text-indent:[^;"]*[;"]*>/g, '')
+          // Only strip patterns that appear as dangling text artifacts (not mid-CSS)
+          .replace(/^level\d+\s+lfo\d+"?>\s*/gm, '')
+          .replace(/^color:#[0-9A-Fa-f]{6}"?>\s*/gm, '')
+          .replace(/mso-list:l\d+\s+level\d+\s+lfo\d+[;"]*>/g, '')
+          .replace(/mso-[a-z\-]+:\s*[^;}"<]{0,60};/g, '')
           // Clean up any remaining artifacts
           .replace(/\s+/g, ' ')
           .trim();
@@ -972,6 +991,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (jobData.description) jobData.description = cleanMicrosoftText(jobData.description);
       if (jobData.qualifications) jobData.qualifications = cleanMicrosoftText(jobData.qualifications);
       if (jobData.howToApply) jobData.howToApply = cleanMicrosoftText(jobData.howToApply);
+
+      // Serialize attachmentUrls array to JSON and store in attachmentUrl column
+      if (Array.isArray(jobData.attachmentUrls)) {
+        jobData.attachmentUrl = jobData.attachmentUrls.length > 0
+          ? JSON.stringify(jobData.attachmentUrls)
+          : null;
+      }
+      delete jobData.attachmentUrls;
       
       // Build transformed data — strip createdAt (must never change) and convert all date strings to Date objects
       const { createdAt: _omitCreatedAt, ...jobDataWithoutCreatedAt } = jobData;
@@ -1032,8 +1059,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Generate defaults for required fields that users don't need to provide
       const isPrivate = req.body.visibility === 'private';
+      // Serialize attachmentUrls array to JSON string for storage in attachmentUrl column
+      let attachmentUrlValue = req.body.attachmentUrl || null;
+      if (Array.isArray(req.body.attachmentUrls) && req.body.attachmentUrls.length > 0) {
+        attachmentUrlValue = JSON.stringify(req.body.attachmentUrls);
+      }
       const jobDataWithDefaults = {
         ...req.body,
+        attachmentUrl: attachmentUrlValue,
         createdBy: userId,
         source: req.body.source || "user",
         externalId: req.body.externalId || `user-${userId}-${Date.now()}`,
@@ -1042,6 +1075,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         visibility: isPrivate ? 'private' : 'public',
         privateToken: isPrivate ? (req.body.privateToken || `${Math.random().toString(36).substring(2)}${Date.now().toString(36)}`) : null,
       };
+      delete jobDataWithDefaults.attachmentUrls;
       
       const jobData = insertJobSchema.parse(jobDataWithDefaults);
       const job = await storage.createJob(jobData);
@@ -1960,55 +1994,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       // Function to clean HTML content from Microsoft Office and other sources
+      // Strips all HTML to plain text — used only for meta descriptions
       const cleanHtmlContent = (html: string): string => {
         if (!html) return '';
-        
-        // Create a simple DOM parser to extract text content safely
-        const extractTextFromHtml = (htmlString: string): string => {
-          try {
-            // Use a more aggressive approach to strip all HTML and style content
-            let text = htmlString
-              // Remove all style attributes and their content
-              .replace(/style="[^"]*"/gi, '')
-              .replace(/class="[^"]*"/gi, '')
-              .replace(/lang="[^"]*"/gi, '')
-              // Remove Microsoft Office XML comments completely
-              .replace(/<!--\[if[^>]*>.*?<!\[endif\]-->/gi, '')
-              .replace(/<!--[^>]*-->/gi, '')
-              // Remove all HTML tags
-              .replace(/<[^>]*>/g, ' ')
-              // Clean up HTML entities
-              .replace(/&nbsp;/g, ' ')
-              .replace(/&amp;/g, '&')
-              .replace(/&lt;/g, '<')
-              .replace(/&gt;/g, '>')
-              .replace(/&quot;/g, '"')
-              .replace(/&#\d+;/g, ' ')
-              // Remove Microsoft Office artifacts that appear as text
-              .replace(/mso-[^;"\s]*[;"]?/gi, '')
-              .replace(/line-height:\s*\d+%[;"]?/gi, '')
-              .replace(/font-family:[^;"]*[;"]?/gi, '')
-              .replace(/color:\s*#[0-9A-Fa-f]{6}[;"]?/gi, '')
-              .replace(/text-indent:[^;"]*[;"]?/gi, '')
-              .replace(/text-align:[^;"]*[;"]?/gi, '')
-              .replace(/margin-left:[^;"]*[;"]?/gi, '')
-              .replace(/tab-stops:[^;"]*[;"]?/gi, '')
-              .replace(/text\d+"?>/gi, '')
-              .replace(/[A-Z0-9]{4}"?>/gi, '')
-              // Clean up leftover formatting artifacts
-              .replace(/^\s*[">]+/gm, '')
-              .replace(/[">]+\s*$/gm, '')
-              .replace(/\s+/g, ' ')
-              .trim();
-            
-            return text;
-          } catch (error) {
-            // Fallback: return original text with basic cleaning
-            return htmlString.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-          }
-        };
-        
-        return extractTextFromHtml(html);
+        return html
+          .replace(/<!--[\s\S]*?-->/g, '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#\d+;/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      };
+
+      // Safely renders HTML for body content — strips only dangerous tags/attributes
+      const safeHtml = (html: string): string => {
+        if (!html) return '';
+        return html
+          // Remove dangerous elements
+          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+          .replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '')
+          .replace(/<object[^>]*>[\s\S]*?<\/object>/gi, '')
+          .replace(/<embed[^>]*>/gi, '')
+          // Remove event handlers
+          .replace(/\s+on\w+="[^"]*"/gi, '')
+          .replace(/\s+on\w+='[^']*'/gi, '')
+          // Remove javascript: links
+          .replace(/href="javascript:[^"]*"/gi, 'href="#"')
+          // Remove Microsoft Office XML comments
+          .replace(/<!--\[if[^>]*>[\s\S]*?<!\[endif\]-->/gi, '')
+          .replace(/<!--[^>]*-->/gi, '');
       };
 
       // Generate server-side rendered job content
@@ -2057,17 +2075,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 <div class="lg:col-span-2">
                   <div class="prose max-w-none">
                     <h2 class="text-xl font-semibold mb-4">Job Description</h2>
-                    <div>${cleanHtmlContent(job.bodyHtml || job.description || 'Job description not available.').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>')}</div>
+                    <div class="rich-text-content">${safeHtml(job.bodyHtml || job.description || 'Job description not available.')}</div>
                     
                     ${job.qualifications ? `
                       <h2 class="text-xl font-semibold mb-4 mt-8">Qualifications & Requirements</h2>
-                      <div>${cleanHtmlContent(job.qualifications).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>')}</div>
+                      <div class="rich-text-content">${safeHtml(job.qualifications)}</div>
                     ` : ''}
                     
                     ${job.howToApply ? `
                       <h2 class="text-xl font-semibold mb-4 mt-8">How to Apply</h2>
-                      <div>${cleanHtmlContent(job.howToApply).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" class="text-blue-600 hover:text-blue-700">$1</a>')}</div>
+                      <div class="rich-text-content">${safeHtml(job.howToApply).replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" class="text-blue-600 hover:text-blue-700">$1</a>')}</div>
                     ` : ''}
+                    ${job.attachmentUrl ? (() => {
+                      try {
+                        const urls: string[] = job.attachmentUrl.startsWith('[') ? JSON.parse(job.attachmentUrl) : [job.attachmentUrl];
+                        return `<h2 class="text-xl font-semibold mb-4 mt-8">Attachments</h2>
+                        <div class="space-y-2">${urls.map(url => {
+                          const name = url.split('/').pop()?.replace(/^\d+-/, '') || 'Download';
+                          return `<div><a href="${url}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">📎 ${name}</a></div>`;
+                        }).join('')}</div>`;
+                      } catch { return ''; }
+                    })() : ''}
                   </div>
                 </div>
 

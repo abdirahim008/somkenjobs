@@ -489,28 +489,29 @@ export default function JobDetails() {
     // Use the full HTML description if available, otherwise use the regular description
     const fullDescription = job.bodyHtml || job.description;
     
-    // Count words for the "Show More" functionality
-    const words = fullDescription.split(/\s+/).filter(word => word.length > 0);
-    const shouldShowMore = words.length > 200;
+    // Count visible (plain text) words only — not HTML tags — to decide if "Show More" is needed
+    const plainText = fullDescription.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const wordCount = plainText.split(/\s+/).filter(w => w.length > 0).length;
+    const shouldShowMore = wordCount > 250;
     
-    // Create short description (first 200 words)
-    const shortDescription = shouldShowMore 
-      ? words.slice(0, 200).join(' ') + '...'
-      : fullDescription;
-    
-    const displayDescription = showFullDescription ? fullDescription : shortDescription;
-    
+    // Always display the full HTML — use CSS max-height to hide the overflow, not string slicing
     return (
       <div className="space-y-4">
         <div className="prose prose-gray max-w-none">
           <div 
             className="space-y-4 break-words overflow-wrap-anywhere rich-text-content"
             dangerouslySetInnerHTML={{
-              __html: convertUrlsToLinks(cleanText(displayDescription))
+              __html: convertUrlsToLinks(cleanText(fullDescription))
             }}
             style={{
               lineHeight: '1.6',
-              fontSize: '16px'
+              fontSize: '16px',
+              ...(!showFullDescription && shouldShowMore ? {
+                maxHeight: '640px',
+                overflow: 'hidden',
+                maskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)',
+                WebkitMaskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)',
+              } : {})
             }}
           />
         </div>
@@ -1004,39 +1005,58 @@ export default function JobDetails() {
                 </Card>
               )}
 
-              {/* Attachment Section */}
-              {job.attachmentUrl ? (
-                <Card className="mb-6">
-                  <CardHeader>
-                    <CardTitle>Attachment</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                      <div className="flex-shrink-0">
-                        <div className="w-10 h-10 bg-[#0077B5] rounded-lg flex items-center justify-center">
-                          <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                          </svg>
-                        </div>
+              {/* Attachment Section — shown below How to Apply */}
+              {(() => {
+                if (!job.attachmentUrl) return null;
+                let urls: string[] = [];
+                try {
+                  urls = job.attachmentUrl.startsWith('[')
+                    ? JSON.parse(job.attachmentUrl)
+                    : [job.attachmentUrl];
+                } catch {
+                  urls = [job.attachmentUrl];
+                }
+                if (urls.length === 0) return null;
+                return (
+                  <Card className="mb-6">
+                    <CardHeader>
+                      <CardTitle>Attachments</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {urls.map((url, idx) => {
+                          const displayName = url.startsWith('/uploads/')
+                            ? decodeURIComponent(url.split('/').pop()?.replace(/^\d+-/, '') || 'Download')
+                            : url;
+                          return (
+                            <div key={idx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex-shrink-0">
+                                <div className="w-9 h-9 bg-[#0077B5] rounded-lg flex items-center justify-center">
+                                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
+                              </div>
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                download
+                                className="flex-shrink-0 inline-flex items-center px-3 py-1.5 text-sm font-medium text-[#0077B5] border border-[#0077B5] rounded-md hover:bg-[#0077B5] hover:text-white transition-colors"
+                              >
+                                Download
+                              </a>
+                            </div>
+                          );
+                        })}
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-foreground">Document Available</p>
-                        <p className="text-sm text-muted-foreground">{job.attachmentUrl}</p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-[#0077B5] border-[#0077B5] hover:bg-[#0077B5] hover:text-white"
-                        onClick={() => {
-                          window.open(`/download/${job.attachmentUrl}`, '_blank');
-                        }}
-                      >
-                        Download
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : null}
+                    </CardContent>
+                  </Card>
+                );
+              })()}
 
 
 
