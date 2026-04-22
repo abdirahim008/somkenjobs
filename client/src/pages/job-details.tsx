@@ -994,15 +994,16 @@ export default function JobDetails() {
               {/* Attachment Section — shown below How to Apply */}
               {(() => {
                 if (!job.attachmentUrl) return null;
-                let urls: string[] = [];
+                type AttachItem = string | { url: string; label: string };
+                let items: AttachItem[] = [];
                 try {
-                  urls = job.attachmentUrl.startsWith('[')
+                  items = job.attachmentUrl.startsWith('[')
                     ? JSON.parse(job.attachmentUrl)
                     : [job.attachmentUrl];
                 } catch {
-                  urls = [job.attachmentUrl];
+                  items = [job.attachmentUrl];
                 }
-                if (urls.length === 0) return null;
+                if (items.length === 0) return null;
                 return (
                   <Card className="mb-6">
                     <CardHeader>
@@ -1010,30 +1011,43 @@ export default function JobDetails() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {urls.map((url, idx) => {
-                          const displayName = url.startsWith('/uploads/')
-                            ? decodeURIComponent(url.split('/').pop()?.replace(/^\d+-/, '') || 'Download')
-                            : url;
+                        {items.map((item, idx) => {
+                          const isLink = typeof item !== 'string';
+                          const href = isLink ? item.url : item;
+                          const displayName = isLink
+                            ? item.label
+                            : (item.startsWith('/uploads/')
+                                ? decodeURIComponent(item.split('/').pop()?.replace(/^\d+-/, '') || 'Download')
+                                : item);
                           return (
                             <div key={idx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                               <div className="flex-shrink-0">
-                                <div className="w-9 h-9 bg-[#0077B5] rounded-lg flex items-center justify-center">
-                                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                                  </svg>
+                                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isLink ? 'bg-emerald-600' : 'bg-[#0077B5]'}`}>
+                                  {isLink ? (
+                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                    </svg>
+                                  ) : (
+                                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                                    </svg>
+                                  )}
                                 </div>
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
+                                {isLink && (
+                                  <p className="text-xs text-gray-500 truncate">{href}</p>
+                                )}
                               </div>
                               <a
-                                href={url}
+                                href={href}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                download
+                                {...(!isLink ? { download: true } : {})}
                                 className="flex-shrink-0 inline-flex items-center px-3 py-1.5 text-sm font-medium text-[#0077B5] border border-[#0077B5] rounded-md hover:bg-[#0077B5] hover:text-white transition-colors"
                               >
-                                Download
+                                {isLink ? 'Open' : 'Download'}
                               </a>
                             </div>
                           );

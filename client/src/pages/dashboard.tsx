@@ -47,6 +47,10 @@ export default function Dashboard() {
   // Tab management state
   const [activeTab, setActiveTab] = useState("my-jobs");
 
+  // Link attachment state
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [newLinkLabel, setNewLinkLabel] = useState('');
+
   // Bulk upload state
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvPreview, setCsvPreview] = useState<any[]>([]);
@@ -153,7 +157,7 @@ export default function Dashboard() {
     url: "",
     status: "draft", // Add status field
     type: "job" as "job" | "tender", // Add type field
-    attachmentUrls: [] as string[], // Add multiple attachment URLs field
+    attachmentUrls: [] as Array<string | {url: string; label: string}>, // Files (string) or named links ({url, label})
     postingDate: getTodaysDate(), // Add posting date field with today's date as default
     visibility: "public" as "public" | "private" // Visibility: public (searchable) or private (link only)
   });
@@ -334,6 +338,8 @@ export default function Dashboard() {
         postingDate: getTodaysDate(),
         visibility: "public"
       });
+      setNewLinkUrl('');
+      setNewLinkLabel('');
       queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
     },
     onError: (error: any) => {
@@ -1083,7 +1089,7 @@ export default function Dashboard() {
           ${jobForm.qualifications && jobForm.qualifications.trim() ? `<h3>Qualifications & Requirements</h3><div>${jobForm.qualifications}</div>` : ''}
           ${jobForm.experience ? `<h3>Experience Level</h3><p>${jobForm.experience}</p>` : ''}
           ${jobForm.howToApply && jobForm.howToApply.trim() ? `<h3>How to Apply</h3><div>${jobForm.howToApply}</div>` : ''}
-          ${jobForm.attachmentUrls.length > 0 ? `<h3>Attachments</h3><ul>${jobForm.attachmentUrls.map(url => { const name = url.startsWith('/uploads/') ? decodeURIComponent(url.split('/').pop()?.replace(/^\d+-/, '') || url) : url; return `<li><a href="${url}" target="_blank" download>${name}</a></li>`; }).join('')}</ul>` : ''}
+          ${jobForm.attachmentUrls.length > 0 ? `<h3>Attachments</h3><ul>${jobForm.attachmentUrls.map(item => { if (typeof item === 'string') { const name = item.startsWith('/uploads/') ? decodeURIComponent(item.split('/').pop()?.replace(/^\d+-/, '') || item) : item; return `<li><a href="${item}" target="_blank" download>${name}</a></li>`; } else { return `<li><a href="${item.url}" target="_blank" rel="noopener noreferrer">${item.label || item.url}</a></li>`; } }).join('')}</ul>` : ''}
         </div>
       `.trim()
     };
@@ -1303,6 +1309,8 @@ export default function Dashboard() {
                         postingDate: getTodaysDate(),
                         visibility: "public"
                       });
+                      setNewLinkUrl('');
+                      setNewLinkLabel('');
                     }}
                     className="mt-2"
                   >
@@ -1527,31 +1535,109 @@ export default function Dashboard() {
                       }}
                       className="file:mr-4 file:py-2.5 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#0077B5] file:text-white hover:file:bg-[#005582]"
                     />
-                    {jobForm.attachmentUrls.length > 0 && (
+                    {jobForm.attachmentUrls.filter(item => typeof item === 'string').length > 0 && (
                       <div className="mt-3 space-y-2">
-                        <p className="text-sm font-medium text-gray-700">Selected files:</p>
+                        <p className="text-sm font-medium text-gray-700">Uploaded files:</p>
                         <div className="space-y-1">
-                          {jobForm.attachmentUrls.map((fileUrl, index) => (
-                            <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded-md">
-                              <span className="text-sm text-gray-700 truncate">
-                                {fileUrl.startsWith('/uploads/')
-                                  ? decodeURIComponent(fileUrl.split('/').pop()?.replace(/^\d+-/, '') || fileUrl)
-                                  : fileUrl}
-                              </span>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  const newAttachments = jobForm.attachmentUrls.filter((_, i) => i !== index);
-                                  setJobForm({ ...jobForm, attachmentUrls: newAttachments });
-                                }}
-                                className="text-red-600 hover:text-red-800 p-1 h-auto"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
+                          {jobForm.attachmentUrls.map((item, index) => {
+                            if (typeof item !== 'string') return null;
+                            const fileUrl = item;
+                            return (
+                              <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded-md">
+                                <span className="text-sm text-gray-700 truncate">
+                                  {fileUrl.startsWith('/uploads/')
+                                    ? decodeURIComponent(fileUrl.split('/').pop()?.replace(/^\d+-/, '') || fileUrl)
+                                    : fileUrl}
+                                </span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    const newAttachments = jobForm.attachmentUrls.filter((_, i) => i !== index);
+                                    setJobForm({ ...jobForm, attachmentUrls: newAttachments });
+                                  }}
+                                  className="text-red-600 hover:text-red-800 p-1 h-auto"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Links section */}
+                  <div>
+                    <Label>Links (Optional)</Label>
+                    <div className="text-sm text-gray-600 mb-2">
+                      Add Google Drive links, external documents, or any URLs with a descriptive name.
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        type="url"
+                        placeholder="https://drive.google.com/..."
+                        value={newLinkUrl}
+                        onChange={(e) => setNewLinkUrl(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Input
+                        type="text"
+                        placeholder="Link name (e.g. Terms of Reference)"
+                        value={newLinkLabel}
+                        onChange={(e) => setNewLinkLabel(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          const trimmedUrl = newLinkUrl.trim();
+                          const trimmedLabel = newLinkLabel.trim();
+                          if (!trimmedUrl) return;
+                          setJobForm(prev => ({
+                            ...prev,
+                            attachmentUrls: [...prev.attachmentUrls, { url: trimmedUrl, label: trimmedLabel || trimmedUrl }]
+                          }));
+                          setNewLinkUrl('');
+                          setNewLinkLabel('');
+                        }}
+                        className="flex-shrink-0"
+                      >
+                        <Link2 className="h-4 w-4 mr-1" />
+                        Add
+                      </Button>
+                    </div>
+                    {jobForm.attachmentUrls.filter(item => typeof item !== 'string').length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        <p className="text-sm font-medium text-gray-700">Added links:</p>
+                        <div className="space-y-1">
+                          {jobForm.attachmentUrls.map((item, index) => {
+                            if (typeof item === 'string') return null;
+                            return (
+                              <div key={index} className="flex items-center justify-between bg-blue-50 p-2 rounded-md border border-blue-100">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <Link2 className="h-4 w-4 text-[#0077B5] flex-shrink-0" />
+                                  <span className="text-sm font-medium text-gray-800 truncate">{item.label}</span>
+                                  <span className="text-xs text-gray-500 truncate hidden sm:block">{item.url}</span>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    const newAttachments = jobForm.attachmentUrls.filter((_, i) => i !== index);
+                                    setJobForm({ ...jobForm, attachmentUrls: newAttachments });
+                                  }}
+                                  className="text-red-600 hover:text-red-800 p-1 h-auto flex-shrink-0"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
