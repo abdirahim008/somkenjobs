@@ -549,9 +549,13 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(jobs)
       .where(
-        or(
-          isNull(jobs.deadline),
-          gte(jobs.deadline, now)
+        and(
+          // Exclude private jobs from public listing
+          or(eq(jobs.visibility, 'public'), isNull(jobs.visibility)),
+          or(
+            isNull(jobs.deadline),
+            gte(jobs.deadline, now)
+          )
         )
       )
       .orderBy(desc(jobs.datePosted));
@@ -652,6 +656,8 @@ export class DatabaseStorage implements IStorage {
       .from(jobs)
       .where(
         and(
+          // Exclude private jobs from public search
+          or(eq(jobs.visibility, 'public'), isNull(jobs.visibility)),
           or(
             ilike(jobs.title, searchTerm),
             ilike(jobs.organization, searchTerm),
@@ -676,6 +682,9 @@ export class DatabaseStorage implements IStorage {
   }): Promise<Job[]> {
     const now = new Date();
     let whereConditions = [];
+
+    // Always exclude private jobs from public results
+    whereConditions.push(or(eq(jobs.visibility, 'public'), isNull(jobs.visibility)));
 
     // Always exclude expired jobs
     whereConditions.push(
