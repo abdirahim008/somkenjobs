@@ -119,47 +119,66 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
 
   // Clean pasted HTML preserving table structure
   const cleanPastedHTMLWithTables = (html: string): string => {
+    // Strip MS Office XML, comments, styles, head section
     const preprocessed = html
+      .replace(/<\?xml[^>]*>/gi, '')
+      .replace(/<!--[\s\S]*?-->/gi, '')
       .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '')
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-      .replace(/<\?xml[^>]*>/gi, '')
-      .replace(/xmlns[^=]*="[^"]*"/gi, '')
-      .replace(/<o:[^>]*>[\s\S]*?<\/o:[^>]*>/gi, '')
-      .replace(/<w:[^>]*>[\s\S]*?<\/w:[^>]*>/gi, '')
-      .replace(/<m:[^>]*>[\s\S]*?<\/m:[^>]*>/gi, '')
-      .replace(/<!--[\s\S]*?-->/gi, '')
       .replace(/<meta[^>]*>/gi, '')
-      .replace(/<link[^>]*>/gi, '');
+      .replace(/<link[^>]*>/gi, '')
+      .replace(/<o:[^>]*\/>/gi, '')
+      .replace(/<o:[^>]*>[\s\S]*?<\/o:[^>]*>/gi, '')
+      .replace(/<w:[^>]*\/>/gi, '')
+      .replace(/<w:[^>]*>[\s\S]*?<\/w:[^>]*>/gi, '')
+      .replace(/<m:[^>]*\/>/gi, '')
+      .replace(/<m:[^>]*>[\s\S]*?<\/m:[^>]*>/gi, '');
 
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = preprocessed;
 
-    // Style all tables cleanly
-    tempDiv.querySelectorAll('table').forEach(table => {
+    // If clipboard wrapped content in <html><body>, extract body content
+    const body = tempDiv.querySelector('body');
+    const root = body || tempDiv;
+
+    // Style all tables cleanly (querySelectorAll searches all descendants)
+    root.querySelectorAll('table').forEach(table => {
       table.removeAttribute('class');
+      table.removeAttribute('style');
       (table as HTMLElement).style.cssText = 'border-collapse: collapse; width: 100%; margin: 10px 0; border: 1px solid #ccc;';
+      table.querySelectorAll('tr').forEach(tr => {
+        tr.removeAttribute('class');
+        tr.removeAttribute('style');
+      });
       table.querySelectorAll('td, th').forEach(cell => {
         const el = cell as HTMLElement;
-        el.removeAttribute('class');
         const isTh = cell.tagName === 'TH';
+        // Keep colspan/rowspan but remove class/style
+        el.removeAttribute('class');
+        el.removeAttribute('style');
         el.style.cssText = `border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top;${isTh ? ' font-weight: bold; background-color: #f5f5f5;' : ''}`;
+        // Clean spans inside cells (MS Office adds many)
+        el.querySelectorAll('span').forEach(span => {
+          span.removeAttribute('class');
+          span.removeAttribute('style');
+        });
       });
-      table.querySelectorAll('tr').forEach(tr => tr.removeAttribute('class'));
     });
 
-    // Clean non-table elements: strip classes/styles but keep text + basic tags
+    // Clean non-table elements: strip classes/styles but preserve text and basic tags (p, br, b, strong, etc.)
     const cleanElement = (el: Element) => {
       const tag = el.tagName;
-      if (['TABLE','THEAD','TBODY','TR','TD','TH'].includes(tag)) return;
+      if (['TABLE','THEAD','TBODY','TFOOT','TR','TD','TH'].includes(tag)) return;
       el.removeAttribute('class');
       el.removeAttribute('style');
       el.removeAttribute('lang');
       el.removeAttribute('dir');
+      el.removeAttribute('id');
       Array.from(el.children).forEach(cleanElement);
     };
-    Array.from(tempDiv.children).forEach(cleanElement);
+    Array.from(root.children).forEach(cleanElement);
 
-    return tempDiv.innerHTML;
+    return root.innerHTML;
   };
 
   // Clean and sanitize pasted HTML content to plain text (for non-table content)
@@ -188,6 +207,37 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
       .trim();
   };
 
+  // Insert an HTML string at the current cursor position using Range API (more reliable than execCommand)
+  const insertHTMLAtCursor = (html: string) => {
+    if (!editorRef.current) return;
+    editorRef.current.focus();
+    const selection = window.getSelection();
+    if (!selection || !selection.rangeCount) return;
+
+    const range = selection.getRangeAt(0);
+    range.deleteContents();
+
+    // Parse the HTML into real DOM nodes via a fragment
+    const fragment = document.createRange().createContextualFragment(html);
+    const lastNode = fragment.lastChild;
+    range.insertNode(fragment);
+
+    // Move cursor to just after the inserted content
+    if (lastNode) {
+      const newRange = document.createRange();
+      newRange.setStartAfter(lastNode);
+      newRange.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(newRange);
+    }
+
+    // Notify React of the change
+    if (editorRef.current.innerHTML !== lastContentRef.current) {
+      lastContentRef.current = editorRef.current.innerHTML;
+      onChange(editorRef.current.innerHTML);
+    }
+  };
+
   // Handle paste events - smart detection of tables and images
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
@@ -205,7 +255,7 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
           const dataUrl = ev.target?.result as string;
           const imgId = `img_${Date.now()}`;
           const imgHTML = `<div class="image-container" style="position: relative; display: inline-block; margin: 10px 0; min-height: 50px;"><img id="${imgId}" src="${dataUrl}" alt="Pasted image" style="max-width: 300px; width: 300px; height: auto; border: 2px solid transparent; border-radius: 4px; cursor: pointer; display: block; user-select: none;" draggable="false" /></div>`;
-          document.execCommand('insertHTML', false, imgHTML);
+          insertHTMLAtCursor(imgHTML);
           setTimeout(() => {
             const img = document.getElementById(imgId);
             if (img) {
@@ -223,9 +273,9 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
     const htmlData = clipboardData.getData('text/html');
     const textData = clipboardData.getData('text/plain');
 
-    if (htmlData && /<table[\s>]/i.test(htmlData)) {
+    if (htmlData && /<table[\s\S]*?>/i.test(htmlData)) {
       const cleanedHTML = cleanPastedHTMLWithTables(htmlData);
-      document.execCommand('insertHTML', false, cleanedHTML);
+      insertHTMLAtCursor(cleanedHTML);
       // Make pasted tables interactive
       requestAnimationFrame(() => {
         editorRef.current?.querySelectorAll('table:not([data-interactive])').forEach(table => {
@@ -318,26 +368,8 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
 
   const insertTable = () => {
     const tableId = `table_${Date.now()}`;
-    const tableHTML = `
-      <table id="${tableId}" style="border-collapse: collapse; width: 100%; margin: 10px 0; border: 2px solid #ccc;">
-        <tr>
-          <td style="border: 1px solid #ccc; padding: 8px; background-color: #f5f5f5; font-weight: bold;">Header 1</td>
-          <td style="border: 1px solid #ccc; padding: 8px; background-color: #f5f5f5; font-weight: bold;">Header 2</td>
-          <td style="border: 1px solid #ccc; padding: 8px; background-color: #f5f5f5; font-weight: bold;">Header 3</td>
-        </tr>
-        <tr>
-          <td style="border: 1px solid #ccc; padding: 8px;">Cell 1</td>
-          <td style="border: 1px solid #ccc; padding: 8px;">Cell 2</td>
-          <td style="border: 1px solid #ccc; padding: 8px;">Cell 3</td>
-        </tr>
-        <tr>
-          <td style="border: 1px solid #ccc; padding: 8px;">Cell 4</td>
-          <td style="border: 1px solid #ccc; padding: 8px;">Cell 5</td>
-          <td style="border: 1px solid #ccc; padding: 8px;">Cell 6</td>
-        </tr>
-      </table>
-    `;
-    execCommand('insertHTML', tableHTML);
+    const tableHTML = `<table id="${tableId}" style="border-collapse: collapse; width: 100%; margin: 10px 0; border: 2px solid #ccc;"><tr><td style="border: 1px solid #ccc; padding: 8px; background-color: #f5f5f5; font-weight: bold;">Header 1</td><td style="border: 1px solid #ccc; padding: 8px; background-color: #f5f5f5; font-weight: bold;">Header 2</td><td style="border: 1px solid #ccc; padding: 8px; background-color: #f5f5f5; font-weight: bold;">Header 3</td></tr><tr><td style="border: 1px solid #ccc; padding: 8px;">Cell 1</td><td style="border: 1px solid #ccc; padding: 8px;">Cell 2</td><td style="border: 1px solid #ccc; padding: 8px;">Cell 3</td></tr><tr><td style="border: 1px solid #ccc; padding: 8px;">Cell 4</td><td style="border: 1px solid #ccc; padding: 8px;">Cell 5</td><td style="border: 1px solid #ccc; padding: 8px;">Cell 6</td></tr></table>`;
+    insertHTMLAtCursor(tableHTML);
     
     // Make table interactive after insertion
     setTimeout(() => {
@@ -771,13 +803,12 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
                  draggable="false" />
           </div>
         `;
-        execCommand('insertHTML', imgHTML);
+        insertHTMLAtCursor(imgHTML);
         
         // Add event listeners after insertion with delay to ensure DOM is updated
         setTimeout(() => {
           const img = document.getElementById(imgId);
           if (img) {
-            console.log('Making uploaded image interactive:', img);
             img.dataset.interactive = 'true';
             makeImageInteractive(img as HTMLImageElement);
           }
