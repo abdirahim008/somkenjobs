@@ -117,90 +117,131 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
     setTimeout(() => setCursorOffset(cursorOffset), 50);
   };
 
-  // Clean and sanitize pasted HTML content
-  const cleanPastedContent = (html: string): string => {
-    console.log('Original pasted content:', html);
-    
-    // First pass: Strip all style blocks and Microsoft Office elements
-    let preprocessed = html
-      // Remove entire style blocks
+  // Clean pasted HTML preserving table structure
+  const cleanPastedHTMLWithTables = (html: string): string => {
+    const preprocessed = html
+      .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '')
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-      // Remove Microsoft Office XML and namespaces
       .replace(/<\?xml[^>]*>/gi, '')
       .replace(/xmlns[^=]*="[^"]*"/gi, '')
-      // Remove all Microsoft Office specific tags
       .replace(/<o:[^>]*>[\s\S]*?<\/o:[^>]*>/gi, '')
       .replace(/<w:[^>]*>[\s\S]*?<\/w:[^>]*>/gi, '')
       .replace(/<m:[^>]*>[\s\S]*?<\/m:[^>]*>/gi, '')
-      // Remove HTML head section entirely
-      .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '')
-      // Remove all HTML comments
       .replace(/<!--[\s\S]*?-->/gi, '')
-      // Remove meta tags
       .replace(/<meta[^>]*>/gi, '')
       .replace(/<link[^>]*>/gi, '');
 
-    // Create temporary DOM element and extract only text
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = preprocessed;
-    
-    // Extract pure text content
-    let textContent = tempDiv.textContent || tempDiv.innerText || '';
-    
-    // Aggressive cleaning of Microsoft Office artifacts
-    let cleaned = textContent
-      // Remove CSS style fragments completely
-      .replace(/\/\*[\s\S]*?\*\//g, '')                // Remove CSS comments
-      .replace(/@font-face\s*\{[^}]*\}/gi, '')         // Remove font-face declarations
-      .replace(/p\.MsoNormal[^}]*\}/gi, '')            // Remove MsoNormal styles
-      .replace(/\.MsoChpDefault[^}]*\}/gi, '')         // Remove MsoChpDefault styles
-      .replace(/\.MsoPapDefault[^}]*\}/gi, '')         // Remove MsoPapDefault styles
-      .replace(/@page\s+WordSection1[^}]*\}/gi, '')    // Remove page styles
-      .replace(/div\.WordSection1[^}]*\}/gi, '')       // Remove WordSection styles
-      .replace(/panose-1:[^}]*\}/gi, '')               // Remove panose font definitions
-      .replace(/margin-[^:]*:[^;}]*[;}]/gi, '')        // Remove margin styles
-      .replace(/font-family:[^;}]*[;}]/gi, '')         // Remove font-family styles
-      .replace(/line-height:[^;}]*[;}]/gi, '')         // Remove line-height styles
-      .replace(/color:[^;}]*[;}]/gi, '')               // Remove color styles
-      .replace(/text-[^:]*:[^;}]*[;}]/gi, '')          // Remove text-* styles
-      .replace(/New Roman[^}]*\}/gi, '')               // Remove Times New Roman references
-      // Remove style property fragments
-      .replace(/mso-[^;\s]*[;\s]*/gi, '')
-      .replace(/level\d+\s+lfo\d+/gi, '')
-      .replace(/[0-9]+\s+[0-9]+\s+[0-9]+\s+[0-9]+/g, '')  // Remove number sequences
-      // Clean up remaining artifacts
-      .replace(/[{};]/g, ' ')                          // Replace CSS brackets and semicolons
-      .replace(/<!--[^>]*-->/g, '')                    // Remove remaining comments
-      .replace(/^\s*[-·•]\s*/gm, '• ')                 // Normalize bullet points
-      .replace(/\s+/g, ' ')                            // Replace multiple spaces
-      .replace(/\n\s*\n\s*\n/g, '\n\n')               // Replace multiple newlines
-      .replace(/^\s+|\s+$/g, '')                       // Trim whitespace
-      .trim();
 
-    console.log('Cleaned pasted content (text-only):', cleaned);
-    return cleaned;
+    // Style all tables cleanly
+    tempDiv.querySelectorAll('table').forEach(table => {
+      table.removeAttribute('class');
+      (table as HTMLElement).style.cssText = 'border-collapse: collapse; width: 100%; margin: 10px 0; border: 1px solid #ccc;';
+      table.querySelectorAll('td, th').forEach(cell => {
+        const el = cell as HTMLElement;
+        el.removeAttribute('class');
+        const isTh = cell.tagName === 'TH';
+        el.style.cssText = `border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top;${isTh ? ' font-weight: bold; background-color: #f5f5f5;' : ''}`;
+      });
+      table.querySelectorAll('tr').forEach(tr => tr.removeAttribute('class'));
+    });
+
+    // Clean non-table elements: strip classes/styles but keep text + basic tags
+    const cleanElement = (el: Element) => {
+      const tag = el.tagName;
+      if (['TABLE','THEAD','TBODY','TR','TD','TH'].includes(tag)) return;
+      el.removeAttribute('class');
+      el.removeAttribute('style');
+      el.removeAttribute('lang');
+      el.removeAttribute('dir');
+      Array.from(el.children).forEach(cleanElement);
+    };
+    Array.from(tempDiv.children).forEach(cleanElement);
+
+    return tempDiv.innerHTML;
   };
 
-  // Handle paste events to clean content
+  // Clean and sanitize pasted HTML content to plain text (for non-table content)
+  const cleanPastedContent = (html: string): string => {
+    const preprocessed = html
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<\?xml[^>]*>/gi, '')
+      .replace(/xmlns[^=]*="[^"]*"/gi, '')
+      .replace(/<o:[^>]*>[\s\S]*?<\/o:[^>]*>/gi, '')
+      .replace(/<w:[^>]*>[\s\S]*?<\/w:[^>]*>/gi, '')
+      .replace(/<m:[^>]*>[\s\S]*?<\/m:[^>]*>/gi, '')
+      .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '')
+      .replace(/<!--[\s\S]*?-->/gi, '')
+      .replace(/<meta[^>]*>/gi, '')
+      .replace(/<link[^>]*>/gi, '');
+
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = preprocessed;
+    let textContent = tempDiv.textContent || tempDiv.innerText || '';
+
+    return textContent
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/mso-[^;\s]*[;\s]*/gi, '')
+      .replace(/\s+/g, ' ')
+      .replace(/\n\s*\n\s*\n/g, '\n\n')
+      .trim();
+  };
+
+  // Handle paste events - smart detection of tables and images
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
-    
+
     const clipboardData = e.clipboardData;
+
+    // 1. Check for a pasted image (screenshot or copy from image viewer)
+    const items = Array.from(clipboardData.items);
+    const imageItem = items.find(item => item.type.startsWith('image/'));
+    if (imageItem) {
+      const blob = imageItem.getAsFile();
+      if (blob) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const dataUrl = ev.target?.result as string;
+          const imgId = `img_${Date.now()}`;
+          const imgHTML = `<div class="image-container" style="position: relative; display: inline-block; margin: 10px 0; min-height: 50px;"><img id="${imgId}" src="${dataUrl}" alt="Pasted image" style="max-width: 300px; width: 300px; height: auto; border: 2px solid transparent; border-radius: 4px; cursor: pointer; display: block; user-select: none;" draggable="false" /></div>`;
+          document.execCommand('insertHTML', false, imgHTML);
+          setTimeout(() => {
+            const img = document.getElementById(imgId);
+            if (img) {
+              img.dataset.interactive = 'true';
+              makeImageInteractive(img as HTMLImageElement);
+            }
+          }, 200);
+        };
+        reader.readAsDataURL(blob);
+        return;
+      }
+    }
+
+    // 2. Check for HTML with tables — preserve structure
     const htmlData = clipboardData.getData('text/html');
     const textData = clipboardData.getData('text/plain');
-    
-    let contentToInsert = '';
-    
-    if (htmlData) {
-      // Clean the HTML content
-      contentToInsert = cleanPastedContent(htmlData);
-    } else if (textData) {
-      contentToInsert = textData;
+
+    if (htmlData && /<table[\s>]/i.test(htmlData)) {
+      const cleanedHTML = cleanPastedHTMLWithTables(htmlData);
+      document.execCommand('insertHTML', false, cleanedHTML);
+      // Make pasted tables interactive
+      requestAnimationFrame(() => {
+        editorRef.current?.querySelectorAll('table:not([data-interactive])').forEach(table => {
+          table.setAttribute('data-interactive', 'true');
+          styleTable(table as HTMLTableElement);
+          makeTableInteractive(table as HTMLTableElement);
+        });
+      });
+      return;
     }
-    
-    if (contentToInsert) {
-      // Insert the cleaned content
-      document.execCommand('insertText', false, contentToInsert);
+
+    // 3. Other HTML — strip to clean text
+    if (htmlData) {
+      document.execCommand('insertText', false, cleanPastedContent(htmlData));
+    } else if (textData) {
+      document.execCommand('insertText', false, textData);
     }
   };
 
