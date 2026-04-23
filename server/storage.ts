@@ -99,6 +99,7 @@ export class MemStorage implements IStorage {
         sector: "Food Security",
         source: "reliefweb",
         externalId: "sample-wfp-1",
+        visibility: "public" as const,
         type: "job" as const
       },
       {
@@ -113,6 +114,7 @@ export class MemStorage implements IStorage {
         sector: "Health",
         source: "reliefweb",
         externalId: "sample-msf-1",
+        visibility: "public" as const,
         type: "job" as const
       },
 
@@ -128,6 +130,7 @@ export class MemStorage implements IStorage {
         sector: "WASH",
         source: "reliefweb",
         externalId: "sample-oxfam-1",
+        visibility: "public" as const,
         type: "job" as const
       },
       {
@@ -142,6 +145,7 @@ export class MemStorage implements IStorage {
         sector: "Shelter",
         source: "internal",
         externalId: "sample-tender-1",
+        visibility: "public" as const,
         type: "tender" as const
       },
 
@@ -285,7 +289,8 @@ export class MemStorage implements IStorage {
       type: insertJob.type || "job",
       attachmentUrl: insertJob.attachmentUrl || null,
       createdBy: insertJob.createdBy ?? null,
-      jobNumber: insertJob.jobNumber ?? null
+      jobNumber: insertJob.jobNumber ?? null,
+      privateToken: insertJob.privateToken ?? null
     };
     this.jobs.set(id, job);
     return job;

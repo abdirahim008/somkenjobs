@@ -220,6 +220,7 @@ export class JobFetcher {
             qualifications: null, // Will be extracted from description
             responsibilities: null, // Will be extracted from description
             bodyHtml: fullHtmlDescription,
+            visibility: "public" as const,
             type: "job" // ReliefWeb jobs are always job opportunities, not tenders
           };
 
@@ -358,6 +359,7 @@ export class JobFetcher {
               qualifications: null,
               responsibilities: null,
               bodyHtml: rawDescription || undefined,
+              visibility: "public" as const,
               type: "job"
             };
 
@@ -441,6 +443,7 @@ export class JobFetcher {
           sector: "General",
           source: "unjobs",
           externalId: externalId,
+          visibility: "public" as const,
           type: "job" // UN Jobs are always job opportunities, not tenders
         };
 
@@ -586,6 +589,7 @@ export class JobFetcher {
                 qualifications: null,
                 responsibilities: null,
                 bodyHtml: undefined,
+                visibility: "public" as const,
                 type: "tender"
               };
 

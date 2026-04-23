@@ -40,6 +40,7 @@ export async function seedDatabase(): Promise<void> {
   const sampleJobs: InsertJob[] = [
     {
       type: "job",
+      visibility: "public",
       title: "Humanitarian Program Officer",
       organization: "World Food Programme",
       location: "Nairobi",
@@ -54,6 +55,7 @@ export async function seedDatabase(): Promise<void> {
     },
     {
       type: "job",
+      visibility: "public",
       title: "Health Coordinator",
       organization: "Medecins Sans Frontieres",
       location: "Mogadishu",
@@ -68,6 +70,7 @@ export async function seedDatabase(): Promise<void> {
     },
     {
       type: "job",
+      visibility: "public",
       title: "Education Specialist",
       organization: "UNICEF",
       location: "Kisumu",
@@ -82,6 +85,7 @@ export async function seedDatabase(): Promise<void> {
     },
     {
       type: "job",
+      visibility: "public",
       title: "WASH Program Manager",
       organization: "Oxfam International",
       location: "Hargeisa",
@@ -96,6 +100,7 @@ export async function seedDatabase(): Promise<void> {
     },
     {
       type: "job",
+      visibility: "public",
       title: "Protection Officer",
       organization: "UNHCR",
       location: "Dadaab",
