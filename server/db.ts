@@ -1,3 +1,4 @@
+import "dotenv/config";
 import * as schema from "@shared/schema";
 
 if (!process.env.DATABASE_URL) {
