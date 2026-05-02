@@ -141,7 +141,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Set up uploads directory for file storage
-  const uploadsDir = path.join(process.cwd(), 'uploads');
+  const uploadsDir = process.env.VERCEL
+    ? path.join('/tmp', 'uploads')
+    : path.join(process.cwd(), 'uploads');
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }

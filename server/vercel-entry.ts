@@ -52,14 +52,18 @@ function doInitialize(): Promise<void> {
     try {
       await registerRoutes(app);
 
-      const publicPath = path.join(process.cwd(), "api", "public");
-      if (fs.existsSync(publicPath)) {
+      const publicPathCandidates = [
+        path.join(process.cwd(), "dist", "public"),
+        path.join(process.cwd(), "api", "public"),
+      ];
+      const publicPath = publicPathCandidates.find((candidate) => fs.existsSync(candidate));
+      if (publicPath) {
         app.use(express.static(publicPath));
         app.use("*", (_req: Request, res: Response) => {
           res.sendFile(path.join(publicPath, "index.html"));
         });
       } else {
-        console.warn("Static files not found at", publicPath);
+        console.warn("Static files not found at", publicPathCandidates.join(" or "));
       }
 
       initialized = true;

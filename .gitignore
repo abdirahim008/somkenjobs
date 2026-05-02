@@ -12,3 +12,5 @@ database-export/
 # Vercel build artifacts (generated at deploy time, not committed)
 api/server.js
 api/public/
+
+.vercel
