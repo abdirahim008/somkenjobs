@@ -5,6 +5,8 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+*.sql
+*_backup.*
 database-export/
 
 # Vercel build artifacts (generated at deploy time, not committed)

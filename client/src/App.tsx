@@ -10,6 +10,7 @@ import Home from "@/pages/home";
 const Jobs = lazy(() => import("@/pages/jobs"));
 const Tenders = lazy(() => import("@/pages/tenders"));
 const JobDetails = lazy(() => import("@/pages/job-details"));
+const JobLanding = lazy(() => import("@/pages/job-landing"));
 const About = lazy(() => import("@/pages/about"));
 const Contact = lazy(() => import("@/pages/contact"));
 const TestComponent = lazy(() => import("@/test-component"));
@@ -34,6 +35,10 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/jobs" component={Jobs} />
         <Route path="/tenders" component={Tenders} />
+        <Route path="/jobs/country/:country" component={JobLanding} />
+        <Route path="/jobs/sector/:sector" component={JobLanding} />
+        <Route path="/ngo-jobs/somalia" component={JobLanding} />
+        <Route path="/ngo-jobs" component={JobLanding} />
         <Route path="/jobs/:id" component={JobDetails} />
         <Route path="/test" component={TestComponent} />
         <Route path="/about" component={About} />

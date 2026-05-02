@@ -14,6 +14,7 @@ import Breadcrumb, { generateJobBreadcrumbs } from "@/components/Breadcrumb";
 import { type Job } from "@shared/schema";
 import { generateJobOGTitle, generateJobOGDescription } from "@/utils/generateJobOGImage";
 import { generateJobSlug } from "@shared/utils";
+import { sanitizeRichHtml } from "@/lib/sanitizeHtml";
 
 export default function JobDetails() {
   const [match, params] = useRoute("/jobs/:id");
@@ -318,18 +319,11 @@ export default function JobDetails() {
   // Used instead of cleanText() for HTML content that comes from the editor.
   const renderHtmlContent = (html: string): string => {
     if (!html) return '';
-    return html
-      // Remove only dangerous/invisible elements
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-      .replace(/<!--\[if[^>]*>[\s\S]*?<!\[endif\]-->/gi, '')
-      .replace(/<!--[^>]*-->/gi, '')
-      // Remove event handlers
-      .replace(/\s+on\w+="[^"]*"/gi, '')
-      .replace(/\s+on\w+='[^']*'/gi, '')
+    const withMarkdownFormatting = html
       // Convert markdown bold/italic that may appear in plain-text fields
       .replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
+    return sanitizeRichHtml(withMarkdownFormatting);
   };
 
   // Helper function to convert URLs and emails to clickable links
@@ -659,6 +653,7 @@ export default function JobDetails() {
           jobPostedDate={new Date(job.datePosted).toISOString()}
           pageType="job-detail"
           optimizeTitleAndDescription={true}
+          noindex={(job as any).visibility === 'private' || !!token}
         />
       )}
       <Header />

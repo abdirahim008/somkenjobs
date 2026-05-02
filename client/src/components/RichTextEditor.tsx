@@ -449,7 +449,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     <div className={`rich-text-editor ${isResizing ? 'resizing' : ''}`} ref={containerRef}>
       <div className="relative">
         <ReactQuill
-          ref={(el) => {
+          ref={(el: any) => {
             console.log('ReactQuill ref callback:', el);
             if (el && el.getEditor() !== quillRef) {
               setQuillRef(el.getEditor());

@@ -22,6 +22,7 @@ interface SEOHeadProps {
   pageType?: 'homepage' | 'jobs' | 'job-detail' | 'search';
   jobCount?: number;
   optimizeTitleAndDescription?: boolean; // Flag to enable/disable optimization
+  noindex?: boolean;
 }
 
 export default function SEOHead({ 
@@ -38,7 +39,8 @@ export default function SEOHead({
   jobPostedDate,
   pageType,
   jobCount,
-  optimizeTitleAndDescription = true
+  optimizeTitleAndDescription = true,
+  noindex = false
 }: SEOHeadProps) {
   useEffect(() => {
     // Optimize title and description if optimization is enabled
@@ -154,6 +156,14 @@ export default function SEOHead({
       }
       canonicalLink.setAttribute('href', canonicalUrl);
     }
+
+    let robots = document.querySelector('meta[name="robots"]');
+    if (!robots) {
+      robots = document.createElement('meta');
+      robots.setAttribute('name', 'robots');
+      document.head.appendChild(robots);
+    }
+    robots.setAttribute('content', noindex ? 'noindex, nofollow' : 'index, follow');
 
     // Update Open Graph title with optimized version
     if (optimizedTitle) {
@@ -440,7 +450,7 @@ export default function SEOHead({
         ogImage: 'removed - no images in social media previews'
       });
     }
-  }, [title, description, keywords, canonicalUrl, ogImage, jobLocation, jobOrganization, jobDeadline, jobSector, jobCountry, jobPostedDate, pageType, jobCount, optimizeTitleAndDescription]);
+  }, [title, description, keywords, canonicalUrl, ogImage, jobLocation, jobOrganization, jobDeadline, jobSector, jobCountry, jobPostedDate, pageType, jobCount, optimizeTitleAndDescription, noindex]);
 
   return null; // This component doesn't render anything
 }

@@ -12,9 +12,11 @@ import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import fs from "fs";
 import path from "path";
+import { randomBytes } from "crypto";
 import { fileURLToPath } from 'url';
 import multer from "multer";
 import { parse as csvParse } from "csv-parse/sync";
+import { sanitizeJobContentFields, sanitizeRichHtml } from "./utils/sanitizeHtml";
 import { 
   isBotUserAgent, 
   generateHomepageHTML, 
@@ -24,9 +26,37 @@ import {
 } from "./utils/ssrUtils";
 import { jobsCache } from "./services/jobsCache";
 
-const JWT_SECRET = process.env.JWT_SECRET || "jobconnect-secret-key-change-in-production";
+const JWT_SECRET = (() => {
+  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("JWT_SECRET must be set in production");
+  }
+  console.warn("JWT_SECRET is not set; using a development-only fallback secret.");
+  return "development-only-jwt-secret-change-me";
+})();
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+const generatePrivateToken = () => randomBytes(32).toString("hex");
+
+const escapeHtml = (text: string | null | undefined) => String(text || "")
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#39;");
+
+const safeUrl = (url: string | null | undefined) => {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    return ["http:", "https:", "mailto:", "tel:"].includes(parsed.protocol) ? parsed.toString() : "";
+  } catch {
+    return "";
+  }
+};
+
+const jsonLd = (data: unknown) => JSON.stringify(data).replace(/</g, "\\u003c");
 
 interface AuthRequest extends Request {
   user?: User;
@@ -62,6 +92,25 @@ const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
   next();
 };
 
+const requireAdminOrCronSecret = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret && req.headers.authorization === `Bearer ${cronSecret}`) {
+    return next();
+  }
+
+  return authenticate(req, res, () => requireAdmin(req, res, next));
+};
+
+const profileUpdateSchema = z.object({
+  firstName: z.string().min(1).optional(),
+  lastName: z.string().min(1).optional(),
+  companyName: z.string().min(1).optional(),
+  jobTitle: z.string().min(1).optional(),
+  phoneNumber: z.string().nullable().optional(),
+  position: z.string().nullable().optional(),
+  bio: z.string().nullable().optional(),
+}).strict();
+
 // Helper function to transform string or string[] to string[]
 const arrayTransform = z.union([z.string(), z.array(z.string())]).transform((val) => 
   Array.isArray(val) ? val : [val]
@@ -96,8 +145,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
-  // Serve uploaded files as static assets
-  app.use('/uploads', express.static(uploadsDir));
+  // Serve uploaded files as downloads so active content cannot execute on the main origin.
+  app.use('/uploads', express.static(uploadsDir, {
+    setHeaders: (res, filePath) => {
+      const filename = path.basename(filePath).replace(/"/g, "");
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+    },
+  }));
 
   // File upload endpoint
   app.post('/api/upload', authenticate, upload.single('file'), async (req: AuthRequest, res) => {
@@ -474,7 +530,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Unauthorized to update this profile" });
       }
 
-      const updatedUser = await storage.updateUser(userId, req.body);
+      const profileUpdates = profileUpdateSchema.parse(req.body);
+      const updatedUser = await storage.updateUser(userId, profileUpdates);
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -483,6 +540,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(userWithoutPassword);
     } catch (error) {
       console.error("Error updating user profile:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid profile update", errors: error.errors });
+      }
       res.status(500).json({ message: "Failed to update profile" });
     }
   });
@@ -804,7 +864,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Force refresh jobs (for testing)
-  app.post("/api/jobs/refresh", async (req, res) => {
+  app.post("/api/jobs/refresh", requireAdminOrCronSecret, async (req, res) => {
     try {
       await jobFetcher.fetchAllJobs();
       res.json({ message: "Job refresh initiated" });
@@ -985,7 +1045,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Validate and transform job data
-      const jobData = req.body;
+      const jobData = sanitizeJobContentFields(req.body);
       
       // Clean text fields of Microsoft Office formatting
       if (jobData.description) jobData.description = cleanMicrosoftText(jobData.description);
@@ -1009,9 +1069,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...(jobData.deadline ? { deadline: new Date(jobData.deadline) } : {}),
         ...(jobData.datePosted ? { datePosted: new Date(jobData.datePosted) } : {}),
         visibility: isNowPrivate ? 'private' : 'public',
-        privateToken: isNowPrivate
-          ? (jobData.privateToken || existingJob.privateToken || `${Math.random().toString(36).substring(2)}${Date.now().toString(36)}`)
-          : null,
+        privateToken: isNowPrivate ? (jobData.privateToken || existingJob.privateToken || generatePrivateToken()) : null,
       };
       
       const updatedJob = await storage.updateJob(jobId, transformedData);
@@ -1064,7 +1122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (Array.isArray(req.body.attachmentUrls) && req.body.attachmentUrls.length > 0) {
         attachmentUrlValue = JSON.stringify(req.body.attachmentUrls);
       }
-      const jobDataWithDefaults = {
+      const jobDataWithDefaults = sanitizeJobContentFields({
         ...req.body,
         attachmentUrl: attachmentUrlValue,
         createdBy: userId,
@@ -1073,8 +1131,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         datePosted: req.body.datePosted || new Date(),
         url: req.body.url || "",
         visibility: isPrivate ? 'private' : 'public',
-        privateToken: isPrivate ? (req.body.privateToken || `${Math.random().toString(36).substring(2)}${Date.now().toString(36)}`) : null,
-      };
+        privateToken: isPrivate ? (req.body.privateToken || generatePrivateToken()) : null,
+      });
       delete jobDataWithDefaults.attachmentUrls;
       
       const jobData = insertJobSchema.parse(jobDataWithDefaults);
@@ -1187,7 +1245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (let i = 0; i < jobsArray.length; i++) {
         const rawJob = jobsArray[i];
         try {
-          const jobDataWithDefaults = {
+          const jobDataWithDefaults = sanitizeJobContentFields({
             title: rawJob.title,
             organization: rawJob.organization,
             location: rawJob.location,
@@ -1209,7 +1267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: rawJob.type || "job",
             attachmentUrl: rawJob.attachmentUrl || null,
             jobNumber: rawJob.jobNumber || null,
-          };
+          });
 
           const jobData = insertJobSchema.parse(jobDataWithDefaults);
           await storage.createJob(jobData);
@@ -1307,7 +1365,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const jobId = parseInt(req.params.id);
       
       // Validate and transform job data — strip createdAt and convert all date strings to Date objects
-      const jobData = req.body;
+      const jobData = sanitizeJobContentFields(req.body);
       const { createdAt: _omitCreatedAt, ...jobDataWithoutCreatedAt } = jobData;
       const transformedData = {
         ...jobDataWithoutCreatedAt,
@@ -1581,8 +1639,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get jobs for this country
       const allJobs = await storage.getAllJobs();
+      const now = new Date();
       const countryJobs = allJobs.filter(job => 
         job.country.toLowerCase() === countryParam
+        && (!job.type || job.type === "job")
+        && job.status === "published"
+        && job.visibility !== "private"
+        && (!job.deadline || new Date(job.deadline) >= now)
       );
       
       const pageUrl = `https://somkenjobs.com/jobs/country/${countryParam}`;
@@ -1609,24 +1672,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${pageUrl}">`);
       html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${pageUrl}">`);
       
-      // Add structured data for ItemList
+      // Add collection structured data on list pages.
       const structuredData = {
         "@context": "https://schema.org",
-        "@type": "ItemList",
+        "@type": "CollectionPage",
         "name": `Humanitarian Jobs in ${countryName}`,
         "description": pageDescription,
-        "numberOfItems": countryJobs.length,
-        "itemListElement": countryJobs.slice(0, 10).map((job, index) => ({
-          "@type": "ListItem",
-          "position": index + 1,
-          "item": {
-            "@type": "JobPosting",
-            "title": job.title,
-            "hiringOrganization": { "@type": "Organization", "name": job.organization },
-            "jobLocation": { "@type": "Place", "address": { "@type": "PostalAddress", "addressLocality": job.location, "addressCountry": countryName } },
-            "url": `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`
-          }
-        }))
+        "url": pageUrl,
+        "isPartOf": { "@type": "WebSite", "name": "Somken Jobs", "url": "https://somkenjobs.com/" },
+        "about": [`jobs in ${countryName}`, `NGO jobs in ${countryName}`, `humanitarian jobs in ${countryName}`],
+        "mainEntity": {
+          "@type": "ItemList",
+          "numberOfItems": countryJobs.length,
+          "itemListElement": countryJobs.slice(0, 10).map((job, index) => ({
+            "@type": "ListItem",
+            "position": index + 1,
+            "url": `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`,
+            "name": job.title
+          }))
+        }
       };
       
       // Add breadcrumb structured data
@@ -1641,8 +1705,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const additionalTags = `
-    <script type="application/ld+json">${JSON.stringify(structuredData)}</script>
-    <script type="application/ld+json">${JSON.stringify(breadcrumbData)}</script>`;
+    <script type="application/ld+json">${jsonLd(structuredData)}</script>
+    <script type="application/ld+json">${jsonLd(breadcrumbData)}</script>`;
       
       html = html.replace(/<\/head>/, `${additionalTags}\n  </head>`);
       
@@ -1687,8 +1751,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get jobs for this sector
       const allJobs = await storage.getAllJobs();
+      const now = new Date();
       const sectorJobs = allJobs.filter(job => 
         job.sector && job.sector.toLowerCase().includes(sectorParam.replace('-', ' '))
+        && (!job.type || job.type === "job")
+        && job.status === "published"
+        && job.visibility !== "private"
+        && (!job.deadline || new Date(job.deadline) >= now)
       );
       
       const pageUrl = `https://somkenjobs.com/jobs/sector/${sectorParam}`;
@@ -1715,23 +1784,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${pageUrl}">`);
       html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${pageUrl}">`);
       
-      // Add structured data
+      // Add collection structured data on list pages.
       const structuredData = {
         "@context": "https://schema.org",
-        "@type": "ItemList",
+        "@type": "CollectionPage",
         "name": `${sectorName} Jobs in East Africa`,
         "description": pageDescription,
-        "numberOfItems": sectorJobs.length,
-        "itemListElement": sectorJobs.slice(0, 10).map((job, index) => ({
-          "@type": "ListItem",
-          "position": index + 1,
-          "item": {
-            "@type": "JobPosting",
-            "title": job.title,
-            "hiringOrganization": { "@type": "Organization", "name": job.organization },
-            "url": `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`
-          }
-        }))
+        "url": pageUrl,
+        "isPartOf": { "@type": "WebSite", "name": "Somken Jobs", "url": "https://somkenjobs.com/" },
+        "about": [`${sectorName} jobs`, `NGO ${sectorName.toLowerCase()} jobs`, "humanitarian jobs in East Africa"],
+        "mainEntity": {
+          "@type": "ItemList",
+          "numberOfItems": sectorJobs.length,
+          "itemListElement": sectorJobs.slice(0, 10).map((job, index) => ({
+            "@type": "ListItem",
+            "position": index + 1,
+            "url": `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`,
+            "name": job.title
+          }))
+        }
       };
       
       const breadcrumbData = {
@@ -1745,14 +1816,144 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const additionalTags = `
-    <script type="application/ld+json">${JSON.stringify(structuredData)}</script>
-    <script type="application/ld+json">${JSON.stringify(breadcrumbData)}</script>`;
+    <script type="application/ld+json">${jsonLd(structuredData)}</script>
+    <script type="application/ld+json">${jsonLd(breadcrumbData)}</script>`;
       
       html = html.replace(/<\/head>/, `${additionalTags}\n  </head>`);
       
       res.send(html);
     } catch (error) {
       console.error('Error serving sector page:', error);
+      res.status(500).send('Error loading page');
+    }
+  });
+
+  app.get('/jobs-in-somalia', (_req, res) => res.redirect(301, '/jobs/country/somalia'));
+  app.get('/jobs-in-kenya', (_req, res) => res.redirect(301, '/jobs/country/kenya'));
+  app.get('/jobs/somalia', (_req, res) => res.redirect(301, '/jobs/country/somalia'));
+  app.get('/jobs/kenya', (_req, res) => res.redirect(301, '/jobs/country/kenya'));
+  app.get('/ngo-jobs-in-somalia', (_req, res) => res.redirect(301, '/ngo-jobs/somalia'));
+  app.get('/help', (_req, res) => res.redirect(301, '/help-center'));
+  app.get('/privacy', (_req, res) => res.redirect(301, '/privacy-policy'));
+  app.get('/terms', (_req, res) => res.redirect(301, '/terms-of-service'));
+
+  const ngoTerms = ["ngo", "non-government", "non government", "humanitarian", "relief", "development", "un ", "unhcr", "unicef", "wfp", "who"];
+  const isPublicCurrentJob = (job: any) => {
+    const deadline = job.deadline ? new Date(job.deadline) : null;
+    return (!job.type || job.type === "job")
+      && job.status === "published"
+      && job.visibility !== "private"
+      && (!deadline || deadline >= new Date());
+  };
+  const matchesNgoJob = (job: any) => {
+    const haystack = `${job.title || ""} ${job.organization || ""} ${job.description || ""} ${job.source || ""}`.toLowerCase();
+    return ngoTerms.some((term) => haystack.includes(term));
+  };
+  const readIndexTemplate = () => {
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const htmlPath = path.join(__dirname, '../dist/public/index.html');
+    try {
+      return fs.readFileSync(htmlPath, 'utf-8');
+    } catch {
+      const devHtmlPath = path.join(__dirname, '../client/index.html');
+      return fs.readFileSync(devHtmlPath, 'utf-8');
+    }
+  };
+
+  const keywordLandingPages: Record<string, {
+    title: string;
+    description: string;
+    canonicalPath: string;
+    name: string;
+    about: string[];
+    breadcrumbName: string;
+    filter: (job: any) => boolean;
+  }> = {
+    '/ngo-jobs': {
+      title: 'NGO Jobs in Somalia & Kenya | Humanitarian Careers | Somken Jobs',
+      description: 'Find NGO jobs, humanitarian vacancies, UN roles, and development careers across Somalia, Kenya, and East Africa. Updated with current openings from trusted sources.',
+      canonicalPath: '/ngo-jobs',
+      name: 'NGO Jobs in Somalia, Kenya, and East Africa',
+      about: ['NGO jobs', 'humanitarian jobs', 'UN jobs', 'development jobs'],
+      breadcrumbName: 'NGO Jobs',
+      filter: (job) => matchesNgoJob(job),
+    },
+    '/ngo-jobs/somalia': {
+      title: 'NGO Jobs in Somalia | UN & Humanitarian Vacancies | Somken Jobs',
+      description: 'Find current NGO jobs in Somalia, including humanitarian, UN, development, health, protection, WASH, logistics, and program vacancies.',
+      canonicalPath: '/ngo-jobs/somalia',
+      name: 'NGO Jobs in Somalia',
+      about: ['NGO jobs in Somalia', 'UN jobs Somalia', 'humanitarian jobs Somalia'],
+      breadcrumbName: 'NGO Jobs in Somalia',
+      filter: (job) => job.country === 'Somalia' && matchesNgoJob(job),
+    },
+  };
+
+  app.get(['/ngo-jobs', '/ngo-jobs/somalia'], async (req, res, next) => {
+    try {
+      const acceptHeader = req.get('Accept') || '';
+      if (!acceptHeader.includes('text/html')) {
+        return next();
+      }
+
+      const config = keywordLandingPages[req.path];
+      if (!config) {
+        return next();
+      }
+
+      const allJobs = await storage.getAllJobs();
+      const matchingJobs = allJobs.filter((job) => isPublicCurrentJob(job) && config.filter(job));
+      const pageUrl = `https://somkenjobs.com${config.canonicalPath}`;
+      let html = readIndexTemplate();
+
+      html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(config.title)}</title>`);
+      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeHtml(config.description)}">`);
+      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeHtml(config.title)}">`);
+      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeHtml(config.description)}">`);
+      html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${pageUrl}">`);
+      html = html.replace(/<meta name="twitter:title" content="[^"]*">/, `<meta name="twitter:title" content="${escapeHtml(config.title)}">`);
+      html = html.replace(/<meta name="twitter:description" content="[^"]*">/, `<meta name="twitter:description" content="${escapeHtml(config.description)}">`);
+      html = html.replace(/<meta name="twitter:url" content="[^"]*">/, `<meta name="twitter:url" content="${pageUrl}">`);
+      html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${pageUrl}">`);
+
+      const structuredData = {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": config.name,
+        "description": config.description,
+        "url": pageUrl,
+        "isPartOf": { "@type": "WebSite", "name": "Somken Jobs", "url": "https://somkenjobs.com/" },
+        "about": config.about,
+        "mainEntity": {
+          "@type": "ItemList",
+          "numberOfItems": matchingJobs.length,
+          "itemListElement": matchingJobs.slice(0, 10).map((job, index) => ({
+            "@type": "ListItem",
+            "position": index + 1,
+            "url": `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`,
+            "name": job.title,
+          })),
+        },
+      };
+
+      const breadcrumbData = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://somkenjobs.com/" },
+          { "@type": "ListItem", "position": 2, "name": "Jobs", "item": "https://somkenjobs.com/jobs" },
+          { "@type": "ListItem", "position": 3, "name": config.breadcrumbName, "item": pageUrl },
+        ],
+      };
+
+      const additionalTags = `
+    <script type="application/ld+json">${jsonLd(structuredData)}</script>
+    <script type="application/ld+json">${jsonLd(breadcrumbData)}</script>`;
+
+      html = html.replace(/<\/head>/, `${additionalTags}\n  </head>`);
+      res.send(html);
+    } catch (error) {
+      console.error('Error serving keyword landing page:', error);
       res.status(500).send('Error loading page');
     }
   });
@@ -1969,9 +2170,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const twitterLabels = `
     <!-- Enhanced Twitter Cards for Job Previews -->
     <meta name="twitter:label1" content="Employer">
-    <meta name="twitter:data1" content="${job.organization}">
+    <meta name="twitter:data1" content="${escapeHtml(job.organization)}">
     <meta name="twitter:label2" content="Location">
-    <meta name="twitter:data2" content="${job.location}, ${job.country}">
+    <meta name="twitter:data2" content="${escapeHtml(job.location)}, ${escapeHtml(job.country)}">
     ${job.deadline ? `<meta name="twitter:label3" content="Deadline">
     <meta name="twitter:data3" content="${Math.ceil((new Date(job.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left">` : ''}`;
     
@@ -2013,21 +2214,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Safely renders HTML for body content — strips only dangerous tags/attributes
       const safeHtml = (html: string): string => {
         if (!html) return '';
-        return html
-          // Remove dangerous elements
-          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-          .replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '')
-          .replace(/<object[^>]*>[\s\S]*?<\/object>/gi, '')
-          .replace(/<embed[^>]*>/gi, '')
-          // Remove event handlers
-          .replace(/\s+on\w+="[^"]*"/gi, '')
-          .replace(/\s+on\w+='[^']*'/gi, '')
-          // Remove javascript: links
-          .replace(/href="javascript:[^"]*"/gi, 'href="#"')
-          // Remove Microsoft Office XML comments
-          .replace(/<!--\[if[^>]*>[\s\S]*?<!\[endif\]-->/gi, '')
-          .replace(/<!--[^>]*-->/gi, '');
+        return sanitizeRichHtml(html);
       };
+      const applyUrl = safeUrl(job.url);
 
       // Generate server-side rendered job content
       const formatDate = (date: Date | string) => {
@@ -2058,15 +2247,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             <div class="bg-white rounded-lg shadow-sm p-8">
               <div class="flex items-start justify-between mb-6">
                 <div class="flex-1">
-                  <h1 class="text-3xl font-bold text-gray-900 mb-4">${job.title}</h1>
+                  <h1 class="text-3xl font-bold text-gray-900 mb-4">${escapeHtml(job.title)}</h1>
                   <div class="flex flex-wrap items-center gap-4 text-gray-600">
                     <div class="flex items-center">
-                      <span class="font-medium">${job.organization}</span>
+                      <span class="font-medium">${escapeHtml(job.organization)}</span>
                     </div>
                     <div class="flex items-center">
-                      <span>${job.location}, ${job.country}</span>
+                      <span>${escapeHtml(job.location)}, ${escapeHtml(job.country)}</span>
                     </div>
-                    ${job.sector ? `<span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">${job.sector}</span>` : ''}
+                    ${job.sector ? `<span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">${escapeHtml(job.sector)}</span>` : ''}
                   </div>
                 </div>
               </div>
@@ -2091,8 +2280,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                         const urls: string[] = job.attachmentUrl.startsWith('[') ? JSON.parse(job.attachmentUrl) : [job.attachmentUrl];
                         return `<h2 class="text-xl font-semibold mb-4 mt-8">Attachments</h2>
                         <div class="space-y-2">${urls.map(url => {
-                          const name = url.split('/').pop()?.replace(/^\d+-/, '') || 'Download';
-                          return `<div><a href="${url}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">📎 ${name}</a></div>`;
+                          const safeAttachmentUrl = safeUrl(url) || (url.startsWith('/uploads/') ? url : '');
+                          if (!safeAttachmentUrl) return '';
+                          const name = escapeHtml(url.split('/').pop()?.replace(/^\d+-/, '') || 'Download');
+                          return `<div><a href="${safeAttachmentUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline">${name}</a></div>`;
                         }).join('')}</div>`;
                       } catch { return ''; }
                     })() : ''}
@@ -2115,23 +2306,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       ` : ''}
                       <div>
                         <span class="font-medium">Organization:</span>
-                        <span class="ml-2">${job.organization}</span>
+                        <span class="ml-2">${escapeHtml(job.organization)}</span>
                       </div>
                       <div>
                         <span class="font-medium">Location:</span>
-                        <span class="ml-2">${job.location}, ${job.country}</span>
+                        <span class="ml-2">${escapeHtml(job.location)}, ${escapeHtml(job.country)}</span>
                       </div>
                       ${job.sector ? `
                         <div>
                           <span class="font-medium">Sector:</span>
-                          <span class="ml-2">${job.sector}</span>
+                          <span class="ml-2">${escapeHtml(job.sector)}</span>
                         </div>
                       ` : ''}
                     </div>
                     
-                    ${job.url ? `
+                    ${applyUrl ? `
                       <div class="mt-6">
-                        <a href="${job.url}" target="_blank" rel="noopener noreferrer" 
+                        <a href="${applyUrl}" target="_blank" rel="noopener noreferrer" 
                            class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors inline-block text-center">
                           Apply Now
                         </a>
@@ -2242,11 +2433,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       jobStructuredData.url = jobUrl;
 
       // Application instructions
-      if (job.url) {
+      const structuredApplyUrl = safeUrl(job.url);
+      if (structuredApplyUrl) {
         jobStructuredData.applicationContact = {
           "@type": "ContactPoint",
           "contactType": "HR",
-          "url": job.url
+          "url": structuredApplyUrl
         };
       }
 
@@ -2272,16 +2464,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Add job-specific Open Graph properties for richer Facebook previews (no duplicate og:type)
+      const shouldNoindex = job.visibility === 'private' || !!ssrToken;
       const additionalMetaTags = `
     <!-- Job-specific meta tags for enhanced social media previews -->
+    ${shouldNoindex ? '<meta name="robots" content="noindex, nofollow">' : ''}
     <meta property="article:published_time" content="${new Date(job.datePosted).toISOString()}">
-    <meta property="article:section" content="${job.sector || 'Humanitarian'}">
-    <meta property="article:tag" content="${job.sector || 'Humanitarian'}">
-    <meta property="article:author" content="${job.organization}">
-    <meta property="job:location" content="${job.location}, ${job.country}">
-    <meta property="job:company" content="${job.organization}">
+    <meta property="article:section" content="${escapeHtml(job.sector || 'Humanitarian')}">
+    <meta property="article:tag" content="${escapeHtml(job.sector || 'Humanitarian')}">
+    <meta property="article:author" content="${escapeHtml(job.organization)}">
+    <meta property="job:location" content="${escapeHtml(job.location)}, ${escapeHtml(job.country)}">
+    <meta property="job:company" content="${escapeHtml(job.organization)}">
     ${job.deadline ? `<meta property="job:expires" content="${Math.ceil((new Date(job.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left">` : ''}
-    <meta property="job:category" content="${job.sector || 'Humanitarian'}">
+    <meta property="job:category" content="${escapeHtml(job.sector || 'Humanitarian')}">
     <meta property="og:site_name" content="Somken Jobs">
     <meta property="og:locale" content="en_US">
     
@@ -2294,12 +2488,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     <!-- Google Jobs JobPosting Structured Data -->
     <script type="application/ld+json">
-${JSON.stringify(jobStructuredData, null, 2)}
+${jsonLd(jobStructuredData)}
     </script>
     
     <!-- Breadcrumb Structured Data for enhanced search appearance -->
     <script type="application/ld+json">
-${JSON.stringify(breadcrumbData, null, 2)}
+${jsonLd(breadcrumbData)}
     </script>`;
 
       // Insert additional meta tags before the closing head tag
@@ -2331,10 +2525,19 @@ ${JSON.stringify(breadcrumbData, null, 2)}
 
       const allJobs = await storage.getAllJobsWithDetails();
 
-      // Only include jobs from the last 6 months
+      // Only include public, active job detail pages from the last 6 months.
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-      const jobs = allJobs.filter(job => new Date(job.datePosted) >= sixMonthsAgo);
+      const nowDate = new Date();
+      const jobs = allJobs.filter(job => {
+        const datePosted = new Date(job.datePosted);
+        const deadline = job.deadline ? new Date(job.deadline) : null;
+        return datePosted >= sixMonthsAgo
+          && (!job.type || job.type === 'job')
+          && job.status === 'published'
+          && job.visibility !== 'private'
+          && (!deadline || deadline >= nowDate);
+      });
 
       console.log(`Generating sitemap with ${jobs.length} jobs (from ${allJobs.length} total)`);
 
@@ -2358,6 +2561,8 @@ ${JSON.stringify(breadcrumbData, null, 2)}
       const sectorLatest: Record<string, string> = {};
       countries.forEach(c => { countryLatest[c] = latestDate(jobs.filter(j => j.country === c)); });
       sectors.forEach(s => { sectorLatest[s] = latestDate(jobs.filter(j => j.sector === s)); });
+      const ngoLatest = latestDate(jobs.filter(matchesNgoJob));
+      const ngoSomaliaLatest = latestDate(jobs.filter(j => j.country === 'Somalia' && matchesNgoJob(j)));
 
       // Generate job URLs with smart changefreq and priority based on age
       const jobUrls = jobs.map(job => {
@@ -2389,6 +2594,18 @@ ${JSON.stringify(breadcrumbData, null, 2)}
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://somkenjobs.com/ngo-jobs</loc>
+    <lastmod>${ngoLatest}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://somkenjobs.com/ngo-jobs/somalia</loc>
+    <lastmod>${ngoSomaliaLatest}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
     <loc>https://somkenjobs.com/tenders</loc>
     <lastmod>${newestJobDate}</lastmod>
     <changefreq>daily</changefreq>
@@ -2413,19 +2630,19 @@ ${JSON.stringify(breadcrumbData, null, 2)}
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://somkenjobs.com/help</loc>
+    <loc>https://somkenjobs.com/help-center</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://somkenjobs.com/privacy</loc>
+    <loc>https://somkenjobs.com/privacy-policy</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://somkenjobs.com/terms</loc>
+    <loc>https://somkenjobs.com/terms-of-service</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>

@@ -5,33 +5,38 @@ import bcrypt from "bcryptjs";
 export async function seedDatabase(): Promise<void> {
   console.log("Seeding database with sample jobs...");
   
-  // Create default admin user if not exists
+  // Create an initial admin only when explicitly configured.
   try {
     const adminEmail = "admin@somkenjobs.com";
-    const existingAdmin = await storage.getUserByEmail(adminEmail);
-    
-    if (!existingAdmin) {
-      const hashedPassword = await bcrypt.hash("Sk7@9mQ$nX3!pL8&vB2#wE5*uR4", 10);
-      const adminUser: InsertUser = {
-        email: adminEmail,
-        password: hashedPassword,
-        firstName: "Admin",
-        lastName: "User",
-        companyName: "Somken Jobs East Africa",
-        jobTitle: "Platform Administrator",
-        phoneNumber: "+254700000000",
-      };
-      
-      const createdAdmin = await storage.createUser(adminUser);
-      // Approve and make admin
-      await storage.updateUser(createdAdmin.id, {
-        isApproved: true,
-        isAdmin: true,
-        approvedAt: new Date(),
-        approvedBy: "System",
-      });
-      
-      console.log("Default admin user created: admin@somkenjobs.com / [SECURE PASSWORD]");
+    const initialAdminPassword = process.env.ADMIN_INITIAL_PASSWORD;
+    if (!initialAdminPassword) {
+      console.log("Initial admin setup skipped; ADMIN_INITIAL_PASSWORD is not set.");
+    } else {
+      const existingAdmin = await storage.getUserByEmail(adminEmail);
+
+      if (!existingAdmin) {
+        const hashedPassword = await bcrypt.hash(initialAdminPassword, 10);
+        const adminUser: InsertUser = {
+          email: adminEmail,
+          password: hashedPassword,
+          firstName: "Admin",
+          lastName: "User",
+          companyName: "Somken Jobs East Africa",
+          jobTitle: "Platform Administrator",
+          phoneNumber: "+254700000000",
+        };
+
+        const createdAdmin = await storage.createUser(adminUser);
+        // Approve and make admin
+        await storage.updateUser(createdAdmin.id, {
+          isApproved: true,
+          isAdmin: true,
+          approvedAt: new Date(),
+          approvedBy: "System",
+        });
+
+        console.log("Initial admin user created: admin@somkenjobs.com");
+      }
     }
   } catch (error) {
     console.log("Admin user setup skipped (may already exist)")
