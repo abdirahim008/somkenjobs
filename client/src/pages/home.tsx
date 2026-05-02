@@ -6,7 +6,6 @@ import Sidebar from "@/components/Sidebar";
 import JobCard from "@/components/JobCard";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
-import JobStructuredData from "@/components/JobStructuredData";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Grid, List, RefreshCw } from "lucide-react";
@@ -79,8 +78,6 @@ export default function Home() {
         jobCount={data?.stats.totalJobs}
         optimizeTitleAndDescription={true}
       />
-      {/* Add structured data for job postings */}
-      <JobStructuredData jobs={displayedJobs} />
       <Header />
       
 
@@ -289,8 +286,6 @@ export default function Home() {
                 {displayedJobs.map((job) => (
                   <JobCard key={job.id} job={job} />
                 ))}
-                {/* Google Jobs Schema for displayed jobs */}
-                <JobStructuredData jobs={displayedJobs} />
               </div>
             )}
 
@@ -331,7 +326,7 @@ export default function Home() {
               <p className="text-gray-600 mb-4">
                 Find the latest humanitarian jobs in Somalia including positions in Mogadishu, Hargeisa, Kismayo, and other major cities. We feature opportunities from UNHCR, WHO, Save the Children, World Food Programme, and leading international organizations.
               </p>
-              <a href="/jobs?country=Somalia" className="text-blue-600 hover:text-blue-800 font-medium">
+              <a href="/jobs/country/somalia" className="text-blue-600 hover:text-blue-800 font-medium">
                 Browse Somalia Jobs →
               </a>
             </div>
@@ -340,7 +335,7 @@ export default function Home() {
               <p className="text-gray-600 mb-4">
                 Discover career opportunities in Kenya with international NGOs and development organizations. Browse jobs in Nairobi, Mombasa, Kisumu, Eldoret, and across the country with top humanitarian employers.
               </p>
-              <a href="/jobs?country=Kenya" className="text-blue-600 hover:text-blue-800 font-medium">
+              <a href="/jobs/country/kenya" className="text-blue-600 hover:text-blue-800 font-medium">
                 Browse Kenya Jobs →
               </a>
             </div>
@@ -359,22 +354,25 @@ export default function Home() {
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Popular Job Categories</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              <a href="/jobs?sector=Health" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
+              <a href="/jobs/sector/health" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
                 <h4 className="font-semibold text-gray-900 text-sm">Health</h4>
               </a>
-              <a href="/jobs?sector=Education" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
+              <a href="/jobs/sector/education" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
                 <h4 className="font-semibold text-gray-900 text-sm">Education</h4>
               </a>
-              <a href="/jobs?sector=Protection" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
+              <a href="/jobs/sector/protection" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
                 <h4 className="font-semibold text-gray-900 text-sm">Protection</h4>
               </a>
-              <a href="/jobs?sector=Food%20Security" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
+              <a href="/jobs/sector/food-security" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
                 <h4 className="font-semibold text-gray-900 text-sm">Food Security</h4>
               </a>
-              <a href="/jobs?sector=WASH" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
+              <a href="/jobs/sector/wash" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
                 <h4 className="font-semibold text-gray-900 text-sm">WASH</h4>
               </a>
-              <a href="/jobs?sector=Emergency" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
+              <a href="/ngo-jobs" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
+                <h4 className="font-semibold text-gray-900 text-sm">NGO Jobs</h4>
+              </a>
+              <a href="/jobs/sector/emergency-response" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
                 <h4 className="font-semibold text-gray-900 text-sm">Emergency</h4>
               </a>
             </div>

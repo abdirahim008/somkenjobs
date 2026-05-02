@@ -11,9 +11,17 @@ import Footer from "@/components/Footer";
 import SearchBar from "@/components/SearchBar";
 import Sidebar from "@/components/Sidebar";
 import SEOHead from "@/components/SEOHead";
-import JobStructuredData from "@/components/JobStructuredData";
 import { type Job } from "@shared/schema";
 import { generateJobSlug } from "@shared/utils";
+
+interface JobsResponse {
+  jobs: Job[];
+  filters: {
+    countries: string[];
+    organizations: string[];
+    sectors: string[];
+  };
+}
 
 export default function Tenders() {
   const [, setLocation] = useLocation();
@@ -31,7 +39,7 @@ export default function Tenders() {
   });
   const [sortBy, setSortBy] = useState("newest");
 
-  const { data: jobsData, isLoading } = useQuery({
+  const { data: jobsData, isLoading } = useQuery<JobsResponse>({
     queryKey: ["/api/jobs", { ...filters, search: searchTerm }],
     staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
     refetchInterval: false, // Disable automatic refetch for low bandwidth
@@ -168,7 +176,7 @@ export default function Tenders() {
         {/* Search Section */}
         <section className="py-6">
           <div className="max-w-4xl mx-auto">
-            <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+            <SearchBar onSearch={setSearchTerm} />
           </div>
         </section>
 
@@ -254,7 +262,7 @@ export default function Tenders() {
                             </span>
                             <span className="flex items-center flex-shrink-0">
                               <Calendar className="mr-2 h-5 w-5 flex-shrink-0" />
-                              <span className="whitespace-nowrap">{formatDate(tender.datePosted)}</span>
+                              <span className="whitespace-nowrap">{formatDate(tender.datePosted.toString())}</span>
                             </span>
                           </div>
 
@@ -287,7 +295,7 @@ export default function Tenders() {
                         <div className="text-base text-muted-foreground">
                           {tender.deadline && (
                             <>
-                              Deadline: <span className="font-medium text-foreground">{formatDeadline(tender.deadline)}</span>
+                              Deadline: <span className="font-medium text-foreground">{formatDeadline(tender.deadline.toString())}</span>
                             </>
                           )}
                         </div>
@@ -344,9 +352,6 @@ export default function Tenders() {
           </div>
         </div>
       </main>
-
-      {/* Google Jobs Schema for tender listings */}
-      {tenders.length > 0 && <JobStructuredData jobs={tenders} />}
 
       <Footer />
     </div>

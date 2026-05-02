@@ -12,7 +12,6 @@ import Footer from "@/components/Footer";
 import SearchBar from "@/components/SearchBar";
 import Sidebar from "@/components/Sidebar";
 import SEOHead from "@/components/SEOHead";
-import JobStructuredData from "@/components/JobStructuredData";
 import { type Job } from "@shared/schema";
 import { generateJobSlug } from "@shared/utils";
 
@@ -33,7 +32,7 @@ export default function Jobs() {
   });
   const [sortBy, setSortBy] = useState("newest");
 
-  const { data: jobsData, isLoading } = useQuery({
+  const { data: jobsData, isLoading } = useQuery<JobsResponse>({
     queryKey: ["/api/jobs/list", { ...filters, search: searchTerm }],
     staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
     refetchInterval: false, // Disable automatic refetch for low bandwidth
@@ -368,9 +367,6 @@ export default function Jobs() {
           </div>
         </div>
       </main>
-
-      {/* Google Jobs Schema for job listings */}
-      {jobs.length > 0 && <JobStructuredData jobs={jobs} />}
 
       <Footer />
     </div>

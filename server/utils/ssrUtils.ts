@@ -5,6 +5,7 @@ import {
   generateJobsListingSEOMetadata, 
   generateJobSEOMetadata 
 } from "@shared/seoUtils";
+import { sanitizeRichHtml } from "./sanitizeHtml";
 
 // Call validation to prevent regressions
 validateContextMaps();
@@ -61,6 +62,25 @@ export function stripMarkdownAndHtml(text: string, maxLength: number = 160): str
   }
   
   return cleaned;
+}
+
+function escapeHtml(text: string | null | undefined): string {
+  return String(text || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function safeUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    return ["http:", "https:", "mailto:", "tel:"].includes(parsed.protocol) ? parsed.toString() : "";
+  } catch {
+    return "";
+  }
 }
 
 // Generate structured data for a job
@@ -598,9 +618,10 @@ export function generateJobDetailsHTML(job: Job): string {
   const structuredData = generateJobStructuredData(job);
   const jobUrl = `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`;
   const seoMetadata = generateJobSEOMetadata(job);
+  const applyUrl = safeUrl(job.url);
   
   // Helper functions for safe HTML generation - ONLY place that creates HTML tags
-  const stripTags = (str: string) => str.replace(/<[^>]*>/g, '').trim();
+  const stripTags = (str: string) => sanitizeRichHtml(str).replace(/<[^>]*>/g, '').trim();
   const p = (content: string) => `<p>${content}</p>`;
   const h2 = (title: string) => `<h2>${title}</h2>`;
   const h3 = (title: string) => `<h3>${title}</h3>`;
@@ -620,23 +641,23 @@ export function generateJobDetailsHTML(job: Job): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${seoMetadata.title}</title>
-  <meta name="description" content="${seoMetadata.description}">
-  <meta name="keywords" content="${seoMetadata.keywords}">
+  <title>${escapeHtml(seoMetadata.title)}</title>
+  <meta name="description" content="${escapeHtml(seoMetadata.description)}">
+  <meta name="keywords" content="${escapeHtml(seoMetadata.keywords)}">
   <link rel="canonical" href="${jobUrl}">
   
   <!-- Open Graph Tags -->
   <meta property="og:type" content="article">
   <meta property="og:url" content="${jobUrl}">
-  <meta property="og:title" content="${seoMetadata.title}">
-  <meta property="og:description" content="${seoMetadata.description}">
+  <meta property="og:title" content="${escapeHtml(seoMetadata.title)}">
+  <meta property="og:description" content="${escapeHtml(seoMetadata.description)}">
   <meta property="og:site_name" content="Somken Jobs">
   
   <!-- Twitter Card Tags -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@SomkenJobs">
-  <meta name="twitter:title" content="${seoMetadata.title}">
-  <meta name="twitter:description" content="${seoMetadata.description}">
+  <meta name="twitter:title" content="${escapeHtml(seoMetadata.title)}">
+  <meta name="twitter:description" content="${escapeHtml(seoMetadata.description)}">
 
   <!-- Job Structured Data -->
   <script type="application/ld+json">
@@ -661,13 +682,13 @@ export function generateJobDetailsHTML(job: Job): string {
   // Add job header (H1) - single H1 per page
   htmlParts.push(`
     <div class="job-header">
-      <h1>${job.title}</h1>
+      <h1>${escapeHtml(job.title)}</h1>
       <div class="job-meta">
-        <strong>${job.organization}</strong> • ${job.location}, ${job.country}
-        ${job.sector ? ` • ${job.sector}` : ''}
+        <strong>${escapeHtml(job.organization)}</strong> - ${escapeHtml(job.location)}, ${escapeHtml(job.country)}
+        ${job.sector ? ` - ${escapeHtml(job.sector)}` : ''}
         ${job.deadline ? ` • Deadline: ${new Date(job.deadline).toLocaleDateString()}` : ''}
       </div>
-      ${job.url ? `<a href="${job.url}" target="_blank" class="apply-button">Apply Now</a>` : ''}
+      ${applyUrl ? `<a href="${applyUrl}" target="_blank" rel="noopener noreferrer" class="apply-button">Apply Now</a>` : ''}
     </div>`);
   
   // Add Job Description section (H2)
@@ -689,10 +710,10 @@ export function generateJobDetailsHTML(job: Job): string {
     ` : ''}
     
     ${h3('Professional Environment')}
-    ${p(`This ${job.title} position requires working in East Africa's dynamic humanitarian landscape, where professionals engage with complex operational challenges while contributing to meaningful community impact. The role demands cultural sensitivity, adaptability, and strong interpersonal skills to work effectively with diverse teams including local staff, international colleagues, government partners, and community representatives. Successful candidates will thrive in fast-paced environments that require both independent decision-making and collaborative problem-solving approaches.`)}
+    ${p(`This ${escapeHtml(job.title)} position requires working in East Africa's dynamic humanitarian landscape, where professionals engage with complex operational challenges while contributing to meaningful community impact. The role demands cultural sensitivity, adaptability, and strong interpersonal skills to work effectively with diverse teams including local staff, international colleagues, government partners, and community representatives. Successful candidates will thrive in fast-paced environments that require both independent decision-making and collaborative problem-solving approaches.`)}
     
     ${h3('Career Development')}
-    ${p(`Professionals in this role will gain invaluable experience in ${job.sector || 'humanitarian programming'}, developing specialized technical skills alongside leadership and management capabilities. The position offers exposure to international best practices, opportunities for professional networking within the East African humanitarian community, and potential for career advancement within ${job.organization} or the broader humanitarian sector. This experience provides excellent preparation for senior management roles, technical advisory positions, or specialized program leadership opportunities.`)}
+    ${p(`Professionals in this role will gain invaluable experience in ${escapeHtml(job.sector || 'humanitarian programming')}, developing specialized technical skills alongside leadership and management capabilities. The position offers exposure to international best practices, opportunities for professional networking within the East African humanitarian community, and potential for career advancement within ${escapeHtml(job.organization)} or the broader humanitarian sector. This experience provides excellent preparation for senior management roles, technical advisory positions, or specialized program leadership opportunities.`)}
   `));
   
   // Add Key Responsibilities section (H2) if available
@@ -720,14 +741,14 @@ export function generateJobDetailsHTML(job: Job): string {
   // Add Organization Background section (H2)
   htmlParts.push(section(`
     ${h2('Organization Background')}
-    ${p(`${job.organization} maintains a strong operational presence throughout East Africa, implementing critical humanitarian and development programming that addresses the needs of vulnerable populations across the region. The organization's comprehensive approach encompasses emergency response capabilities, long-term development initiatives, and capacity building programs designed to create sustainable positive change in communities. Their commitment to local partnership, evidence-based programming, and innovative approaches makes them a respected leader in the humanitarian sector.`)}
+    ${p(`${escapeHtml(job.organization)} maintains a strong operational presence throughout East Africa, implementing critical humanitarian and development programming that addresses the needs of vulnerable populations across the region. The organization's comprehensive approach encompasses emergency response capabilities, long-term development initiatives, and capacity building programs designed to create sustainable positive change in communities. Their commitment to local partnership, evidence-based programming, and innovative approaches makes them a respected leader in the humanitarian sector.`)}
     
-    ${p(`Working with ${job.organization} provides opportunities to contribute to high-impact programming while developing professional skills in a supportive, mission-driven environment. The organization values staff development, maintains strong safety and security protocols, and offers competitive compensation packages designed to attract and retain talented humanitarian professionals. Team members benefit from comprehensive training programs, mentorship opportunities, and exposure to cutting-edge approaches in ${job.sector || 'humanitarian'} programming.`)}
+    ${p(`Working with ${escapeHtml(job.organization)} provides opportunities to contribute to high-impact programming while developing professional skills in a supportive, mission-driven environment. The organization values staff development, maintains strong safety and security protocols, and offers competitive compensation packages designed to attract and retain talented humanitarian professionals. Team members benefit from comprehensive training programs, mentorship opportunities, and exposure to cutting-edge approaches in ${escapeHtml(job.sector || 'humanitarian')} programming.`)}
     
-    ${job.url ? `
+    ${applyUrl ? `
     ${h3('Next Steps')}
-    ${p(`To apply for this ${job.title} position, visit the official application portal where you can submit your comprehensive application materials directly to ${job.organization}'s recruitment team. The organization maintains transparent, merit-based selection processes designed to identify candidates who demonstrate both technical excellence and commitment to humanitarian values.`)}
-    ${p(`<a href="${job.url}" target="_blank" style="color: #0077B5; font-weight: 600;">Submit Application for ${job.title} Position →</a>`)}
+    ${p(`To apply for this ${escapeHtml(job.title)} position, visit the official application portal where you can submit your comprehensive application materials directly to ${escapeHtml(job.organization)}'s recruitment team. The organization maintains transparent, merit-based selection processes designed to identify candidates who demonstrate both technical excellence and commitment to humanitarian values.`)}
+    ${p(`<a href="${applyUrl}" target="_blank" rel="noopener noreferrer" style="color: #0077B5; font-weight: 600;">Submit Application for ${escapeHtml(job.title)} Position</a>`)}
     ` : ''}
   `));
   

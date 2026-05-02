@@ -12,19 +12,19 @@ export default function Footer() {
   ];
 
   const supportLinks = [
-    { label: "Help Center", href: "/help" },
+    { label: "Help Center", href: "/help-center" },
     { label: "Contact Us", href: "/contact" },
-    { label: "Privacy Policy", href: "/privacy" },
-    { label: "Terms of Service", href: "/terms" },
+    { label: "Privacy Policy", href: "/privacy-policy" },
+    { label: "Terms of Service", href: "/terms-of-service" },
   ];
 
   const jobCategories = [
-    { label: "Jobs in Kenya", href: "/jobs?country=Kenya" },
-    { label: "Jobs in Somalia", href: "/jobs?country=Somalia" },
-    { label: "Health Jobs", href: "/jobs?sector=Health" },
-    { label: "Protection Jobs", href: "/jobs?sector=Protection" },
-    { label: "Education Jobs", href: "/jobs?sector=Education" },
-    { label: "NGO Jobs", href: "/jobs" },
+    { label: "Jobs in Kenya", href: "/jobs/country/kenya" },
+    { label: "Jobs in Somalia", href: "/jobs/country/somalia" },
+    { label: "NGO Jobs", href: "/ngo-jobs" },
+    { label: "NGO Jobs in Somalia", href: "/ngo-jobs/somalia" },
+    { label: "Health Jobs", href: "/jobs/sector/health" },
+    { label: "Protection Jobs", href: "/jobs/sector/protection" },
   ];
 
   return (
@@ -120,7 +120,7 @@ export default function Footer() {
         <div className="border-t border-border mt-8 pt-8">
           <div className="text-center mb-4">
             <p className="text-muted-foreground text-sm">
-              © 2025 Somken Jobs East Africa. All rights reserved.
+              © {new Date().getFullYear()} Somken Jobs East Africa. All rights reserved.
               <span className="mx-2">•</span>
               Job data sourced from ReliefWeb and UN Jobs
             </p>
@@ -130,16 +130,17 @@ export default function Footer() {
           <div className="text-center text-xs text-muted-foreground space-y-2">
             <p>
               Find the best humanitarian jobs in 
-              <a href="/jobs?country=Kenya" className="text-primary hover:underline mx-1">Kenya</a> 
+              <a href="/jobs/country/kenya" className="text-primary hover:underline mx-1">Kenya</a> 
               and 
-              <a href="/jobs?country=Somalia" className="text-primary hover:underline mx-1">Somalia</a> 
+              <a href="/jobs/country/somalia" className="text-primary hover:underline mx-1">Somalia</a> 
               with leading organizations including UNHCR, WHO, Save the Children, and World Food Programme.
             </p>
             <p>
               Browse 
-              <a href="/jobs?sector=Health" className="text-primary hover:underline mx-1">health jobs</a>, 
-              <a href="/jobs?sector=Education" className="text-primary hover:underline mx-1">education positions</a>, 
-              <a href="/jobs?sector=Protection" className="text-primary hover:underline mx-1">protection roles</a>, 
+              <a href="/jobs/sector/health" className="text-primary hover:underline mx-1">health jobs</a>, 
+              <a href="/jobs/sector/education" className="text-primary hover:underline mx-1">education positions</a>, 
+              <a href="/jobs/sector/protection" className="text-primary hover:underline mx-1">protection roles</a>, 
+              <a href="/ngo-jobs" className="text-primary hover:underline mx-1">NGO jobs</a>,
               and other opportunities in the humanitarian sector.
             </p>
           </div>

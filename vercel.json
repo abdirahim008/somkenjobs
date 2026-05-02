@@ -1,18 +1,16 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "buildCommand": "npm run build && mkdir -p api && cp -r dist/public api/public",
-  "builds": [
-    {
-      "src": "server/vercel-entry.ts",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": "api/public/**",
-        "maxDuration": 30
-      }
+  "buildCommand": "npm run build:vercel",
+  "outputDirectory": "dist/public",
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "dist/public/**",
+      "maxDuration": 30
     }
-  ],
-  "routes": [
-    { "src": "/(.*)", "dest": "/server/vercel-entry.ts" }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/index" }
   ],
   "crons": [
     {

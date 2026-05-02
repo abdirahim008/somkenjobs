@@ -1,12 +1,23 @@
 node_modules
 dist
 .env
+**/.env.local
+**/.env.*.local
 .DS_Store
 server/public
 vite.config.ts.*
 *.tar.gz
+*.sql
+*_backup.*
 database-export/
+__pycache__/
+*.py[cod]
+scripts/python/data/
+scripts/python/__pycache__/
+scripts/python/workflows/
 
 # Vercel build artifacts (generated at deploy time, not committed)
 api/server.js
 api/public/
+
+.vercel
