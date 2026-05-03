@@ -3,6 +3,21 @@ import { db } from "./db";
 import { eq, desc, and, or, gte, lt, ilike, isNull } from "drizzle-orm";
 import { generateJobSlug } from "@shared/utils";
 import { jobsCache } from "./services/jobsCache";
+import { googleIndexing } from "./services/googleIndexing";
+
+const notifyGoogleJobUpdated = (job: Job | undefined) => {
+  if (!job || !googleIndexing.isConfigured()) return;
+  void googleIndexing.notifyJobUpdated(job).catch((error) => {
+    console.error(`Failed to notify Google Indexing API for job ${job.id}:`, error);
+  });
+};
+
+const notifyGoogleJobDeleted = (job: Pick<Job, "id" | "title"> | undefined) => {
+  if (!job || !googleIndexing.isConfigured()) return;
+  void googleIndexing.notifyJobDeleted(job).catch((error) => {
+    console.error(`Failed to notify Google Indexing API for deleted job ${job.id}:`, error);
+  });
+};
 
 export interface IStorage {
   // User authentication methods
@@ -293,6 +308,7 @@ export class MemStorage implements IStorage {
       privateToken: insertJob.privateToken ?? null
     };
     this.jobs.set(id, job);
+    notifyGoogleJobUpdated(job);
     return job;
   }
 
@@ -302,11 +318,17 @@ export class MemStorage implements IStorage {
     
     const updatedJob: Job = { ...existingJob, ...updateData };
     this.jobs.set(id, updatedJob);
+    notifyGoogleJobUpdated(updatedJob);
     return updatedJob;
   }
 
   async deleteJob(id: number): Promise<boolean> {
-    return this.jobs.delete(id);
+    const job = this.jobs.get(id);
+    const deleted = this.jobs.delete(id);
+    if (deleted) {
+      notifyGoogleJobDeleted(job);
+    }
+    return deleted;
   }
 
   async archiveExpiredJobs(): Promise<number> {
@@ -315,6 +337,7 @@ export class MemStorage implements IStorage {
     for (const [id, job] of this.jobs.entries()) {
       if (job.deadline && new Date(job.deadline) < now && job.status === 'published') {
         this.jobs.set(id, { ...job, status: 'archived' });
+        notifyGoogleJobDeleted(job);
         count++;
       }
     }
@@ -604,6 +627,7 @@ export class DatabaseStorage implements IStorage {
     
     // Invalidate cache after job creation
     jobsCache.invalidateCache();
+    notifyGoogleJobUpdated(job);
     
     return job;
   }
@@ -618,17 +642,20 @@ export class DatabaseStorage implements IStorage {
     // Invalidate cache after job update
     if (job) {
       jobsCache.invalidateCache();
+      notifyGoogleJobUpdated(job);
     }
     
     return job || undefined;
   }
 
   async deleteJob(id: number): Promise<boolean> {
+    const [job] = await db.select().from(jobs).where(eq(jobs.id, id)).limit(1);
     const result = await db.delete(jobs).where(eq(jobs.id, id));
     const deleted = (result.rowCount ?? 0) > 0;
     
     if (deleted) {
       jobsCache.invalidateCache();
+      notifyGoogleJobDeleted(job);
     }
     
     return deleted;
@@ -636,6 +663,16 @@ export class DatabaseStorage implements IStorage {
 
   async archiveExpiredJobs(): Promise<number> {
     const now = new Date();
+    const expiredJobs = await db
+      .select()
+      .from(jobs)
+      .where(
+        and(
+          eq(jobs.status, 'published'),
+          lt(jobs.deadline, now)
+        )
+      );
+
     const result = await db
       .update(jobs)
       .set({ status: 'archived' })
@@ -649,6 +686,7 @@ export class DatabaseStorage implements IStorage {
     if (count > 0) {
       console.log(`Archived ${count} expired jobs`);
       jobsCache.invalidateCache();
+      expiredJobs.forEach(notifyGoogleJobDeleted);
     }
     return count;
   }

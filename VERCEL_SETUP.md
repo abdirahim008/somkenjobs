@@ -55,8 +55,11 @@ In your Vercel project → **Settings → Environment Variables**, add:
 | `JWT_SECRET` | your secret string | From Replit Secrets |
 | `NODE_ENV` | `production` | Type this manually |
 | `CRON_SECRET` | any strong random string | e.g. run `openssl rand -hex 32` |
+| `GOOGLE_INDEXING_SERVICE_ACCOUNT_JSON` | service account JSON or base64 JSON | Optional, enables Google Jobs fast recrawl via Indexing API |
 
 > `CRON_SECRET` is required — it secures the job-fetch endpoint that Vercel Cron calls automatically.
+
+> For Google Jobs indexing, create a Google Cloud service account with Indexing API enabled, add the service account email as an owner in the `somkenjobs.com` Search Console Domain property, then paste the JSON key here. Base64 is safer for multi-line private keys.
 
 ---
 
@@ -94,7 +97,9 @@ Visit your Vercel URL and check:
 - [ ] Search and filters work
 - [ ] Click a job → details page opens
 - [ ] `/sitemap.xml` returns valid XML
+- [ ] `/sitemap-jobs.xml` contains only active public job detail URLs
 - [ ] `/robots.txt` returns text
+- [ ] Job detail pages include one `JobPosting` JSON-LD block and return `410` after expiry/unpublish
 - [ ] Dashboard login works (same credentials as Replit)
 - [ ] Test SSR for bots: `curl -A "Googlebot" https://your-app.vercel.app/` — should return full HTML with meta tags
 
@@ -124,6 +129,7 @@ Once you are happy with the Vercel deployment:
 | `JWT_SECRET` | Yes | Signs user login tokens |
 | `NODE_ENV` | Yes | Set to `production` |
 | `CRON_SECRET` | Yes | Secures the job-fetch trigger; Vercel Cron sends this automatically |
+| `GOOGLE_INDEXING_SERVICE_ACCOUNT_JSON` | No | Enables Indexing API submissions for new, updated, expired, and deleted jobs |
 
 ---
 
