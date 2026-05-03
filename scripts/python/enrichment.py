@@ -12,6 +12,8 @@ unique for Google indexing. No AI API calls needed.
 
 import random
 
+from scraper import plain_text_to_html, strip_html
+
 # ==========================================
 # 1. UNIQUE INTRO TEMPLATES
 # ==========================================
@@ -187,14 +189,7 @@ def _fill(template, data):
     return result
 
 
-def enrich_description(job):
-    """
-    Takes a job dict and returns an enriched description string with:
-    1. Unique intro paragraph
-    2. Original description
-    3. Location context
-    4. Somali keywords
-    """
+def _build_enrichment_parts(job):
     data = {
         'org': job.get('organization') or job.get('company') or 'The hiring organization',
         'title': job.get('title') or 'this position',
@@ -221,7 +216,7 @@ def enrich_description(job):
         intro += ' ' + _fill(random.choice(INTRO_CLOSERS_NO_DEADLINE), data)
 
     # --- Layer 2: Original description ---
-    original = job.get('description') or ''
+    original = job.get('original_description') or job.get('description') or ''
 
     # --- Layer 3: Location context ---
     loc_key = (job.get('location') or 'somalia').lower().strip()
@@ -231,15 +226,46 @@ def enrich_description(job):
     tags = get_somali_tags(job)
     tags_line = 'Ereyada Soomaaliga (Somali Keywords): ' + ' \u2022 '.join(tags) if tags else ''
 
+    return intro, original, location_para, tags_line
+
+
+def enrich_description(job):
+    """
+    Takes a job dict and returns an enriched plain-text description with:
+    1. Unique intro paragraph
+    2. Original description
+    3. Location context
+    4. Somali keywords
+    """
+    intro, original, location_para, tags_line = _build_enrichment_parts(job)
+    original_text = strip_html(job.get('original_bodyHtml') or original)
+
     # --- Assemble ---
     parts = [intro, '']
-    if original:
-        parts.append(original)
+    if original_text:
+        parts.append(original_text)
         parts.append('')
-    parts.append(f'--- About {job.get("location") or "Somalia"} ---')
+    parts.append(f'About {job.get("location") or "Somalia"}')
     parts.append(location_para)
     parts.append('')
     if tags_line:
         parts.append(tags_line)
 
     return '\n'.join(parts).strip()
+
+
+def enrich_body_html(job):
+    """Build enriched HTML without mixing separate requirement/application fields."""
+    intro, original, location_para, tags_line = _build_enrichment_parts(job)
+    original_html = job.get('original_bodyHtml') or job.get('bodyHtml') or plain_text_to_html(original)
+
+    parts = [plain_text_to_html(intro)]
+    if original_html:
+        parts.append(original_html)
+    if location_para:
+        parts.append(f'<h3>About {job.get("location") or "Somalia"}</h3>')
+        parts.append(plain_text_to_html(location_para))
+    if tags_line:
+        parts.append(plain_text_to_html(tags_line))
+
+    return '\n'.join(part for part in parts if part).strip()

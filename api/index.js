@@ -728,6 +728,10 @@ var DatabaseStorage = class {
     const [job] = await db.select().from(jobs).where(eq(jobs.externalId, externalId));
     return job || void 0;
   }
+  async getJobBySourceAndUrl(source, url) {
+    const [job] = await db.select().from(jobs).where(and(eq(jobs.source, source), eq(jobs.url, url))).limit(1);
+    return job || void 0;
+  }
   async getJobsByUserId(userId) {
     return await db.select().from(jobs).where(eq(jobs.createdBy, userId)).orderBy(desc(jobs.datePosted));
   }
@@ -3424,7 +3428,13 @@ async function registerRoutes(app2) {
       if (jobsArray.length > 500) {
         return res.status(400).json({ message: "Maximum 500 jobs per upload. Please split your data into smaller batches." });
       }
-      const results = { successCount: 0, failureCount: 0, errors: [] };
+      const results = {
+        successCount: 0,
+        createdCount: 0,
+        updatedCount: 0,
+        failureCount: 0,
+        errors: []
+      };
       const parseFuzzyDate = (dateStr) => {
         if (!dateStr) return /* @__PURE__ */ new Date();
         const trimmed = dateStr.trim();
@@ -3500,7 +3510,22 @@ async function registerRoutes(app2) {
             jobNumber: rawJob.jobNumber || null
           });
           const jobData = insertJobSchema.parse(jobDataWithDefaults);
-          await storage.createJob(jobData);
+          const source = String(jobData.source || "").toLowerCase();
+          const canUpdateImportedSomaliJob = source === "somalijobs";
+          const existingJob = canUpdateImportedSomaliJob ? await storage.getJobByExternalId(jobData.externalId || "") || (jobData.url ? await storage.getJobBySourceAndUrl(source, jobData.url) : void 0) : void 0;
+          if (existingJob && existingJob.source === "somalijobs") {
+            await storage.updateJob(existingJob.id, {
+              description: jobData.description,
+              bodyHtml: jobData.bodyHtml,
+              howToApply: jobData.howToApply,
+              qualifications: jobData.qualifications,
+              responsibilities: jobData.responsibilities
+            });
+            results.updatedCount++;
+          } else {
+            await storage.createJob(jobData);
+            results.createdCount++;
+          }
           results.successCount++;
         } catch (error) {
           results.failureCount++;
@@ -3514,9 +3539,11 @@ async function registerRoutes(app2) {
         }
       }
       res.status(200).json({
-        message: `Bulk upload complete. ${results.successCount} succeeded, ${results.failureCount} failed.`,
+        message: `Bulk upload complete. ${results.successCount} succeeded (${results.createdCount} created, ${results.updatedCount} updated), ${results.failureCount} failed.`,
         totalProcessed: jobsArray.length,
         successCount: results.successCount,
+        createdCount: results.createdCount,
+        updatedCount: results.updatedCount,
         failureCount: results.failureCount,
         errors: results.errors
       });

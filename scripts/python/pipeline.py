@@ -28,7 +28,7 @@ if hasattr(sys.stderr, 'reconfigure'):
     sys.stderr.reconfigure(encoding='utf-8')
 
 from scraper import scrape_somalijobs, SeenTracker
-from enrichment import enrich_description
+from enrichment import enrich_description, enrich_body_html
 
 try:
     import requests
@@ -112,7 +112,7 @@ def stable_external_id(job):
 # STEP 1: SCRAPE
 # ==========================================
 
-def step_scrape():
+def step_scrape(refresh_existing=False, limit=None):
     """Scrape new jobs from SomaliJobs.com"""
     print("=" * 60)
     print(f"🕐 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} — Starting scrape")
@@ -120,7 +120,11 @@ def step_scrape():
 
     ensure_data_dir()
     tracker = SeenTracker(os.path.join(DATA_DIR, 'seen_jobs.json'))
-    jobs = scrape_somalijobs(seen_tracker=tracker)
+    jobs = scrape_somalijobs(
+        seen_tracker=tracker,
+        include_seen=refresh_existing,
+        limit=limit,
+    )
 
     if not jobs:
         print("📭 No new jobs found")
@@ -143,8 +147,10 @@ def step_enrich(jobs):
     for job in jobs:
         # Store original description before enrichment
         job['original_description'] = job.get('description', '')
+        job['original_bodyHtml'] = job.get('bodyHtml', '')
 
         # Apply enrichment
+        job['bodyHtml'] = enrich_body_html(job)
         job['description'] = enrich_description(job)
 
         enriched.append(job)
@@ -194,6 +200,7 @@ def step_upload(jobs, dry_run=False):
             'location': job.get('location', ''),
             'country': job.get('country', 'Somalia'),
             'description': job.get('description', ''),
+            'bodyHtml': job.get('bodyHtml') or None,
             'url': job.get('url', ''),
             'deadline': job.get('deadline') if '202' in str(job.get('deadline')) else None,
             'datePosted': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
@@ -250,11 +257,16 @@ def step_upload(jobs, dry_run=False):
 
         if resp.status_code in (200, 201):
             success = data.get('successCount', data.get('success', 0))
+            created = data.get('createdCount')
+            updated = data.get('updatedCount')
             failed = data.get('failureCount', data.get('failed', 0))
             total = data.get('totalProcessed', data.get('total', len(valid_jobs)))
             print(f"\n{'='*50}")
             print(f"📊 Upload Summary")
             print(f"   ✅ Success: {success}")
+            if created is not None or updated is not None:
+                print(f"   ➕ Created: {created or 0}")
+                print(f"   🔄 Updated: {updated or 0}")
             print(f"   ❌ Failed:  {failed}")
             print(f"   📋 Total:   {total}")
 
@@ -279,6 +291,51 @@ def save_to_file(jobs):
     with open(filepath, 'w', encoding='utf-8') as f:
         json.dump({'scraped_at': datetime.now().isoformat(), 'total': len(jobs), 'jobs': jobs}, f, indent=2, ensure_ascii=False)
     print(f"  💾 Saved to {filepath}")
+
+
+def backup_existing_somalijobs():
+    """Back up current live SomaliJobs rows through the admin API before repair runs."""
+    if not SOMKEN_URL:
+        print("\n⚠ SOMKEN_URL not set — skipping backup")
+        return None
+
+    token = get_auth_token()
+    if not token:
+        print("\n⚠ No auth token available — skipping backup")
+        return None
+
+    ensure_data_dir()
+    url = f"{SOMKEN_URL.rstrip('/')}/api/admin/jobs"
+    print("\n💾 Backing up existing SomaliJobs rows before repair...")
+    try:
+        resp = requests.get(
+            url,
+            headers={'Authorization': f'Bearer {token}'},
+            timeout=30,
+        )
+        if resp.status_code != 200:
+            print(f"  ⚠ Backup failed: HTTP {resp.status_code}")
+            return None
+
+        all_jobs = resp.json()
+        somalijobs = [
+            job for job in all_jobs
+            if str(job.get('source', '')).lower() == 'somalijobs'
+        ]
+        timestamp = datetime.now().strftime('%Y-%m-%d_%H%M%S')
+        filepath = os.path.join(DATA_DIR, f'somalijobs_backup_{timestamp}.json')
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(
+                {'backed_up_at': datetime.now().isoformat(), 'total': len(somalijobs), 'jobs': somalijobs},
+                f,
+                indent=2,
+                ensure_ascii=False,
+            )
+        print(f"  ✅ Backed up {len(somalijobs)} SomaliJobs rows to {filepath}")
+        return filepath
+    except requests.RequestException as e:
+        print(f"  ⚠ Backup request failed: {e}")
+        return None
 
 
 # ==========================================
@@ -311,12 +368,18 @@ def run_daemon():
 # MAIN PIPELINE
 # ==========================================
 
-def run_pipeline(dry_run=False, scrape_only=False):
+def run_pipeline(dry_run=False, scrape_only=False, refresh_existing=False, backup_existing=False, limit=None):
     """Run the full pipeline: Scrape → Enrich → Upload"""
     start = time.time()
 
+    if backup_existing and not dry_run and not scrape_only:
+        backup_path = backup_existing_somalijobs()
+        if not backup_path:
+            print("\n❌ Repair run stopped because the backup did not complete.")
+            return
+
     # Step 1: Scrape
-    jobs = step_scrape()
+    jobs = step_scrape(refresh_existing=refresh_existing, limit=limit)
 
     if not jobs:
         print(f"\n⏱ Completed in {time.time()-start:.1f}s — nothing to do")
@@ -366,13 +429,25 @@ Examples:
                         help='Just scrape and save to file')
     parser.add_argument('--daemon', action='store_true',
                         help='Run as long-lived daemon with scheduling')
+    parser.add_argument('--refresh-existing', action='store_true',
+                        help='Scrape current SomaliJobs URLs even if they were seen before; use for formatting repair')
+    parser.add_argument('--backup-existing', action='store_true',
+                        help='Back up existing SomaliJobs rows from the live admin API before uploading repair data')
+    parser.add_argument('--limit', type=int, default=None,
+                        help='Maximum number of job pages to scrape for this run')
 
     args = parser.parse_args()
 
     if args.daemon:
         run_daemon()
     else:
-        run_pipeline(dry_run=args.dry_run, scrape_only=args.scrape_only)
+        run_pipeline(
+            dry_run=args.dry_run,
+            scrape_only=args.scrape_only,
+            refresh_existing=args.refresh_existing,
+            backup_existing=args.backup_existing,
+            limit=args.limit,
+        )
 
 
 if __name__ == '__main__':
