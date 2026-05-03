@@ -17,6 +17,8 @@ import { fileURLToPath } from 'url';
 import multer from "multer";
 import { parse as csvParse } from "csv-parse/sync";
 import { sanitizeJobContentFields, sanitizeRichHtml } from "./utils/sanitizeHtml";
+import { generateJobPostingJsonLd, getJobCanonicalUrl, getJobLastModified, isGoogleIndexableJob } from "./utils/googleJobs";
+import { googleIndexing } from "./services/googleIndexing";
 import { 
   isBotUserAgent, 
   generateHomepageHTML, 
@@ -361,6 +363,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).send('<html><head><title>Job Not Found</title></head><body><h1>Job Not Found</h1></body></html>');
         }
 
+        if (!isGoogleIndexableJob(job)) {
+          console.log('Job is no longer indexable for ID:', jobId);
+          return res.status(410).send('<html><head><title>Job No Longer Available</title></head><body><h1>Job No Longer Available</h1></body></html>');
+        }
+
         const html = generateJobDetailsHTML(job);
         console.log('Generated job details HTML length:', html.length);
         
@@ -437,6 +444,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!job) {
         return res.status(404).end();
+      }
+
+      if (!isGoogleIndexableJob(job)) {
+        return res.status(410).end();
       }
 
       const html = generateJobDetailsHTML(job);
@@ -869,7 +880,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/jobs/refresh", requireAdminOrCronSecret, async (req, res) => {
     try {
       await jobFetcher.fetchAllJobs();
-      res.json({ message: "Job refresh initiated" });
+      res.json({
+        message: "Job refresh completed",
+        indexing: {
+          configured: googleIndexing.isConfigured(),
+          recentResults: googleIndexing.getRecentResults().slice(0, 20),
+        },
+      });
     } catch (error) {
       console.error("Error refreshing jobs:", error);
       res.status(500).json({ message: "Failed to refresh jobs" });
@@ -886,11 +903,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.log("Job fetch triggered via /api/trigger-fetch");
       await jobFetcher.fetchAllJobs();
-      await storage.archiveExpiredJobs();
-      res.json({ message: "Job fetch completed", timestamp: new Date().toISOString() });
+      const archivedExpiredJobs = await storage.archiveExpiredJobs();
+      res.json({
+        message: "Job fetch completed",
+        timestamp: new Date().toISOString(),
+        archivedExpiredJobs,
+        indexing: {
+          configured: googleIndexing.isConfigured(),
+          recentResults: googleIndexing.getRecentResults().slice(0, 20),
+        },
+      });
     } catch (error) {
       console.error("Error triggering job fetch:", error);
       res.status(500).json({ message: "Failed to trigger job fetch" });
+    }
+  });
+
+  app.get("/api/google-indexing/status", requireAdminOrCronSecret, async (req, res) => {
+    res.json({
+      configured: googleIndexing.isConfigured(),
+      recentResults: googleIndexing.getRecentResults(),
+    });
+  });
+
+  app.post("/api/google-indexing/submit-latest", requireAdminOrCronSecret, async (req, res) => {
+    try {
+      const requestedLimit = Number(req.body?.limit || req.query.limit || 100);
+      const limit = Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : 100, 1), 100);
+      const allJobs = await storage.getAllJobsWithDetails();
+      const results = googleIndexing.isConfigured()
+        ? await googleIndexing.submitLatestJobs(allJobs, limit)
+        : [];
+
+      res.json({
+        configured: googleIndexing.isConfigured(),
+        requestedLimit: limit,
+        submitted: results.length,
+        failed: results.filter((result) => !result.ok).length,
+        results,
+      });
+    } catch (error) {
+      console.error("Error submitting jobs to Google Indexing API:", error);
+      res.status(500).json({ message: "Failed to submit jobs to Google Indexing API" });
     }
   });
 
@@ -2041,6 +2095,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).send('Job not found');
       }
 
+      if (!ssrToken && !isGoogleIndexableJob(job)) {
+        return res.status(410).send('Job no longer available');
+      }
+
       // Generate job-specific meta tags
       const jobTitle = `${job.title} - ${job.organization}`;
       const deadline = job.deadline ? 
@@ -2049,7 +2107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create compelling social media description that appears as post content
       const socialMediaText = generateSocialMediaText(job, deadline);
       const jobDescription = socialMediaText;
-      const jobUrl = `https://somkenjobs.com/jobs/${job.id}`;
+      const jobUrl = getJobCanonicalUrl(job);
 
       // Create dynamic SVG image data URL
       const svgContent = `
@@ -2344,114 +2402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `<div id="root">${serverRenderedContent}</div>`
       );
 
-      // Create JobPosting structured data for Google Jobs
-      const cleanDescription = (() => {
-        if (!job.description) {
-          return `Join ${job.organization || 'our humanitarian organization'} in their mission to provide humanitarian aid in ${job.location || 'the field'}, ${job.country || 'East Africa'}. This position offers the opportunity to make a meaningful impact in humanitarian work.`;
-        }
-        
-        // Clean and truncate description for Google Jobs (concise, no markup, under 800 chars)
-        let cleaned = job.description
-          .replace(/<[^>]*>/g, '') // Remove HTML tags
-          .replace(/\*\*/g, '') // Remove bold markdown
-          .replace(/\*/g, '') // Remove italic markdown
-          .replace(/\n+/g, ' ') // Replace line breaks with spaces
-          .replace(/\s+/g, ' ') // Normalize whitespace
-          .replace(/&[^;]+;/g, '') // Remove HTML entities
-          .trim();
-        
-        // Truncate to 800 characters for Google's recommendation
-        if (cleaned.length > 800) {
-          cleaned = cleaned.substring(0, 800);
-          // Find last complete sentence or word
-          const lastPeriod = cleaned.lastIndexOf('.');
-          const lastSpace = cleaned.lastIndexOf(' ');
-          if (lastPeriod > 600) {
-            cleaned = cleaned.substring(0, lastPeriod + 1);
-          } else if (lastSpace > 600) {
-            cleaned = cleaned.substring(0, lastSpace) + '...';
-          } else {
-            cleaned = cleaned + '...';
-          }
-        }
-        
-        return cleaned;
-      })();
-
-      const jobStructuredData: any = {
-        "@context": "https://schema.org/",
-        "@type": "JobPosting",
-        "title": job.title.substring(0, 100),
-        "description": cleanDescription,
-        "datePosted": new Date(job.datePosted).toISOString().split('T')[0],
-        "hiringOrganization": {
-          "@type": "Organization", 
-          "name": job.organization || "Humanitarian Organization"
-        },
-        "jobLocation": {
-          "@type": "Place",
-          "address": {
-            "@type": "PostalAddress",
-            "addressLocality": job.location || "Field Location",
-            "addressCountry": job.country === "Kenya" ? "KE" : job.country === "Somalia" ? "SO" : job.country
-          }
-        }
-      };
-
-      // Add optional fields only if they have valid values
-      if (job.deadline) {
-        const deadlineDate = new Date(job.deadline);
-        if (deadlineDate > new Date()) {
-          jobStructuredData.validThrough = deadlineDate.toISOString().split('T')[0];
-        }
-      }
-
-      // Employment type mapping
-      const title = job.title.toLowerCase();
-      if (title.includes('consultant') || title.includes('contract')) {
-        jobStructuredData.employmentType = "CONTRACTOR";
-      } else if (title.includes('part-time')) {
-        jobStructuredData.employmentType = "PART_TIME"; 
-      } else if (title.includes('intern')) {
-        jobStructuredData.employmentType = "INTERN";
-      } else {
-        jobStructuredData.employmentType = "FULL_TIME";
-      }
-
-      // Job location type
-      if (job.location && job.location.toLowerCase().includes('remote')) {
-        jobStructuredData.jobLocationType = "TELECOMMUTE";
-      } else {
-        jobStructuredData.jobLocationType = "ON_SITE";
-      }
-
-      // Industry classification
-      if (job.sector) {
-        jobStructuredData.industry = job.sector;
-        jobStructuredData.occupationalCategory = job.sector;
-      }
-
-      // Canonical URL
-      jobStructuredData.url = jobUrl;
-
-      // Application instructions
-      const structuredApplyUrl = safeUrl(job.url);
-      if (structuredApplyUrl) {
-        jobStructuredData.applicationContact = {
-          "@type": "ContactPoint",
-          "contactType": "HR",
-          "url": structuredApplyUrl
-        };
-      }
-
-      // External identifier
-      if (job.externalId && job.source) {
-        jobStructuredData.identifier = {
-          "@type": "PropertyValue",
-          "name": job.source,
-          "value": job.externalId.toString()
-        };
-      }
+      const jobStructuredDataJson = generateJobPostingJsonLd(job);
 
       // Breadcrumb structured data for enhanced search appearance
       const breadcrumbData = {
@@ -2490,7 +2441,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     <!-- Google Jobs JobPosting Structured Data -->
     <script type="application/ld+json">
-${jsonLd(jobStructuredData)}
+${jobStructuredDataJson}
     </script>
     
     <!-- Breadcrumb Structured Data for enhanced search appearance -->
@@ -2511,226 +2462,156 @@ ${jsonLd(breadcrumbData)}
     }
   });
 
-  // Sitemap cache — regenerated at most once per hour
-  const sitemapCache: { xml: string | null; generatedAt: Date | null } = { xml: null, generatedAt: null };
+  // Sitemap caches are short-lived so fresh jobs move into sitemap-jobs.xml quickly.
+  const SITEMAP_CACHE_TTL = 10 * 60 * 1000;
+  const sitemapIndexCache: { xml: string | null; generatedAt: Date | null } = { xml: null, generatedAt: null };
+  const staticSitemapCache: { xml: string | null; generatedAt: Date | null } = { xml: null, generatedAt: null };
+  const jobSitemapCache: { xml: string | null; generatedAt: Date | null } = { xml: null, generatedAt: null };
 
-  // Dynamic sitemap.xml endpoint
+  const isFreshSitemapCache = (cache: { generatedAt: Date | null }) =>
+    !!cache.generatedAt && Date.now() - cache.generatedAt.getTime() < SITEMAP_CACHE_TTL;
+
+  const escapeXml = (text: string) =>
+    text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+  const getPublicActiveJobPages = async () => {
+    const allJobs = await storage.getAllJobsWithDetails();
+    return allJobs
+      .filter(isGoogleIndexableJob)
+      .sort((a, b) => new Date(getJobLastModified(b)).getTime() - new Date(getJobLastModified(a)).getTime());
+  };
+
+  const latestJobLastmod = (jobs: Awaited<ReturnType<typeof getPublicActiveJobPages>>) =>
+    jobs.length ? getJobLastModified(jobs[0]) : new Date().toISOString();
+
+  // Sitemap index for Search Console. Job detail URLs live only in sitemap-jobs.xml.
   app.get('/sitemap.xml', async (req, res) => {
     try {
       res.setHeader('Content-Type', 'application/xml');
 
-      // Return cached version if less than 1 hour old
-      const ONE_HOUR = 60 * 60 * 1000;
-      if (sitemapCache.xml && sitemapCache.generatedAt && (Date.now() - sitemapCache.generatedAt.getTime()) < ONE_HOUR) {
-        return res.send(sitemapCache.xml);
+      if (sitemapIndexCache.xml && isFreshSitemapCache(sitemapIndexCache)) {
+        return res.send(sitemapIndexCache.xml);
       }
 
-      const allJobs = await storage.getAllJobsWithDetails();
-
-      // Only include public, active job detail pages from the last 6 months.
-      const sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-      const nowDate = new Date();
-      const jobs = allJobs.filter(job => {
-        const datePosted = new Date(job.datePosted);
-        const deadline = job.deadline ? new Date(job.deadline) : null;
-        return datePosted >= sixMonthsAgo
-          && (!job.type || job.type === 'job')
-          && job.status === 'published'
-          && job.visibility !== 'private'
-          && (!deadline || deadline >= nowDate);
-      });
-
-      console.log(`Generating sitemap with ${jobs.length} jobs (from ${allJobs.length} total)`);
-
-      const now = Date.now();
-      const DAY = 24 * 60 * 60 * 1000;
-
-      // Helper: get most recent datePosted among a subset of jobs
-      const latestDate = (subset: typeof jobs) => {
-        if (!subset.length) return sixMonthsAgo.toISOString().split('T')[0];
-        const max = subset.reduce((a, b) => new Date(a.datePosted) > new Date(b.datePosted) ? a : b);
-        return new Date(max.datePosted).toISOString().split('T')[0];
-      };
-
-      // Most recent job date overall — used for dynamic listing pages
-      const newestJobDate = latestDate(jobs);
-
-      // Most recent per country and sector
-      const countries = ['Kenya', 'Somalia', 'Ethiopia', 'Uganda', 'Tanzania'];
-      const sectors = ['Health', 'Education', 'Protection', 'WASH', 'Food Security', 'Logistics', 'Emergency Response'];
-      const countryLatest: Record<string, string> = {};
-      const sectorLatest: Record<string, string> = {};
-      countries.forEach(c => { countryLatest[c] = latestDate(jobs.filter(j => j.country === c)); });
-      sectors.forEach(s => { sectorLatest[s] = latestDate(jobs.filter(j => j.sector === s)); });
-      const ngoLatest = latestDate(jobs.filter(matchesNgoJob));
-      const ngoSomaliaLatest = latestDate(jobs.filter(j => j.country === 'Somalia' && matchesNgoJob(j)));
-
-      // Generate job URLs with smart changefreq and priority based on age
-      const jobUrls = jobs.map(job => {
-        const jobSlug = generateJobSlug(job.title, job.id);
-        const lastmod = new Date(job.datePosted).toISOString().split('T')[0];
-        const ageInDays = (now - new Date(job.datePosted).getTime()) / DAY;
-        const changefreq = ageInDays <= 7 ? 'daily' : ageInDays <= 30 ? 'weekly' : 'monthly';
-        const priority = ageInDays <= 7 ? '0.9' : ageInDays <= 30 ? '0.8' : '0.6';
-        return `  <url>
-    <loc>https://somkenjobs.com/jobs/${jobSlug}</loc>
-    <lastmod>${lastmod}</lastmod>
-    <changefreq>${changefreq}</changefreq>
-    <priority>${priority}</priority>
-  </url>`;
-      }).join('\n');
-
+      const jobs = await getPublicActiveJobPages();
+      const jobsLastmod = latestJobLastmod(jobs);
       const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://somkenjobs.com/</loc>
-    <lastmod>${newestJobDate}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs</loc>
-    <lastmod>${newestJobDate}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/ngo-jobs</loc>
-    <lastmod>${ngoLatest}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.88</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/ngo-jobs/somalia</loc>
-    <lastmod>${ngoSomaliaLatest}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.88</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/tenders</loc>
-    <lastmod>${newestJobDate}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/about</loc>
-    <lastmod>2025-01-01</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/contact</loc>
-    <lastmod>2025-01-01</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/career-resources</loc>
-    <lastmod>2025-01-01</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/help-center</loc>
-    <lastmod>2025-01-01</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/privacy-policy</loc>
-    <lastmod>2025-01-01</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.4</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/terms-of-service</loc>
-    <lastmod>2025-01-01</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.4</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/country/kenya</loc>
-    <lastmod>${countryLatest['Kenya']}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/country/somalia</loc>
-    <lastmod>${countryLatest['Somalia']}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/country/ethiopia</loc>
-    <lastmod>${countryLatest['Ethiopia']}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/country/uganda</loc>
-    <lastmod>${countryLatest['Uganda']}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/country/tanzania</loc>
-    <lastmod>${countryLatest['Tanzania']}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/sector/health</loc>
-    <lastmod>${sectorLatest['Health']}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/sector/education</loc>
-    <lastmod>${sectorLatest['Education']}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/sector/protection</loc>
-    <lastmod>${sectorLatest['Protection']}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/sector/wash</loc>
-    <lastmod>${sectorLatest['WASH']}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/sector/food-security</loc>
-    <lastmod>${sectorLatest['Food Security']}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/sector/logistics</loc>
-    <lastmod>${sectorLatest['Logistics']}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/sector/emergency-response</loc>
-    <lastmod>${sectorLatest['Emergency Response']}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-${jobUrls}
-</urlset>`;
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>https://somkenjobs.com/sitemap-static.xml</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://somkenjobs.com/sitemap-jobs.xml</loc>
+    <lastmod>${jobsLastmod}</lastmod>
+  </sitemap>
+</sitemapindex>`;
 
-      sitemapCache.xml = sitemapXml;
-      sitemapCache.generatedAt = new Date();
+      sitemapIndexCache.xml = sitemapXml;
+      sitemapIndexCache.generatedAt = new Date();
 
       res.send(sitemapXml);
     } catch (error) {
       console.error('Error generating sitemap:', error);
       res.status(500).send('Error generating sitemap');
+    }
+  });
+
+  app.get('/sitemap-static.xml', async (req, res) => {
+    try {
+      res.setHeader('Content-Type', 'application/xml');
+
+      if (staticSitemapCache.xml && isFreshSitemapCache(staticSitemapCache)) {
+        return res.send(staticSitemapCache.xml);
+      }
+
+      const jobs = await getPublicActiveJobPages();
+      const newestJobDate = latestJobLastmod(jobs);
+      const latestDateFor = (subset: typeof jobs) => subset.length ? getJobLastModified(subset[0]) : newestJobDate;
+      const countries = ['Kenya', 'Somalia', 'Ethiopia', 'Uganda', 'Tanzania'];
+      const sectors = ['Health', 'Education', 'Protection', 'WASH', 'Food Security', 'Logistics', 'Emergency Response'];
+
+      const urls = [
+        { loc: 'https://somkenjobs.com/', lastmod: newestJobDate, changefreq: 'daily', priority: '1.0' },
+        { loc: 'https://somkenjobs.com/jobs', lastmod: newestJobDate, changefreq: 'daily', priority: '0.9' },
+        { loc: 'https://somkenjobs.com/ngo-jobs', lastmod: latestDateFor(jobs.filter(matchesNgoJob)), changefreq: 'daily', priority: '0.88' },
+        { loc: 'https://somkenjobs.com/ngo-jobs/somalia', lastmod: latestDateFor(jobs.filter((job) => job.country === 'Somalia' && matchesNgoJob(job))), changefreq: 'daily', priority: '0.88' },
+        { loc: 'https://somkenjobs.com/tenders', lastmod: newestJobDate, changefreq: 'daily', priority: '0.9' },
+        { loc: 'https://somkenjobs.com/about', lastmod: '2025-01-01T00:00:00.000Z', changefreq: 'monthly', priority: '0.7' },
+        { loc: 'https://somkenjobs.com/contact', lastmod: '2025-01-01T00:00:00.000Z', changefreq: 'monthly', priority: '0.7' },
+        { loc: 'https://somkenjobs.com/career-resources', lastmod: '2025-01-01T00:00:00.000Z', changefreq: 'monthly', priority: '0.8' },
+        { loc: 'https://somkenjobs.com/help-center', lastmod: '2025-01-01T00:00:00.000Z', changefreq: 'monthly', priority: '0.6' },
+        { loc: 'https://somkenjobs.com/privacy-policy', lastmod: '2025-01-01T00:00:00.000Z', changefreq: 'yearly', priority: '0.4' },
+        { loc: 'https://somkenjobs.com/terms-of-service', lastmod: '2025-01-01T00:00:00.000Z', changefreq: 'yearly', priority: '0.4' },
+        ...countries.map((country) => ({
+          loc: `https://somkenjobs.com/jobs/country/${country.toLowerCase()}`,
+          lastmod: latestDateFor(jobs.filter((job) => job.country === country)),
+          changefreq: 'daily',
+          priority: '0.85',
+        })),
+        ...sectors.map((sector) => ({
+          loc: `https://somkenjobs.com/jobs/sector/${sector.toLowerCase().replace(/\s+/g, '-')}`,
+          lastmod: latestDateFor(jobs.filter((job) => job.sector === sector)),
+          changefreq: 'daily',
+          priority: '0.8',
+        })),
+      ];
+
+      const urlXml = urls.map((url) => `  <url>
+    <loc>${escapeXml(url.loc)}</loc>
+    <lastmod>${url.lastmod}</lastmod>
+    <changefreq>${url.changefreq}</changefreq>
+    <priority>${url.priority}</priority>
+  </url>`).join('\n');
+
+      const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urlXml}
+</urlset>`;
+
+      staticSitemapCache.xml = sitemapXml;
+      staticSitemapCache.generatedAt = new Date();
+      res.send(sitemapXml);
+    } catch (error) {
+      console.error('Error generating static sitemap:', error);
+      res.status(500).send('Error generating static sitemap');
+    }
+  });
+
+  app.get('/sitemap-jobs.xml', async (req, res) => {
+    try {
+      res.setHeader('Content-Type', 'application/xml');
+
+      if (jobSitemapCache.xml && isFreshSitemapCache(jobSitemapCache)) {
+        return res.send(jobSitemapCache.xml);
+      }
+
+      const jobs = await getPublicActiveJobPages();
+      console.log(`Generating job sitemap with ${jobs.length} active public jobs`);
+
+      const jobUrls = jobs.map((job) => `  <url>
+    <loc>${escapeXml(getJobCanonicalUrl(job))}</loc>
+    <lastmod>${getJobLastModified(job)}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>`).join('\n');
+
+      const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${jobUrls}
+</urlset>`;
+
+      jobSitemapCache.xml = sitemapXml;
+      jobSitemapCache.generatedAt = new Date();
+      res.send(sitemapXml);
+    } catch (error) {
+      console.error('Error generating job sitemap:', error);
+      res.status(500).send('Error generating job sitemap');
     }
   });
 
@@ -2868,6 +2749,7 @@ Disallow: /preview
 
 # Reference to sitemap and RSS feed
 Sitemap: https://somkenjobs.com/sitemap.xml
+Sitemap: https://somkenjobs.com/sitemap-jobs.xml
 RSS Feed: https://somkenjobs.com/feed`;
 
     res.send(robotsTxt);

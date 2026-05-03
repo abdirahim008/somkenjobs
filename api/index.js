@@ -343,7 +343,329 @@ var JobsCache = class {
 };
 var jobsCache = new JobsCache();
 
+// server/services/googleIndexing.ts
+import { createSign } from "crypto";
+
+// server/utils/sanitizeHtml.ts
+import sanitizeHtml from "sanitize-html";
+var allowedTags = [
+  "a",
+  "b",
+  "blockquote",
+  "br",
+  "code",
+  "div",
+  "em",
+  "h2",
+  "h3",
+  "h4",
+  "li",
+  "ol",
+  "p",
+  "pre",
+  "span",
+  "strong",
+  "table",
+  "tbody",
+  "td",
+  "th",
+  "thead",
+  "tr",
+  "u",
+  "ul"
+];
+var allowedAttributes = {
+  a: ["href", "name", "target", "rel"],
+  td: ["colspan", "rowspan"],
+  th: ["colspan", "rowspan"]
+};
+var allowedSchemes = ["http", "https", "mailto", "tel"];
+function sanitizeRichHtml(html) {
+  if (!html) return "";
+  return sanitizeHtml(html, {
+    allowedTags,
+    allowedAttributes,
+    allowedSchemes,
+    allowedSchemesByTag: {
+      a: allowedSchemes
+    },
+    transformTags: {
+      a: (_tagName, attribs) => ({
+        tagName: "a",
+        attribs: {
+          ...attribs,
+          rel: "noopener noreferrer",
+          target: attribs.target === "_self" ? "_self" : "_blank"
+        }
+      })
+    },
+    disallowedTagsMode: "discard",
+    enforceHtmlBoundary: true
+  }).trim();
+}
+function sanitizeJobContentFields(jobData) {
+  const sanitized = { ...jobData };
+  const richTextFields = ["description", "bodyHtml", "howToApply", "qualifications", "responsibilities"];
+  for (const field of richTextFields) {
+    if (typeof sanitized[field] === "string") {
+      sanitized[field] = sanitizeRichHtml(sanitized[field]);
+    }
+  }
+  return sanitized;
+}
+
+// server/utils/googleJobs.ts
+var SITE_URL = "https://somkenjobs.com";
+var COUNTRY_CODES = {
+  Ethiopia: "ET",
+  Kenya: "KE",
+  Somalia: "SO",
+  Somaliland: "SO",
+  Tanzania: "TZ",
+  Uganda: "UG"
+};
+var escapeHtml = (text2) => String(text2 || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+var stripHtml = (text2) => String(text2 || "").replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+var normalizeHtmlBlock = (label, value) => {
+  const cleaned = sanitizeRichHtml(String(value || "")).trim();
+  if (!cleaned) return "";
+  if (/<(p|ul|ol|li|br)\b/i.test(cleaned)) {
+    return `<p><strong>${escapeHtml(label)}</strong></p>${cleaned}`;
+  }
+  const paragraphs = cleaned.split(/\n{2,}/).map((part) => part.trim()).filter(Boolean).map((part) => `<p>${escapeHtml(part).replace(/\n/g, "<br>")}</p>`).join("");
+  return `<p><strong>${escapeHtml(label)}</strong></p>${paragraphs}`;
+};
+var getJobCanonicalUrl = (job) => `${SITE_URL}/jobs/${generateJobSlug(job.title, job.id)}`;
+var isExpiredJob = (job, now = /* @__PURE__ */ new Date()) => !!job.deadline && new Date(job.deadline) < now;
+var isGoogleIndexableJob = (job) => job.status === "published" && job.type === "job" && job.visibility !== "private" && !isExpiredJob(job);
+var getJobLastModified = (job) => {
+  const candidates = [job.createdAt, job.datePosted].filter(Boolean).map((value) => new Date(value)).filter((date) => !Number.isNaN(date.getTime()));
+  const latest = candidates.reduce((max, date) => date > max ? date : max, /* @__PURE__ */ new Date(0));
+  return (latest.getTime() > 0 ? latest : /* @__PURE__ */ new Date()).toISOString();
+};
+var getJobPostingDescriptionHtml = (job) => {
+  const parts = [
+    normalizeHtmlBlock("Job description", job.bodyHtml || job.description),
+    normalizeHtmlBlock("Responsibilities", job.responsibilities),
+    normalizeHtmlBlock("Qualifications", job.qualifications),
+    normalizeHtmlBlock("Experience", job.experience),
+    normalizeHtmlBlock("How to apply", job.howToApply)
+  ].filter(Boolean);
+  if (parts.length) return parts.join("");
+  return `<p>Join ${escapeHtml(job.organization)} in ${escapeHtml(job.location)}, ${escapeHtml(job.country)}. This role is listed on Somken Jobs for applicants seeking verified humanitarian and development opportunities.</p>`;
+};
+var getEmploymentType = (job) => {
+  const text2 = `${job.title} ${stripHtml(job.description)}`.toLowerCase();
+  if (text2.includes("intern")) return "INTERN";
+  if (text2.includes("part-time") || text2.includes("part time")) return "PART_TIME";
+  if (text2.includes("temporary") || text2.includes("consultant") || text2.includes("consultancy") || text2.includes("contract")) return "CONTRACTOR";
+  return "FULL_TIME";
+};
+var getCountryCode = (country) => COUNTRY_CODES[country] || country;
+var generateJobPostingData = (job) => {
+  const jobUrl = getJobCanonicalUrl(job);
+  const data = {
+    "@context": "https://schema.org/",
+    "@type": "JobPosting",
+    title: job.title,
+    description: getJobPostingDescriptionHtml(job),
+    datePosted: new Date(job.datePosted).toISOString(),
+    employmentType: getEmploymentType(job),
+    hiringOrganization: {
+      "@type": "Organization",
+      name: job.organization || "confidential"
+    },
+    jobLocation: {
+      "@type": "Place",
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: job.location || job.country || "Field Location",
+        addressCountry: getCountryCode(job.country)
+      }
+    },
+    url: jobUrl,
+    identifier: {
+      "@type": "PropertyValue",
+      name: job.source || "somkenjobs",
+      value: job.externalId || String(job.id)
+    }
+  };
+  if (job.deadline) {
+    data.validThrough = new Date(job.deadline).toISOString();
+  }
+  if (job.sector) {
+    data.industry = job.sector;
+    data.occupationalCategory = job.sector;
+  }
+  if (job.location?.toLowerCase().includes("remote")) {
+    data.jobLocationType = "TELECOMMUTE";
+    data.applicantLocationRequirements = {
+      "@type": "Country",
+      name: job.country || "East Africa"
+    };
+  }
+  return data;
+};
+var generateJobPostingJsonLd = (job) => JSON.stringify(generateJobPostingData(job)).replace(/</g, "\\u003c");
+
+// server/services/googleIndexing.ts
+var INDEXING_SCOPE = "https://www.googleapis.com/auth/indexing";
+var TOKEN_URL = "https://oauth2.googleapis.com/token";
+var PUBLISH_URL = "https://indexing.googleapis.com/v3/urlNotifications:publish";
+var MAX_LOG_ENTRIES = 200;
+var base64Url = (input) => Buffer.from(input).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+var GoogleIndexingService = class {
+  credentials;
+  accessToken = null;
+  logs = [];
+  warnedMissingCredentials = false;
+  isConfigured() {
+    return !!this.getCredentials();
+  }
+  getRecentResults() {
+    return [...this.logs];
+  }
+  async notifyJobUpdated(job) {
+    const type = isGoogleIndexableJob(job) ? "URL_UPDATED" : "URL_DELETED";
+    return this.publish(getJobCanonicalUrl(job), type);
+  }
+  async notifyJobDeleted(job) {
+    return this.publish(getJobCanonicalUrl(job), "URL_DELETED");
+  }
+  async submitLatestJobs(jobs2, limit = 100) {
+    const activeJobs = jobs2.filter(isGoogleIndexableJob).slice(0, Math.min(Math.max(limit, 1), 100));
+    const results = [];
+    for (const job of activeJobs) {
+      const result = await this.publish(getJobCanonicalUrl(job), "URL_UPDATED");
+      if (result) results.push(result);
+    }
+    return results;
+  }
+  async publish(url, type) {
+    const credentials = this.getCredentials();
+    if (!credentials) {
+      if (!this.warnedMissingCredentials) {
+        console.warn("Google Indexing API is disabled: set GOOGLE_INDEXING_SERVICE_ACCOUNT_JSON to enable submissions.");
+        this.warnedMissingCredentials = true;
+      }
+      return null;
+    }
+    try {
+      const token = await this.getAccessToken(credentials);
+      const response = await fetch(PUBLISH_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ url, type })
+      });
+      const text2 = await response.text();
+      const result = {
+        url,
+        type,
+        ok: response.ok,
+        status: response.status,
+        message: response.ok ? "submitted" : text2,
+        submittedAt: (/* @__PURE__ */ new Date()).toISOString()
+      };
+      this.record(result);
+      return result;
+    } catch (error) {
+      const result = {
+        url,
+        type,
+        ok: false,
+        message: error instanceof Error ? error.message : String(error),
+        submittedAt: (/* @__PURE__ */ new Date()).toISOString()
+      };
+      this.record(result);
+      return result;
+    }
+  }
+  record(result) {
+    this.logs.unshift(result);
+    this.logs = this.logs.slice(0, MAX_LOG_ENTRIES);
+    const status = result.ok ? "submitted" : "failed";
+    console.log(`Google Indexing ${status}: ${result.type} ${result.url}${result.status ? ` (${result.status})` : ""}`);
+    if (!result.ok && result.message) {
+      console.warn(`Google Indexing error: ${result.message.slice(0, 500)}`);
+    }
+  }
+  getCredentials() {
+    if (this.credentials !== void 0) return this.credentials;
+    const raw = process.env.GOOGLE_INDEXING_SERVICE_ACCOUNT_JSON;
+    if (!raw) {
+      this.credentials = null;
+      return null;
+    }
+    try {
+      const json = raw.trim().startsWith("{") ? raw : Buffer.from(raw, "base64").toString("utf8");
+      const parsed = JSON.parse(json);
+      if (!parsed.client_email || !parsed.private_key) {
+        throw new Error("missing client_email or private_key");
+      }
+      this.credentials = {
+        client_email: parsed.client_email,
+        private_key: parsed.private_key.replace(/\\n/g, "\n")
+      };
+      return this.credentials;
+    } catch (error) {
+      console.error("Invalid GOOGLE_INDEXING_SERVICE_ACCOUNT_JSON:", error);
+      this.credentials = null;
+      return null;
+    }
+  }
+  async getAccessToken(credentials) {
+    const now = Math.floor(Date.now() / 1e3);
+    if (this.accessToken && this.accessToken.expiresAt - 60 > now) {
+      return this.accessToken.value;
+    }
+    const header = base64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+    const claimSet = base64Url(JSON.stringify({
+      iss: credentials.client_email,
+      scope: INDEXING_SCOPE,
+      aud: TOKEN_URL,
+      exp: now + 3600,
+      iat: now
+    }));
+    const unsignedJwt = `${header}.${claimSet}`;
+    const signature = createSign("RSA-SHA256").update(unsignedJwt).sign(credentials.private_key);
+    const assertion = `${unsignedJwt}.${base64Url(signature)}`;
+    const response = await fetch(TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        assertion
+      })
+    });
+    if (!response.ok) {
+      throw new Error(`Token request failed (${response.status}): ${await response.text()}`);
+    }
+    const data = await response.json();
+    this.accessToken = {
+      value: data.access_token,
+      expiresAt: now + data.expires_in
+    };
+    return data.access_token;
+  }
+};
+var googleIndexing = new GoogleIndexingService();
+
 // server/storage.ts
+var notifyGoogleJobUpdated = (job) => {
+  if (!job || !googleIndexing.isConfigured()) return;
+  void googleIndexing.notifyJobUpdated(job).catch((error) => {
+    console.error(`Failed to notify Google Indexing API for job ${job.id}:`, error);
+  });
+};
+var notifyGoogleJobDeleted = (job) => {
+  if (!job || !googleIndexing.isConfigured()) return;
+  void googleIndexing.notifyJobDeleted(job).catch((error) => {
+    console.error(`Failed to notify Google Indexing API for deleted job ${job.id}:`, error);
+  });
+};
 var DatabaseStorage = class {
   async getUser(id) {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -419,25 +741,35 @@ var DatabaseStorage = class {
     };
     const [job] = await db.insert(jobs).values(jobData).returning();
     jobsCache.invalidateCache();
+    notifyGoogleJobUpdated(job);
     return job;
   }
   async updateJob(id, updateData) {
     const [job] = await db.update(jobs).set(updateData).where(eq(jobs.id, id)).returning();
     if (job) {
       jobsCache.invalidateCache();
+      notifyGoogleJobUpdated(job);
     }
     return job || void 0;
   }
   async deleteJob(id) {
+    const [job] = await db.select().from(jobs).where(eq(jobs.id, id)).limit(1);
     const result = await db.delete(jobs).where(eq(jobs.id, id));
     const deleted = (result.rowCount ?? 0) > 0;
     if (deleted) {
       jobsCache.invalidateCache();
+      notifyGoogleJobDeleted(job);
     }
     return deleted;
   }
   async archiveExpiredJobs() {
     const now = /* @__PURE__ */ new Date();
+    const expiredJobs = await db.select().from(jobs).where(
+      and(
+        eq(jobs.status, "published"),
+        lt(jobs.deadline, now)
+      )
+    );
     const result = await db.update(jobs).set({ status: "archived" }).where(
       and(
         eq(jobs.status, "published"),
@@ -448,6 +780,7 @@ var DatabaseStorage = class {
     if (count > 0) {
       console.log(`Archived ${count} expired jobs`);
       jobsCache.invalidateCache();
+      expiredJobs.forEach(notifyGoogleJobDeleted);
     }
     return count;
   }
@@ -1321,74 +1654,6 @@ import { fileURLToPath } from "url";
 import multer from "multer";
 import { parse as csvParse } from "csv-parse/sync";
 
-// server/utils/sanitizeHtml.ts
-import sanitizeHtml from "sanitize-html";
-var allowedTags = [
-  "a",
-  "b",
-  "blockquote",
-  "br",
-  "code",
-  "div",
-  "em",
-  "h2",
-  "h3",
-  "h4",
-  "li",
-  "ol",
-  "p",
-  "pre",
-  "span",
-  "strong",
-  "table",
-  "tbody",
-  "td",
-  "th",
-  "thead",
-  "tr",
-  "u",
-  "ul"
-];
-var allowedAttributes = {
-  a: ["href", "name", "target", "rel"],
-  td: ["colspan", "rowspan"],
-  th: ["colspan", "rowspan"]
-};
-var allowedSchemes = ["http", "https", "mailto", "tel"];
-function sanitizeRichHtml(html) {
-  if (!html) return "";
-  return sanitizeHtml(html, {
-    allowedTags,
-    allowedAttributes,
-    allowedSchemes,
-    allowedSchemesByTag: {
-      a: allowedSchemes
-    },
-    transformTags: {
-      a: (_tagName, attribs) => ({
-        tagName: "a",
-        attribs: {
-          ...attribs,
-          rel: "noopener noreferrer",
-          target: attribs.target === "_self" ? "_self" : "_blank"
-        }
-      })
-    },
-    disallowedTagsMode: "discard",
-    enforceHtmlBoundary: true
-  }).trim();
-}
-function sanitizeJobContentFields(jobData) {
-  const sanitized = { ...jobData };
-  const richTextFields = ["description", "bodyHtml", "howToApply", "qualifications", "responsibilities"];
-  for (const field of richTextFields) {
-    if (typeof sanitized[field] === "string") {
-      sanitized[field] = sanitizeRichHtml(sanitized[field]);
-    }
-  }
-  return sanitized;
-}
-
 // shared/seoUtils.ts
 function stripMarkdown(text2) {
   if (!text2) return "";
@@ -1651,20 +1916,7 @@ function isBotUserAgent(userAgent) {
   const lowerUserAgent = userAgent.toLowerCase();
   return botPatterns.some((pattern) => lowerUserAgent.includes(pattern));
 }
-function stripMarkdownAndHtml(text2, maxLength = 160) {
-  if (!text2) return "";
-  let cleaned = text2.replace(/<[^>]*>/g, "").replace(/#{1,6}\s*/g, "").replace(/\*\*([^*]+)\*\*/g, "$1").replace(/\*([^*]+)\*/g, "$1").replace(/__([^_]+)__/g, "$1").replace(/_([^_]+)_/g, "$1").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/```[\s\S]*?```/g, "").replace(/`([^`]+)`/g, "$1").replace(/^\s*[-*+]\s+/gm, "").replace(/^\s*\d+\.\s+/gm, "").replace(/^\s*>/gm, "").replace(/\n+/g, " ").replace(/\s+/g, " ").replace(/&[^;]+;/g, "").trim();
-  if (cleaned.length > maxLength) {
-    cleaned = cleaned.substring(0, maxLength);
-    const lastSpace = cleaned.lastIndexOf(" ");
-    if (lastSpace > maxLength - 30) {
-      cleaned = cleaned.substring(0, lastSpace);
-    }
-    cleaned = cleaned.trim() + "...";
-  }
-  return cleaned;
-}
-function escapeHtml(text2) {
+function escapeHtml2(text2) {
   return String(text2 || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 function safeUrl(url) {
@@ -1677,48 +1929,7 @@ function safeUrl(url) {
   }
 }
 function generateJobStructuredData(job) {
-  const cleanDescription = job.description ? stripMarkdownAndHtml(job.description, 5e3) : `Join ${job.organization || "our humanitarian organization"} in their mission to provide humanitarian aid in ${job.location || "the field"}, ${job.country || "East Africa"}. This position offers the opportunity to make a meaningful impact in humanitarian work.`;
-  const jobStructuredData = {
-    "@context": "https://schema.org/",
-    "@type": "JobPosting",
-    "title": job.title.substring(0, 100),
-    "description": cleanDescription,
-    "datePosted": new Date(job.datePosted).toISOString().split("T")[0],
-    "hiringOrganization": {
-      "@type": "Organization",
-      "name": job.organization || "Humanitarian Organization"
-    },
-    "jobLocation": {
-      "@type": "Place",
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": job.location || "Field Location",
-        "addressCountry": job.country === "Kenya" ? "KE" : job.country === "Somalia" ? "SO" : job.country
-      }
-    },
-    "url": `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`
-  };
-  if (job.deadline) {
-    const deadlineDate = new Date(job.deadline);
-    if (deadlineDate > /* @__PURE__ */ new Date()) {
-      jobStructuredData.validThrough = deadlineDate.toISOString().split("T")[0];
-    }
-  }
-  const title = job.title.toLowerCase();
-  if (title.includes("consultant") || title.includes("contract")) {
-    jobStructuredData.employmentType = "CONTRACTOR";
-  } else if (title.includes("part-time")) {
-    jobStructuredData.employmentType = "PART_TIME";
-  } else if (title.includes("intern")) {
-    jobStructuredData.employmentType = "INTERN";
-  } else {
-    jobStructuredData.employmentType = "FULL_TIME";
-  }
-  if (job.sector) {
-    jobStructuredData.industry = job.sector;
-    jobStructuredData.occupationalCategory = job.sector;
-  }
-  return JSON.stringify(jobStructuredData, null, 2);
+  return JSON.stringify(JSON.parse(generateJobPostingJsonLd(job)), null, 2);
 }
 function validateContextMaps() {
   const checkForInjection = (mapName, map) => {
@@ -2131,7 +2342,7 @@ function generateJobDetailsHTML(job) {
     console.error("Context validation failed:", error);
   }
   const structuredData = generateJobStructuredData(job);
-  const jobUrl = `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`;
+  const jobUrl = getJobCanonicalUrl(job);
   const seoMetadata = generateJobSEOMetadata(job);
   const applyUrl = safeUrl(job.url);
   const stripTags = (str) => sanitizeRichHtml(str).replace(/<[^>]*>/g, "").trim();
@@ -2148,23 +2359,23 @@ function generateJobDetailsHTML(job) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escapeHtml(seoMetadata.title)}</title>
-  <meta name="description" content="${escapeHtml(seoMetadata.description)}">
-  <meta name="keywords" content="${escapeHtml(seoMetadata.keywords)}">
+  <title>${escapeHtml2(seoMetadata.title)}</title>
+  <meta name="description" content="${escapeHtml2(seoMetadata.description)}">
+  <meta name="keywords" content="${escapeHtml2(seoMetadata.keywords)}">
   <link rel="canonical" href="${jobUrl}">
   
   <!-- Open Graph Tags -->
   <meta property="og:type" content="article">
   <meta property="og:url" content="${jobUrl}">
-  <meta property="og:title" content="${escapeHtml(seoMetadata.title)}">
-  <meta property="og:description" content="${escapeHtml(seoMetadata.description)}">
+  <meta property="og:title" content="${escapeHtml2(seoMetadata.title)}">
+  <meta property="og:description" content="${escapeHtml2(seoMetadata.description)}">
   <meta property="og:site_name" content="Somken Jobs">
   
   <!-- Twitter Card Tags -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@SomkenJobs">
-  <meta name="twitter:title" content="${escapeHtml(seoMetadata.title)}">
-  <meta name="twitter:description" content="${escapeHtml(seoMetadata.description)}">
+  <meta name="twitter:title" content="${escapeHtml2(seoMetadata.title)}">
+  <meta name="twitter:description" content="${escapeHtml2(seoMetadata.description)}">
 
   <!-- Job Structured Data -->
   <script type="application/ld+json">
@@ -2187,10 +2398,10 @@ function generateJobDetailsHTML(job) {
   <main class="container">`);
   htmlParts.push(`
     <div class="job-header">
-      <h1>${escapeHtml(job.title)}</h1>
+      <h1>${escapeHtml2(job.title)}</h1>
       <div class="job-meta">
-        <strong>${escapeHtml(job.organization)}</strong> - ${escapeHtml(job.location)}, ${escapeHtml(job.country)}
-        ${job.sector ? ` - ${escapeHtml(job.sector)}` : ""}
+        <strong>${escapeHtml2(job.organization)}</strong> - ${escapeHtml2(job.location)}, ${escapeHtml2(job.country)}
+        ${job.sector ? ` - ${escapeHtml2(job.sector)}` : ""}
         ${job.deadline ? ` \u2022 Deadline: ${new Date(job.deadline).toLocaleDateString()}` : ""}
       </div>
       ${applyUrl ? `<a href="${applyUrl}" target="_blank" rel="noopener noreferrer" class="apply-button">Apply Now</a>` : ""}
@@ -2211,10 +2422,10 @@ function generateJobDetailsHTML(job) {
     ` : ""}
     
     ${h3("Professional Environment")}
-    ${p(`This ${escapeHtml(job.title)} position requires working in East Africa's dynamic humanitarian landscape, where professionals engage with complex operational challenges while contributing to meaningful community impact. The role demands cultural sensitivity, adaptability, and strong interpersonal skills to work effectively with diverse teams including local staff, international colleagues, government partners, and community representatives. Successful candidates will thrive in fast-paced environments that require both independent decision-making and collaborative problem-solving approaches.`)}
+    ${p(`This ${escapeHtml2(job.title)} position requires working in East Africa's dynamic humanitarian landscape, where professionals engage with complex operational challenges while contributing to meaningful community impact. The role demands cultural sensitivity, adaptability, and strong interpersonal skills to work effectively with diverse teams including local staff, international colleagues, government partners, and community representatives. Successful candidates will thrive in fast-paced environments that require both independent decision-making and collaborative problem-solving approaches.`)}
     
     ${h3("Career Development")}
-    ${p(`Professionals in this role will gain invaluable experience in ${escapeHtml(job.sector || "humanitarian programming")}, developing specialized technical skills alongside leadership and management capabilities. The position offers exposure to international best practices, opportunities for professional networking within the East African humanitarian community, and potential for career advancement within ${escapeHtml(job.organization)} or the broader humanitarian sector. This experience provides excellent preparation for senior management roles, technical advisory positions, or specialized program leadership opportunities.`)}
+    ${p(`Professionals in this role will gain invaluable experience in ${escapeHtml2(job.sector || "humanitarian programming")}, developing specialized technical skills alongside leadership and management capabilities. The position offers exposure to international best practices, opportunities for professional networking within the East African humanitarian community, and potential for career advancement within ${escapeHtml2(job.organization)} or the broader humanitarian sector. This experience provides excellent preparation for senior management roles, technical advisory positions, or specialized program leadership opportunities.`)}
   `));
   if (job.responsibilities) {
     htmlParts.push(section(`
@@ -2236,14 +2447,14 @@ function generateJobDetailsHTML(job) {
   `));
   htmlParts.push(section(`
     ${h2("Organization Background")}
-    ${p(`${escapeHtml(job.organization)} maintains a strong operational presence throughout East Africa, implementing critical humanitarian and development programming that addresses the needs of vulnerable populations across the region. The organization's comprehensive approach encompasses emergency response capabilities, long-term development initiatives, and capacity building programs designed to create sustainable positive change in communities. Their commitment to local partnership, evidence-based programming, and innovative approaches makes them a respected leader in the humanitarian sector.`)}
+    ${p(`${escapeHtml2(job.organization)} maintains a strong operational presence throughout East Africa, implementing critical humanitarian and development programming that addresses the needs of vulnerable populations across the region. The organization's comprehensive approach encompasses emergency response capabilities, long-term development initiatives, and capacity building programs designed to create sustainable positive change in communities. Their commitment to local partnership, evidence-based programming, and innovative approaches makes them a respected leader in the humanitarian sector.`)}
     
-    ${p(`Working with ${escapeHtml(job.organization)} provides opportunities to contribute to high-impact programming while developing professional skills in a supportive, mission-driven environment. The organization values staff development, maintains strong safety and security protocols, and offers competitive compensation packages designed to attract and retain talented humanitarian professionals. Team members benefit from comprehensive training programs, mentorship opportunities, and exposure to cutting-edge approaches in ${escapeHtml(job.sector || "humanitarian")} programming.`)}
+    ${p(`Working with ${escapeHtml2(job.organization)} provides opportunities to contribute to high-impact programming while developing professional skills in a supportive, mission-driven environment. The organization values staff development, maintains strong safety and security protocols, and offers competitive compensation packages designed to attract and retain talented humanitarian professionals. Team members benefit from comprehensive training programs, mentorship opportunities, and exposure to cutting-edge approaches in ${escapeHtml2(job.sector || "humanitarian")} programming.`)}
     
     ${applyUrl ? `
     ${h3("Next Steps")}
-    ${p(`To apply for this ${escapeHtml(job.title)} position, visit the official application portal where you can submit your comprehensive application materials directly to ${escapeHtml(job.organization)}'s recruitment team. The organization maintains transparent, merit-based selection processes designed to identify candidates who demonstrate both technical excellence and commitment to humanitarian values.`)}
-    ${p(`<a href="${applyUrl}" target="_blank" rel="noopener noreferrer" style="color: #0077B5; font-weight: 600;">Submit Application for ${escapeHtml(job.title)} Position</a>`)}
+    ${p(`To apply for this ${escapeHtml2(job.title)} position, visit the official application portal where you can submit your comprehensive application materials directly to ${escapeHtml2(job.organization)}'s recruitment team. The organization maintains transparent, merit-based selection processes designed to identify candidates who demonstrate both technical excellence and commitment to humanitarian values.`)}
+    ${p(`<a href="${applyUrl}" target="_blank" rel="noopener noreferrer" style="color: #0077B5; font-weight: 600;">Submit Application for ${escapeHtml2(job.title)} Position</a>`)}
     ` : ""}
   `));
   if (job.howToApply) {
@@ -2308,7 +2519,7 @@ var JWT_SECRET = (() => {
 })();
 var upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 var generatePrivateToken = () => randomBytes(32).toString("hex");
-var escapeHtml2 = (text2) => String(text2 || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+var escapeHtml3 = (text2) => String(text2 || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 var safeUrl2 = (url) => {
   if (!url) return "";
   try {
@@ -2539,6 +2750,10 @@ async function registerRoutes(app2) {
           console.log("Job not found for ID:", jobId);
           return res.status(404).send("<html><head><title>Job Not Found</title></head><body><h1>Job Not Found</h1></body></html>");
         }
+        if (!isGoogleIndexableJob(job)) {
+          console.log("Job is no longer indexable for ID:", jobId);
+          return res.status(410).send("<html><head><title>Job No Longer Available</title></head><body><h1>Job No Longer Available</h1></body></html>");
+        }
         const html = generateJobDetailsHTML(job);
         console.log("Generated job details HTML length:", html.length);
         res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -2595,6 +2810,9 @@ async function registerRoutes(app2) {
       const job = await storage.getJobById(jobId);
       if (!job) {
         return res.status(404).end();
+      }
+      if (!isGoogleIndexableJob(job)) {
+        return res.status(410).end();
       }
       const html = generateJobDetailsHTML(job);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -2909,7 +3127,13 @@ async function registerRoutes(app2) {
   app2.post("/api/jobs/refresh", requireAdminOrCronSecret, async (req, res) => {
     try {
       await jobFetcher.fetchAllJobs();
-      res.json({ message: "Job refresh initiated" });
+      res.json({
+        message: "Job refresh completed",
+        indexing: {
+          configured: googleIndexing.isConfigured(),
+          recentResults: googleIndexing.getRecentResults().slice(0, 20)
+        }
+      });
     } catch (error) {
       console.error("Error refreshing jobs:", error);
       res.status(500).json({ message: "Failed to refresh jobs" });
@@ -2923,11 +3147,43 @@ async function registerRoutes(app2) {
       }
       console.log("Job fetch triggered via /api/trigger-fetch");
       await jobFetcher.fetchAllJobs();
-      await storage.archiveExpiredJobs();
-      res.json({ message: "Job fetch completed", timestamp: (/* @__PURE__ */ new Date()).toISOString() });
+      const archivedExpiredJobs = await storage.archiveExpiredJobs();
+      res.json({
+        message: "Job fetch completed",
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        archivedExpiredJobs,
+        indexing: {
+          configured: googleIndexing.isConfigured(),
+          recentResults: googleIndexing.getRecentResults().slice(0, 20)
+        }
+      });
     } catch (error) {
       console.error("Error triggering job fetch:", error);
       res.status(500).json({ message: "Failed to trigger job fetch" });
+    }
+  });
+  app2.get("/api/google-indexing/status", requireAdminOrCronSecret, async (req, res) => {
+    res.json({
+      configured: googleIndexing.isConfigured(),
+      recentResults: googleIndexing.getRecentResults()
+    });
+  });
+  app2.post("/api/google-indexing/submit-latest", requireAdminOrCronSecret, async (req, res) => {
+    try {
+      const requestedLimit = Number(req.body?.limit || req.query.limit || 100);
+      const limit = Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : 100, 1), 100);
+      const allJobs = await storage.getAllJobsWithDetails();
+      const results = googleIndexing.isConfigured() ? await googleIndexing.submitLatestJobs(allJobs, limit) : [];
+      res.json({
+        configured: googleIndexing.isConfigured(),
+        requestedLimit: limit,
+        submitted: results.length,
+        failed: results.filter((result) => !result.ok).length,
+        results
+      });
+    } catch (error) {
+      console.error("Error submitting jobs to Google Indexing API:", error);
+      res.status(500).json({ message: "Failed to submit jobs to Google Indexing API" });
     }
   });
   app2.get("/api/organizations", async (req, res) => {
@@ -3743,13 +3999,13 @@ async function registerRoutes(app2) {
       const matchingJobs = allJobs.filter((job) => isPublicCurrentJob(job) && config.filter(job));
       const pageUrl = `https://somkenjobs.com${config.canonicalPath}`;
       let html = readIndexTemplate();
-      html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml2(config.title)}</title>`);
-      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeHtml2(config.description)}">`);
-      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeHtml2(config.title)}">`);
-      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeHtml2(config.description)}">`);
+      html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml3(config.title)}</title>`);
+      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeHtml3(config.description)}">`);
+      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeHtml3(config.title)}">`);
+      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeHtml3(config.description)}">`);
       html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${pageUrl}">`);
-      html = html.replace(/<meta name="twitter:title" content="[^"]*">/, `<meta name="twitter:title" content="${escapeHtml2(config.title)}">`);
-      html = html.replace(/<meta name="twitter:description" content="[^"]*">/, `<meta name="twitter:description" content="${escapeHtml2(config.description)}">`);
+      html = html.replace(/<meta name="twitter:title" content="[^"]*">/, `<meta name="twitter:title" content="${escapeHtml3(config.title)}">`);
+      html = html.replace(/<meta name="twitter:description" content="[^"]*">/, `<meta name="twitter:description" content="${escapeHtml3(config.description)}">`);
       html = html.replace(/<meta name="twitter:url" content="[^"]*">/, `<meta name="twitter:url" content="${pageUrl}">`);
       html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${pageUrl}">`);
       const structuredData = {
@@ -3856,11 +4112,14 @@ async function registerRoutes(app2) {
       if (!job) {
         return res.status(404).send("Job not found");
       }
+      if (!ssrToken && !isGoogleIndexableJob(job)) {
+        return res.status(410).send("Job no longer available");
+      }
       const jobTitle = `${job.title} - ${job.organization}`;
       const deadline = job.deadline ? ` \u2022 Deadline: ${Math.ceil((new Date(job.deadline).getTime() - Date.now()) / (1e3 * 60 * 60 * 24))} days left` : "";
       const socialMediaText = generateSocialMediaText(job, deadline);
       const jobDescription = socialMediaText;
-      const jobUrl = `https://somkenjobs.com/jobs/${job.id}`;
+      const jobUrl = getJobCanonicalUrl(job);
       const svgContent = `
         <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
           <defs>
@@ -3956,9 +4215,9 @@ async function registerRoutes(app2) {
       const twitterLabels = `
     <!-- Enhanced Twitter Cards for Job Previews -->
     <meta name="twitter:label1" content="Employer">
-    <meta name="twitter:data1" content="${escapeHtml2(job.organization)}">
+    <meta name="twitter:data1" content="${escapeHtml3(job.organization)}">
     <meta name="twitter:label2" content="Location">
-    <meta name="twitter:data2" content="${escapeHtml2(job.location)}, ${escapeHtml2(job.country)}">
+    <meta name="twitter:data2" content="${escapeHtml3(job.location)}, ${escapeHtml3(job.country)}">
     ${job.deadline ? `<meta name="twitter:label3" content="Deadline">
     <meta name="twitter:data3" content="${Math.ceil((new Date(job.deadline).getTime() - Date.now()) / (1e3 * 60 * 60 * 24))} days left">` : ""}`;
       html = html.replace(
@@ -4009,15 +4268,15 @@ async function registerRoutes(app2) {
             <div class="bg-white rounded-lg shadow-sm p-8">
               <div class="flex items-start justify-between mb-6">
                 <div class="flex-1">
-                  <h1 class="text-3xl font-bold text-gray-900 mb-4">${escapeHtml2(job.title)}</h1>
+                  <h1 class="text-3xl font-bold text-gray-900 mb-4">${escapeHtml3(job.title)}</h1>
                   <div class="flex flex-wrap items-center gap-4 text-gray-600">
                     <div class="flex items-center">
-                      <span class="font-medium">${escapeHtml2(job.organization)}</span>
+                      <span class="font-medium">${escapeHtml3(job.organization)}</span>
                     </div>
                     <div class="flex items-center">
-                      <span>${escapeHtml2(job.location)}, ${escapeHtml2(job.country)}</span>
+                      <span>${escapeHtml3(job.location)}, ${escapeHtml3(job.country)}</span>
                     </div>
-                    ${job.sector ? `<span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">${escapeHtml2(job.sector)}</span>` : ""}
+                    ${job.sector ? `<span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">${escapeHtml3(job.sector)}</span>` : ""}
                   </div>
                 </div>
               </div>
@@ -4044,7 +4303,7 @@ async function registerRoutes(app2) {
                         <div class="space-y-2">${urls.map((url) => {
             const safeAttachmentUrl = safeUrl2(url) || (url.startsWith("/uploads/") ? url : "");
             if (!safeAttachmentUrl) return "";
-            const name = escapeHtml2(url.split("/").pop()?.replace(/^\d+-/, "") || "Download");
+            const name = escapeHtml3(url.split("/").pop()?.replace(/^\d+-/, "") || "Download");
             return `<div><a href="${safeAttachmentUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline">${name}</a></div>`;
           }).join("")}</div>`;
         } catch {
@@ -4070,16 +4329,16 @@ async function registerRoutes(app2) {
                       ` : ""}
                       <div>
                         <span class="font-medium">Organization:</span>
-                        <span class="ml-2">${escapeHtml2(job.organization)}</span>
+                        <span class="ml-2">${escapeHtml3(job.organization)}</span>
                       </div>
                       <div>
                         <span class="font-medium">Location:</span>
-                        <span class="ml-2">${escapeHtml2(job.location)}, ${escapeHtml2(job.country)}</span>
+                        <span class="ml-2">${escapeHtml3(job.location)}, ${escapeHtml3(job.country)}</span>
                       </div>
                       ${job.sector ? `
                         <div>
                           <span class="font-medium">Sector:</span>
-                          <span class="ml-2">${escapeHtml2(job.sector)}</span>
+                          <span class="ml-2">${escapeHtml3(job.sector)}</span>
                         </div>
                       ` : ""}
                     </div>
@@ -4103,85 +4362,7 @@ async function registerRoutes(app2) {
         /<div id="root"><\/div>/,
         `<div id="root">${serverRenderedContent}</div>`
       );
-      const cleanDescription = (() => {
-        if (!job.description) {
-          return `Join ${job.organization || "our humanitarian organization"} in their mission to provide humanitarian aid in ${job.location || "the field"}, ${job.country || "East Africa"}. This position offers the opportunity to make a meaningful impact in humanitarian work.`;
-        }
-        let cleaned = job.description.replace(/<[^>]*>/g, "").replace(/\*\*/g, "").replace(/\*/g, "").replace(/\n+/g, " ").replace(/\s+/g, " ").replace(/&[^;]+;/g, "").trim();
-        if (cleaned.length > 800) {
-          cleaned = cleaned.substring(0, 800);
-          const lastPeriod = cleaned.lastIndexOf(".");
-          const lastSpace = cleaned.lastIndexOf(" ");
-          if (lastPeriod > 600) {
-            cleaned = cleaned.substring(0, lastPeriod + 1);
-          } else if (lastSpace > 600) {
-            cleaned = cleaned.substring(0, lastSpace) + "...";
-          } else {
-            cleaned = cleaned + "...";
-          }
-        }
-        return cleaned;
-      })();
-      const jobStructuredData = {
-        "@context": "https://schema.org/",
-        "@type": "JobPosting",
-        "title": job.title.substring(0, 100),
-        "description": cleanDescription,
-        "datePosted": new Date(job.datePosted).toISOString().split("T")[0],
-        "hiringOrganization": {
-          "@type": "Organization",
-          "name": job.organization || "Humanitarian Organization"
-        },
-        "jobLocation": {
-          "@type": "Place",
-          "address": {
-            "@type": "PostalAddress",
-            "addressLocality": job.location || "Field Location",
-            "addressCountry": job.country === "Kenya" ? "KE" : job.country === "Somalia" ? "SO" : job.country
-          }
-        }
-      };
-      if (job.deadline) {
-        const deadlineDate = new Date(job.deadline);
-        if (deadlineDate > /* @__PURE__ */ new Date()) {
-          jobStructuredData.validThrough = deadlineDate.toISOString().split("T")[0];
-        }
-      }
-      const title = job.title.toLowerCase();
-      if (title.includes("consultant") || title.includes("contract")) {
-        jobStructuredData.employmentType = "CONTRACTOR";
-      } else if (title.includes("part-time")) {
-        jobStructuredData.employmentType = "PART_TIME";
-      } else if (title.includes("intern")) {
-        jobStructuredData.employmentType = "INTERN";
-      } else {
-        jobStructuredData.employmentType = "FULL_TIME";
-      }
-      if (job.location && job.location.toLowerCase().includes("remote")) {
-        jobStructuredData.jobLocationType = "TELECOMMUTE";
-      } else {
-        jobStructuredData.jobLocationType = "ON_SITE";
-      }
-      if (job.sector) {
-        jobStructuredData.industry = job.sector;
-        jobStructuredData.occupationalCategory = job.sector;
-      }
-      jobStructuredData.url = jobUrl;
-      const structuredApplyUrl = safeUrl2(job.url);
-      if (structuredApplyUrl) {
-        jobStructuredData.applicationContact = {
-          "@type": "ContactPoint",
-          "contactType": "HR",
-          "url": structuredApplyUrl
-        };
-      }
-      if (job.externalId && job.source) {
-        jobStructuredData.identifier = {
-          "@type": "PropertyValue",
-          "name": job.source,
-          "value": job.externalId.toString()
-        };
-      }
+      const jobStructuredDataJson = generateJobPostingJsonLd(job);
       const breadcrumbData = {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
@@ -4197,13 +4378,13 @@ async function registerRoutes(app2) {
     <!-- Job-specific meta tags for enhanced social media previews -->
     ${shouldNoindex ? '<meta name="robots" content="noindex, nofollow">' : ""}
     <meta property="article:published_time" content="${new Date(job.datePosted).toISOString()}">
-    <meta property="article:section" content="${escapeHtml2(job.sector || "Humanitarian")}">
-    <meta property="article:tag" content="${escapeHtml2(job.sector || "Humanitarian")}">
-    <meta property="article:author" content="${escapeHtml2(job.organization)}">
-    <meta property="job:location" content="${escapeHtml2(job.location)}, ${escapeHtml2(job.country)}">
-    <meta property="job:company" content="${escapeHtml2(job.organization)}">
+    <meta property="article:section" content="${escapeHtml3(job.sector || "Humanitarian")}">
+    <meta property="article:tag" content="${escapeHtml3(job.sector || "Humanitarian")}">
+    <meta property="article:author" content="${escapeHtml3(job.organization)}">
+    <meta property="job:location" content="${escapeHtml3(job.location)}, ${escapeHtml3(job.country)}">
+    <meta property="job:company" content="${escapeHtml3(job.organization)}">
     ${job.deadline ? `<meta property="job:expires" content="${Math.ceil((new Date(job.deadline).getTime() - Date.now()) / (1e3 * 60 * 60 * 24))} days left">` : ""}
-    <meta property="job:category" content="${escapeHtml2(job.sector || "Humanitarian")}">
+    <meta property="job:category" content="${escapeHtml3(job.sector || "Humanitarian")}">
     <meta property="og:site_name" content="Somken Jobs">
     <meta property="og:locale" content="en_US">
     
@@ -4216,7 +4397,7 @@ async function registerRoutes(app2) {
     
     <!-- Google Jobs JobPosting Structured Data -->
     <script type="application/ld+json">
-${jsonLd(jobStructuredData)}
+${jobStructuredDataJson}
     </script>
     
     <!-- Breadcrumb Structured Data for enhanced search appearance -->
@@ -4234,205 +4415,122 @@ ${jsonLd(breadcrumbData)}
       res.status(500).send("Error loading job page");
     }
   });
-  const sitemapCache = { xml: null, generatedAt: null };
+  const SITEMAP_CACHE_TTL = 10 * 60 * 1e3;
+  const sitemapIndexCache = { xml: null, generatedAt: null };
+  const staticSitemapCache = { xml: null, generatedAt: null };
+  const jobSitemapCache = { xml: null, generatedAt: null };
+  const isFreshSitemapCache = (cache) => !!cache.generatedAt && Date.now() - cache.generatedAt.getTime() < SITEMAP_CACHE_TTL;
+  const escapeXml = (text2) => text2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  const getPublicActiveJobPages = async () => {
+    const allJobs = await storage.getAllJobsWithDetails();
+    return allJobs.filter(isGoogleIndexableJob).sort((a, b) => new Date(getJobLastModified(b)).getTime() - new Date(getJobLastModified(a)).getTime());
+  };
+  const latestJobLastmod = (jobs2) => jobs2.length ? getJobLastModified(jobs2[0]) : (/* @__PURE__ */ new Date()).toISOString();
   app2.get("/sitemap.xml", async (req, res) => {
     try {
       res.setHeader("Content-Type", "application/xml");
-      const ONE_HOUR = 60 * 60 * 1e3;
-      if (sitemapCache.xml && sitemapCache.generatedAt && Date.now() - sitemapCache.generatedAt.getTime() < ONE_HOUR) {
-        return res.send(sitemapCache.xml);
+      if (sitemapIndexCache.xml && isFreshSitemapCache(sitemapIndexCache)) {
+        return res.send(sitemapIndexCache.xml);
       }
-      const allJobs = await storage.getAllJobsWithDetails();
-      const sixMonthsAgo = /* @__PURE__ */ new Date();
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-      const nowDate = /* @__PURE__ */ new Date();
-      const jobs2 = allJobs.filter((job) => {
-        const datePosted = new Date(job.datePosted);
-        const deadline = job.deadline ? new Date(job.deadline) : null;
-        return datePosted >= sixMonthsAgo && (!job.type || job.type === "job") && job.status === "published" && job.visibility !== "private" && (!deadline || deadline >= nowDate);
-      });
-      console.log(`Generating sitemap with ${jobs2.length} jobs (from ${allJobs.length} total)`);
-      const now = Date.now();
-      const DAY = 24 * 60 * 60 * 1e3;
-      const latestDate = (subset) => {
-        if (!subset.length) return sixMonthsAgo.toISOString().split("T")[0];
-        const max = subset.reduce((a, b) => new Date(a.datePosted) > new Date(b.datePosted) ? a : b);
-        return new Date(max.datePosted).toISOString().split("T")[0];
-      };
-      const newestJobDate = latestDate(jobs2);
-      const countries2 = ["Kenya", "Somalia", "Ethiopia", "Uganda", "Tanzania"];
-      const sectors2 = ["Health", "Education", "Protection", "WASH", "Food Security", "Logistics", "Emergency Response"];
-      const countryLatest = {};
-      const sectorLatest = {};
-      countries2.forEach((c) => {
-        countryLatest[c] = latestDate(jobs2.filter((j) => j.country === c));
-      });
-      sectors2.forEach((s) => {
-        sectorLatest[s] = latestDate(jobs2.filter((j) => j.sector === s));
-      });
-      const ngoLatest = latestDate(jobs2.filter(matchesNgoJob));
-      const ngoSomaliaLatest = latestDate(jobs2.filter((j) => j.country === "Somalia" && matchesNgoJob(j)));
-      const jobUrls = jobs2.map((job) => {
-        const jobSlug = generateJobSlug(job.title, job.id);
-        const lastmod = new Date(job.datePosted).toISOString().split("T")[0];
-        const ageInDays = (now - new Date(job.datePosted).getTime()) / DAY;
-        const changefreq = ageInDays <= 7 ? "daily" : ageInDays <= 30 ? "weekly" : "monthly";
-        const priority = ageInDays <= 7 ? "0.9" : ageInDays <= 30 ? "0.8" : "0.6";
-        return `  <url>
-    <loc>https://somkenjobs.com/jobs/${jobSlug}</loc>
-    <lastmod>${lastmod}</lastmod>
-    <changefreq>${changefreq}</changefreq>
-    <priority>${priority}</priority>
-  </url>`;
-      }).join("\n");
+      const jobs2 = await getPublicActiveJobPages();
+      const jobsLastmod = latestJobLastmod(jobs2);
       const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://somkenjobs.com/</loc>
-    <lastmod>${newestJobDate}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs</loc>
-    <lastmod>${newestJobDate}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/ngo-jobs</loc>
-    <lastmod>${ngoLatest}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.88</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/ngo-jobs/somalia</loc>
-    <lastmod>${ngoSomaliaLatest}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.88</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/tenders</loc>
-    <lastmod>${newestJobDate}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/about</loc>
-    <lastmod>2025-01-01</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/contact</loc>
-    <lastmod>2025-01-01</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/career-resources</loc>
-    <lastmod>2025-01-01</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/help-center</loc>
-    <lastmod>2025-01-01</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/privacy-policy</loc>
-    <lastmod>2025-01-01</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.4</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/terms-of-service</loc>
-    <lastmod>2025-01-01</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.4</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/country/kenya</loc>
-    <lastmod>${countryLatest["Kenya"]}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/country/somalia</loc>
-    <lastmod>${countryLatest["Somalia"]}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/country/ethiopia</loc>
-    <lastmod>${countryLatest["Ethiopia"]}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/country/uganda</loc>
-    <lastmod>${countryLatest["Uganda"]}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/country/tanzania</loc>
-    <lastmod>${countryLatest["Tanzania"]}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/sector/health</loc>
-    <lastmod>${sectorLatest["Health"]}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/sector/education</loc>
-    <lastmod>${sectorLatest["Education"]}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/sector/protection</loc>
-    <lastmod>${sectorLatest["Protection"]}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/sector/wash</loc>
-    <lastmod>${sectorLatest["WASH"]}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/sector/food-security</loc>
-    <lastmod>${sectorLatest["Food Security"]}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/sector/logistics</loc>
-    <lastmod>${sectorLatest["Logistics"]}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://somkenjobs.com/jobs/sector/emergency-response</loc>
-    <lastmod>${sectorLatest["Emergency Response"]}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-${jobUrls}
-</urlset>`;
-      sitemapCache.xml = sitemapXml;
-      sitemapCache.generatedAt = /* @__PURE__ */ new Date();
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>https://somkenjobs.com/sitemap-static.xml</loc>
+    <lastmod>${(/* @__PURE__ */ new Date()).toISOString()}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://somkenjobs.com/sitemap-jobs.xml</loc>
+    <lastmod>${jobsLastmod}</lastmod>
+  </sitemap>
+</sitemapindex>`;
+      sitemapIndexCache.xml = sitemapXml;
+      sitemapIndexCache.generatedAt = /* @__PURE__ */ new Date();
       res.send(sitemapXml);
     } catch (error) {
       console.error("Error generating sitemap:", error);
       res.status(500).send("Error generating sitemap");
+    }
+  });
+  app2.get("/sitemap-static.xml", async (req, res) => {
+    try {
+      res.setHeader("Content-Type", "application/xml");
+      if (staticSitemapCache.xml && isFreshSitemapCache(staticSitemapCache)) {
+        return res.send(staticSitemapCache.xml);
+      }
+      const jobs2 = await getPublicActiveJobPages();
+      const newestJobDate = latestJobLastmod(jobs2);
+      const latestDateFor = (subset) => subset.length ? getJobLastModified(subset[0]) : newestJobDate;
+      const countries2 = ["Kenya", "Somalia", "Ethiopia", "Uganda", "Tanzania"];
+      const sectors2 = ["Health", "Education", "Protection", "WASH", "Food Security", "Logistics", "Emergency Response"];
+      const urls = [
+        { loc: "https://somkenjobs.com/", lastmod: newestJobDate, changefreq: "daily", priority: "1.0" },
+        { loc: "https://somkenjobs.com/jobs", lastmod: newestJobDate, changefreq: "daily", priority: "0.9" },
+        { loc: "https://somkenjobs.com/ngo-jobs", lastmod: latestDateFor(jobs2.filter(matchesNgoJob)), changefreq: "daily", priority: "0.88" },
+        { loc: "https://somkenjobs.com/ngo-jobs/somalia", lastmod: latestDateFor(jobs2.filter((job) => job.country === "Somalia" && matchesNgoJob(job))), changefreq: "daily", priority: "0.88" },
+        { loc: "https://somkenjobs.com/tenders", lastmod: newestJobDate, changefreq: "daily", priority: "0.9" },
+        { loc: "https://somkenjobs.com/about", lastmod: "2025-01-01T00:00:00.000Z", changefreq: "monthly", priority: "0.7" },
+        { loc: "https://somkenjobs.com/contact", lastmod: "2025-01-01T00:00:00.000Z", changefreq: "monthly", priority: "0.7" },
+        { loc: "https://somkenjobs.com/career-resources", lastmod: "2025-01-01T00:00:00.000Z", changefreq: "monthly", priority: "0.8" },
+        { loc: "https://somkenjobs.com/help-center", lastmod: "2025-01-01T00:00:00.000Z", changefreq: "monthly", priority: "0.6" },
+        { loc: "https://somkenjobs.com/privacy-policy", lastmod: "2025-01-01T00:00:00.000Z", changefreq: "yearly", priority: "0.4" },
+        { loc: "https://somkenjobs.com/terms-of-service", lastmod: "2025-01-01T00:00:00.000Z", changefreq: "yearly", priority: "0.4" },
+        ...countries2.map((country) => ({
+          loc: `https://somkenjobs.com/jobs/country/${country.toLowerCase()}`,
+          lastmod: latestDateFor(jobs2.filter((job) => job.country === country)),
+          changefreq: "daily",
+          priority: "0.85"
+        })),
+        ...sectors2.map((sector) => ({
+          loc: `https://somkenjobs.com/jobs/sector/${sector.toLowerCase().replace(/\s+/g, "-")}`,
+          lastmod: latestDateFor(jobs2.filter((job) => job.sector === sector)),
+          changefreq: "daily",
+          priority: "0.8"
+        }))
+      ];
+      const urlXml = urls.map((url) => `  <url>
+    <loc>${escapeXml(url.loc)}</loc>
+    <lastmod>${url.lastmod}</lastmod>
+    <changefreq>${url.changefreq}</changefreq>
+    <priority>${url.priority}</priority>
+  </url>`).join("\n");
+      const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urlXml}
+</urlset>`;
+      staticSitemapCache.xml = sitemapXml;
+      staticSitemapCache.generatedAt = /* @__PURE__ */ new Date();
+      res.send(sitemapXml);
+    } catch (error) {
+      console.error("Error generating static sitemap:", error);
+      res.status(500).send("Error generating static sitemap");
+    }
+  });
+  app2.get("/sitemap-jobs.xml", async (req, res) => {
+    try {
+      res.setHeader("Content-Type", "application/xml");
+      if (jobSitemapCache.xml && isFreshSitemapCache(jobSitemapCache)) {
+        return res.send(jobSitemapCache.xml);
+      }
+      const jobs2 = await getPublicActiveJobPages();
+      console.log(`Generating job sitemap with ${jobs2.length} active public jobs`);
+      const jobUrls = jobs2.map((job) => `  <url>
+    <loc>${escapeXml(getJobCanonicalUrl(job))}</loc>
+    <lastmod>${getJobLastModified(job)}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>`).join("\n");
+      const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${jobUrls}
+</urlset>`;
+      jobSitemapCache.xml = sitemapXml;
+      jobSitemapCache.generatedAt = /* @__PURE__ */ new Date();
+      res.send(sitemapXml);
+    } catch (error) {
+      console.error("Error generating job sitemap:", error);
+      res.status(500).send("Error generating job sitemap");
     }
   });
   app2.get("/feed", async (req, res) => {
@@ -4443,28 +4541,28 @@ ${jobUrls}
       const formatDate = (date) => {
         return new Date(date).toUTCString();
       };
-      const escapeXml = (text2) => {
+      const escapeXml2 = (text2) => {
         return text2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
       };
       const jobItems = latestJobs.map((job) => {
         const jobSlug = generateJobSlug(job.title, job.id);
         const jobUrl = `https://somkenjobs.com/jobs/${jobSlug}`;
-        const description = job.description ? escapeXml(job.description.substring(0, 500)) + (job.description.length > 500 ? "..." : "") : "No description available";
+        const description = job.description ? escapeXml2(job.description.substring(0, 500)) + (job.description.length > 500 ? "..." : "") : "No description available";
         const deadlineInfo = job.deadline ? `Application Deadline: ${new Date(job.deadline).toLocaleDateString()}` : "";
         return `    <item>
-      <title>${escapeXml(job.title)}</title>
+      <title>${escapeXml2(job.title)}</title>
       <link>${jobUrl}</link>
       <guid isPermaLink="true">${jobUrl}</guid>
       <pubDate>${formatDate(job.datePosted)}</pubDate>
       <description><![CDATA[
-        <strong>Organization:</strong> ${escapeXml(job.organization)}<br/>
-        <strong>Location:</strong> ${escapeXml(job.location)}, ${escapeXml(job.country)}<br/>
-        ${job.sector ? `<strong>Sector:</strong> ${escapeXml(job.sector)}<br/>` : ""}
+        <strong>Organization:</strong> ${escapeXml2(job.organization)}<br/>
+        <strong>Location:</strong> ${escapeXml2(job.location)}, ${escapeXml2(job.country)}<br/>
+        ${job.sector ? `<strong>Sector:</strong> ${escapeXml2(job.sector)}<br/>` : ""}
         ${deadlineInfo ? `<strong>${deadlineInfo}</strong><br/><br/>` : ""}
         ${description}
       ]]></description>
-      <category>${escapeXml(job.country)}</category>
-      ${job.sector ? `<category>${escapeXml(job.sector)}</category>` : ""}
+      <category>${escapeXml2(job.country)}</category>
+      ${job.sector ? `<category>${escapeXml2(job.sector)}</category>` : ""}
       <source url="https://somkenjobs.com">Somken Jobs</source>
     </item>`;
       }).join("\n");
@@ -4534,6 +4632,7 @@ Disallow: /preview
 
 # Reference to sitemap and RSS feed
 Sitemap: https://somkenjobs.com/sitemap.xml
+Sitemap: https://somkenjobs.com/sitemap-jobs.xml
 RSS Feed: https://somkenjobs.com/feed`;
     res.send(robotsTxt);
   });

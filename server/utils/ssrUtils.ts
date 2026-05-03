@@ -6,6 +6,7 @@ import {
   generateJobSEOMetadata 
 } from "@shared/seoUtils";
 import { sanitizeRichHtml } from "./sanitizeHtml";
+import { generateJobPostingJsonLd, getJobCanonicalUrl } from "./googleJobs";
 
 // Call validation to prevent regressions
 validateContextMaps();
@@ -85,57 +86,7 @@ function safeUrl(url: string | null | undefined): string {
 
 // Generate structured data for a job
 export function generateJobStructuredData(job: Job): string {
-  const cleanDescription = job.description 
-    ? stripMarkdownAndHtml(job.description, 5000)
-    : `Join ${job.organization || 'our humanitarian organization'} in their mission to provide humanitarian aid in ${job.location || 'the field'}, ${job.country || 'East Africa'}. This position offers the opportunity to make a meaningful impact in humanitarian work.`;
-
-  const jobStructuredData: Record<string, any> = {
-    "@context": "https://schema.org/",
-    "@type": "JobPosting",
-    "title": job.title.substring(0, 100),
-    "description": cleanDescription,
-    "datePosted": new Date(job.datePosted).toISOString().split('T')[0],
-    "hiringOrganization": {
-      "@type": "Organization",
-      "name": job.organization || "Humanitarian Organization"
-    },
-    "jobLocation": {
-      "@type": "Place",
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": job.location || "Field Location",
-        "addressCountry": job.country === "Kenya" ? "KE" : job.country === "Somalia" ? "SO" : job.country
-      }
-    },
-    "url": `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`
-  };
-
-  // Add optional fields
-  if (job.deadline) {
-    const deadlineDate = new Date(job.deadline);
-    if (deadlineDate > new Date()) {
-      jobStructuredData.validThrough = deadlineDate.toISOString().split('T')[0];
-    }
-  }
-
-  // Employment type mapping
-  const title = job.title.toLowerCase();
-  if (title.includes('consultant') || title.includes('contract')) {
-    jobStructuredData.employmentType = "CONTRACTOR";
-  } else if (title.includes('part-time')) {
-    jobStructuredData.employmentType = "PART_TIME";
-  } else if (title.includes('intern')) {
-    jobStructuredData.employmentType = "INTERN";
-  } else {
-    jobStructuredData.employmentType = "FULL_TIME";
-  }
-
-  if (job.sector) {
-    jobStructuredData.industry = job.sector;
-    jobStructuredData.occupationalCategory = job.sector;
-  }
-
-  return JSON.stringify(jobStructuredData, null, 2);
+  return JSON.stringify(JSON.parse(generateJobPostingJsonLd(job)), null, 2);
 }
 
 // PURIFIED CONTEXT PROVIDERS - DATA ONLY, NO HTML, NO TEMPLATE INTERPOLATION
@@ -616,7 +567,7 @@ export function generateJobDetailsHTML(job: Job): string {
   }
 
   const structuredData = generateJobStructuredData(job);
-  const jobUrl = `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`;
+  const jobUrl = getJobCanonicalUrl(job);
   const seoMetadata = generateJobSEOMetadata(job);
   const applyUrl = safeUrl(job.url);
   
