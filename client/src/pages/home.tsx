@@ -354,6 +354,24 @@ export default function Home() {
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Popular Job Categories</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              <a href="/jobs/city/mogadishu" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
+                <h4 className="font-semibold text-gray-900 text-sm">Mogadishu Jobs</h4>
+              </a>
+              <a href="/jobs/city/nairobi" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
+                <h4 className="font-semibold text-gray-900 text-sm">Nairobi Jobs</h4>
+              </a>
+              <a href="/ngo-jobs/somalia" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
+                <h4 className="font-semibold text-gray-900 text-sm">NGO Somalia</h4>
+              </a>
+              <a href="/ngo-jobs/kenya" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
+                <h4 className="font-semibold text-gray-900 text-sm">NGO Kenya</h4>
+              </a>
+              <a href="/un-jobs/somalia" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
+                <h4 className="font-semibold text-gray-900 text-sm">UN Somalia</h4>
+              </a>
+              <a href="/un-jobs/kenya" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
+                <h4 className="font-semibold text-gray-900 text-sm">UN Kenya</h4>
+              </a>
               <a href="/jobs/sector/health" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center">
                 <h4 className="font-semibold text-gray-900 text-sm">Health</h4>
               </a>

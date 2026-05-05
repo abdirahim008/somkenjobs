@@ -21,8 +21,13 @@ export default function Footer() {
   const jobCategories = [
     { label: "Jobs in Kenya", href: "/jobs/country/kenya" },
     { label: "Jobs in Somalia", href: "/jobs/country/somalia" },
+    { label: "Jobs in Mogadishu", href: "/jobs/city/mogadishu" },
+    { label: "Jobs in Nairobi", href: "/jobs/city/nairobi" },
     { label: "NGO Jobs", href: "/ngo-jobs" },
     { label: "NGO Jobs in Somalia", href: "/ngo-jobs/somalia" },
+    { label: "NGO Jobs in Kenya", href: "/ngo-jobs/kenya" },
+    { label: "UN Jobs Somalia", href: "/un-jobs/somalia" },
+    { label: "UN Jobs Kenya", href: "/un-jobs/kenya" },
     { label: "Health Jobs", href: "/jobs/sector/health" },
     { label: "Protection Jobs", href: "/jobs/sector/protection" },
   ];
@@ -141,6 +146,9 @@ export default function Footer() {
               <a href="/jobs/sector/education" className="text-primary hover:underline mx-1">education positions</a>, 
               <a href="/jobs/sector/protection" className="text-primary hover:underline mx-1">protection roles</a>, 
               <a href="/ngo-jobs" className="text-primary hover:underline mx-1">NGO jobs</a>,
+              <a href="/un-jobs" className="text-primary hover:underline mx-1">UN jobs</a>,
+              <a href="/jobs/city/mogadishu" className="text-primary hover:underline mx-1">Mogadishu jobs</a>,
+              <a href="/jobs/city/nairobi" className="text-primary hover:underline mx-1">Nairobi jobs</a>,
               and other opportunities in the humanitarian sector.
             </p>
           </div>

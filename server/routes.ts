@@ -1809,6 +1809,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   };
 
+  const renderLandingJobCards = (jobs: any[]) => jobs.slice(0, 10).map((job) => {
+    const jobUrl = `/jobs/${generateJobSlug(job.title, job.id)}`;
+    const location = [job.location, job.country].filter(Boolean).join(', ');
+    return `
+      <article style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:0 0 14px;background:#fff;">
+        <h3 style="font-size:18px;margin:0 0 8px;">
+          <a href="${jobUrl}" style="color:#005ea8;text-decoration:none;">${escapeHtml(job.title)}</a>
+        </h3>
+        <p style="margin:0 0 8px;color:#4b5563;"><strong>${escapeHtml(job.organization)}</strong>${location ? ` • ${escapeHtml(location)}` : ''}</p>
+        <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">${escapeHtml(String(job.description || '').replace(/<[^>]*>/g, '').slice(0, 180))}${String(job.description || '').length > 180 ? '...' : ''}</p>
+      </article>`;
+  }).join('');
+
+  const renderServerLandingContent = ({
+    h1,
+    description,
+    intro,
+    jobs,
+    relatedLinks,
+    faqItems,
+  }: {
+    h1: string;
+    description: string;
+    intro: string;
+    jobs: any[];
+    relatedLinks: Array<{ label: string; href: string }>;
+    faqItems: Array<{ question: string; answer: string }>;
+  }) => {
+    const jobCards = jobs.length ? renderLandingJobCards(jobs) : `
+      <div style="border:1px solid #e5e7eb;border-radius:8px;padding:18px;background:#fff;">
+        <p style="margin:0;color:#4b5563;">No matching jobs are available right now. Browse all current jobs or check again after the next update.</p>
+      </div>`;
+    const linksHtml = relatedLinks.map((link) => `<a href="${link.href}" style="display:inline-block;margin:0 8px 8px 0;padding:8px 12px;border:1px solid #dbeafe;border-radius:999px;color:#005ea8;text-decoration:none;background:#eff6ff;">${escapeHtml(link.label)}</a>`).join('');
+    const faqHtml = faqItems.map((item) => `
+      <details style="border-top:1px solid #e5e7eb;padding:14px 0;">
+        <summary style="font-weight:700;color:#111827;">${escapeHtml(item.question)}</summary>
+        <p style="margin:10px 0 0;color:#4b5563;line-height:1.7;">${escapeHtml(item.answer)}</p>
+      </details>`).join('');
+
+    return `
+      <main style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#111827;">
+        <section style="background:#0077B5;color:#fff;padding:42px 20px;">
+          <div style="max-width:1120px;margin:0 auto;">
+            <p style="margin:0 0 10px;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Somken Jobs</p>
+            <h1 style="margin:0 0 14px;font-size:38px;line-height:1.15;">${escapeHtml(h1)}</h1>
+            <p style="max-width:820px;margin:0;font-size:18px;line-height:1.7;">${escapeHtml(description)}</p>
+          </div>
+        </section>
+        <section style="max-width:1120px;margin:0 auto;padding:34px 20px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;">
+          <div>
+            <h2 style="font-size:26px;margin:0 0 12px;">Latest matching jobs</h2>
+            <p style="color:#4b5563;line-height:1.7;margin:0 0 22px;">${escapeHtml(intro)}</p>
+            ${jobCards}
+          </div>
+          <aside>
+            <section style="border:1px solid #e5e7eb;border-radius:8px;background:#fff;padding:18px;margin-bottom:18px;">
+              <h2 style="font-size:20px;margin:0 0 12px;">Related searches</h2>
+              ${linksHtml}
+            </section>
+            <section style="border:1px solid #e5e7eb;border-radius:8px;background:#fff;padding:18px;">
+              <h2 style="font-size:20px;margin:0 0 4px;">Job search questions</h2>
+              ${faqHtml}
+            </section>
+          </aside>
+        </section>
+      </main>`;
+  };
+
+  const injectServerLandingContent = (html: string, content: string) =>
+    html.replace(/<div id="root"><\/div>/, `<div id="root">${content}</div>`);
+
+  const defaultRelatedKeywordLinks = [
+    { label: 'Jobs in Somalia', href: '/jobs/country/somalia' },
+    { label: 'Jobs in Kenya', href: '/jobs/country/kenya' },
+    { label: 'Jobs in Mogadishu', href: '/jobs/city/mogadishu' },
+    { label: 'Jobs in Nairobi', href: '/jobs/city/nairobi' },
+    { label: 'NGO Jobs Somalia', href: '/ngo-jobs/somalia' },
+    { label: 'NGO Jobs Kenya', href: '/ngo-jobs/kenya' },
+    { label: 'UN Jobs Somalia', href: '/un-jobs/somalia' },
+    { label: 'UN Jobs Kenya', href: '/un-jobs/kenya' },
+  ];
+
   app.get('/jobs/country/:country', async (req, res) => {
     try {
       const countryParam = req.params.country.toLowerCase();
@@ -1892,6 +1974,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     <script type="application/ld+json">${jsonLd(breadcrumbData)}</script>`;
       
       html = html.replace(/<\/head>/, `${additionalTags}\n  </head>`);
+      html = injectServerLandingContent(html, renderServerLandingContent({
+        h1: `Jobs in ${countryName}`,
+        description: pageDescription,
+        intro: `${countryDescription} Somken Jobs lists current NGO, UN, humanitarian, development, and professional vacancies with direct links to job details and application instructions.`,
+        jobs: countryJobs,
+        relatedLinks: defaultRelatedKeywordLinks,
+        faqItems: [
+          { question: `How often are jobs in ${countryName} updated?`, answer: 'Somken Jobs updates listings regularly from trusted sources and employer uploads, then removes expired or unavailable posts from public job pages.' },
+          { question: `What types of jobs are listed in ${countryName}?`, answer: 'Listings include NGO, UN, humanitarian, development, health, education, protection, logistics, WASH, procurement, and professional roles.' },
+          { question: 'How do I apply?', answer: 'Open a job detail page, review the deadline and requirements, then follow the official application instructions or employer link shown on the listing.' },
+        ],
+      }));
       
       res.send(html);
     } catch (error) {
@@ -2003,6 +2097,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     <script type="application/ld+json">${jsonLd(breadcrumbData)}</script>`;
       
       html = html.replace(/<\/head>/, `${additionalTags}\n  </head>`);
+      html = injectServerLandingContent(html, renderServerLandingContent({
+        h1: `${sectorName} Jobs in East Africa`,
+        description: pageDescription,
+        intro: `${sectorDescription} Browse current ${sectorName.toLowerCase()} opportunities across Somalia, Kenya, and East Africa with NGOs, UN agencies, and development organizations.`,
+        jobs: sectorJobs,
+        relatedLinks: defaultRelatedKeywordLinks,
+        faqItems: [
+          { question: `Who hires for ${sectorName.toLowerCase()} jobs in East Africa?`, answer: 'Common employers include international NGOs, local NGOs, UN agencies, public programs, and development contractors operating across Somalia, Kenya, and neighboring countries.' },
+          { question: 'Are these jobs current?', answer: 'Somken Jobs filters public job pages to focus on published, active opportunities and uses the job sitemap to help search engines discover fresh listings.' },
+          { question: 'Can I browse by country too?', answer: 'Yes. Use the related links for Somalia, Kenya, Mogadishu, Nairobi, NGO jobs, and UN jobs to narrow your search.' },
+        ],
+      }));
       
       res.send(html);
     } catch (error) {
@@ -2080,6 +2186,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     <script type="application/ld+json">${jsonLd(breadcrumbData)}</script>`;
 
       html = html.replace(/<\/head>/, `${additionalTags}\n  </head>`);
+      html = injectServerLandingContent(html, renderServerLandingContent({
+        h1: `Jobs in ${cityConfig.name}`,
+        description: pageDescription,
+        intro: `${cityConfig.description} Browse current job listings for ${cityConfig.name}, including NGO, UN, humanitarian, development, public-service, and professional opportunities.`,
+        jobs: cityJobs,
+        relatedLinks: defaultRelatedKeywordLinks,
+        faqItems: [
+          { question: `What jobs are available in ${cityConfig.name}?`, answer: 'Available roles may include NGO program jobs, UN vacancies, operations roles, health and education jobs, procurement positions, technical roles, and local professional opportunities.' },
+          { question: `Is ${cityConfig.name} good for NGO and UN jobs?`, answer: `${cityConfig.name} is an important location for regional employment. Somken Jobs groups city-specific listings so candidates can quickly find relevant openings.` },
+          { question: 'How can I find new jobs faster?', answer: 'Check the city page regularly, browse related country and NGO pages, and review each job detail page for deadlines and official application steps.' },
+        ],
+      }));
 
       res.send(html);
     } catch (error) {
@@ -2257,6 +2375,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     <script type="application/ld+json">${jsonLd(breadcrumbData)}</script>`;
 
       html = html.replace(/<\/head>/, `${additionalTags}\n  </head>`);
+      html = injectServerLandingContent(html, renderServerLandingContent({
+        h1: config.name,
+        description: config.description,
+        intro: `${config.name} collects current vacancies and related career opportunities from Somken Jobs. Use this page to compare employers, locations, deadlines, and job requirements before opening the full job page.`,
+        jobs: matchingJobs,
+        relatedLinks: defaultRelatedKeywordLinks,
+        faqItems: [
+          { question: `What can I find on this ${config.breadcrumbName} page?`, answer: `This page focuses on ${config.about.join(', ')} and links to active job detail pages where you can review requirements and application instructions.` },
+          { question: 'Are these official employer applications?', answer: 'Somken Jobs helps candidates discover and organize job listings. Always follow the official application link or instructions provided on the job detail page.' },
+          { question: 'How often should I check back?', answer: 'New jobs are added regularly, and expired jobs are removed from public listings and the job sitemap when they are no longer available.' },
+        ],
+      }));
       res.send(html);
     } catch (error) {
       console.error('Error serving keyword landing page:', error);
