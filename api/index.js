@@ -2799,6 +2799,10 @@ async function registerRoutes(app2) {
         res.setHeader("Content-Type", "text/html; charset=utf-8");
         return res.send(html);
       }
+      const seoLandingPrefixes = ["/jobs/country/", "/jobs/city/", "/jobs/sector/"];
+      if (seoLandingPrefixes.some((prefix) => req.path.startsWith(prefix))) {
+        return next();
+      }
       if (req.path.startsWith("/jobs/")) {
         console.log("Bot detected, serving inline SSR for job details:", req.path);
         const slug = req.path.substring(6);

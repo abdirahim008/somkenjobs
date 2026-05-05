@@ -405,6 +405,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.send(html);
       }
       
+      const seoLandingPrefixes = ["/jobs/country/", "/jobs/city/", "/jobs/sector/"];
+      if (seoLandingPrefixes.some(prefix => req.path.startsWith(prefix))) {
+        return next();
+      }
+
       // Handle individual job pages
       if (req.path.startsWith("/jobs/")) {
         console.log('Bot detected, serving inline SSR for job details:', req.path);
