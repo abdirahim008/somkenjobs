@@ -36,8 +36,13 @@ function Router() {
         <Route path="/jobs" component={Jobs} />
         <Route path="/tenders" component={Tenders} />
         <Route path="/jobs/country/:country" component={JobLanding} />
+        <Route path="/jobs/city/:city" component={JobLanding} />
         <Route path="/jobs/sector/:sector" component={JobLanding} />
+        <Route path="/un-jobs/somalia" component={JobLanding} />
+        <Route path="/un-jobs/kenya" component={JobLanding} />
+        <Route path="/un-jobs" component={JobLanding} />
         <Route path="/ngo-jobs/somalia" component={JobLanding} />
+        <Route path="/ngo-jobs/kenya" component={JobLanding} />
         <Route path="/ngo-jobs" component={JobLanding} />
         <Route path="/jobs/:id" component={JobDetails} />
         <Route path="/test" component={TestComponent} />

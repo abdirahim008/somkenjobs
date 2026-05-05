@@ -1841,6 +1841,13 @@ function generateHomepageSEOMetadata(jobStats) {
   return { title, description, keywords };
 }
 function generateJobsListingSEOMetadata(totalCount, filters = {}) {
+  if (!filters.country && !filters.location && !filters.sector && !filters.organization) {
+    return {
+      title: "East Africa NGO and Humanitarian Jobs | Somken Jobs",
+      description: `Browse ${totalCount}+ current NGO, UN, humanitarian, development, and public-service jobs across Somalia, Kenya, Ethiopia, Uganda, and Tanzania. Updated daily.`,
+      keywords: "East Africa jobs, NGO jobs, humanitarian jobs, UN jobs, Somalia jobs, Kenya jobs, development careers, public-service jobs"
+    };
+  }
   let titleContext = "";
   if (filters.location && filters.country) {
     titleContext = `${filters.location}, ${filters.country}`;
@@ -2533,6 +2540,60 @@ var safeUrl2 = (url) => {
     return "";
   }
 };
+var readSpaIndexHtml = () => {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const htmlCandidates = [
+    path.join(__dirname, "public", "index.html"),
+    path.join(__dirname, "../dist/public/index.html"),
+    path.join(__dirname, "../client/index.html")
+  ];
+  const htmlPath = htmlCandidates.find((candidate) => fs.existsSync(candidate));
+  if (!htmlPath) {
+    throw new Error(`Could not find SPA index.html in: ${htmlCandidates.join(", ")}`);
+  }
+  return fs.readFileSync(htmlPath, "utf-8");
+};
+var applyJobsListingMetadata = (html, totalCount) => {
+  const pageUrl = "https://somkenjobs.com/jobs";
+  const metadata = generateJobsListingSEOMetadata(totalCount);
+  const title = escapeHtml3(metadata.title);
+  const description = escapeHtml3(metadata.description);
+  const keywords = escapeHtml3(metadata.keywords);
+  const replaceMetaName = (input, name, content) => input.replace(new RegExp(`<meta\\s+name=["']${name}["']\\s+content=["'][^"']*["']\\s*/?>`, "i"), `<meta name="${name}" content="${content}">`);
+  const replaceMetaProperty = (input, property, content) => input.replace(new RegExp(`<meta\\s+property=["']${property}["']\\s+content=["'][^"']*["']\\s*/?>`, "i"), `<meta property="${property}" content="${content}">`);
+  html = html.replace(/<title>[^<]*<\/title>/i, `<title>${title}</title>`);
+  html = replaceMetaName(html, "title", title);
+  html = replaceMetaName(html, "description", description);
+  html = replaceMetaName(html, "keywords", keywords);
+  html = replaceMetaName(html, "twitter:url", pageUrl);
+  html = replaceMetaName(html, "twitter:title", title);
+  html = replaceMetaName(html, "twitter:description", description);
+  html = replaceMetaProperty(html, "og:url", pageUrl);
+  html = replaceMetaProperty(html, "og:title", title);
+  html = replaceMetaProperty(html, "og:description", description);
+  html = html.replace(/<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/i, `<link rel="canonical" href="${pageUrl}">`);
+  html = html.replace(/<link\s+rel=["']alternate["']\s+hreflang=["']([^"']+)["']\s+href=["'][^"']*["']\s*\/?>/gi, `<link rel="alternate" hreflang="$1" href="${pageUrl}">`);
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": metadata.title,
+    "description": metadata.description,
+    "url": pageUrl,
+    "isPartOf": { "@type": "WebSite", "name": "Somken Jobs", "url": "https://somkenjobs.com/" },
+    "about": ["East Africa jobs", "NGO jobs", "humanitarian jobs", "development careers"]
+  };
+  const breadcrumbData = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://somkenjobs.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Jobs", "item": pageUrl }
+    ]
+  };
+  return html.replace(/<\/head>/i, `    <script type="application/ld+json">${jsonLd(structuredData)}</script>
+    <script type="application/ld+json">${jsonLd(breadcrumbData)}</script>
+  </head>`);
+};
 var jsonLd = (data) => JSON.stringify(data).replace(/</g, "\\u003c");
 var authenticate = async (req, res, next) => {
   try {
@@ -2635,9 +2696,6 @@ async function registerRoutes(app2) {
     res.redirect(301, "/jobs");
   });
   app2.get("/humanitarian-jobs", (req, res) => {
-    res.redirect(301, "/jobs");
-  });
-  app2.get("/ngo-jobs", (req, res) => {
     res.redirect(301, "/jobs");
   });
   app2.get("/api/ssr/test", (req, res) => {
@@ -2767,6 +2825,25 @@ async function registerRoutes(app2) {
       console.error("Error in SSR middleware:", error);
     }
     next();
+  });
+  app2.get("/jobs", async (req, res, next) => {
+    if (req.method !== "GET") {
+      return next();
+    }
+    const acceptHeader = req.get("Accept") || "";
+    if (acceptHeader && !acceptHeader.includes("text/html") && !acceptHeader.includes("*/*")) {
+      return next();
+    }
+    try {
+      const allJobs = await storage.getAllJobsWithDetails();
+      const jobs2 = allJobs.filter((job) => job.type !== "tender" || !job.type);
+      const html = applyJobsListingMetadata(readSpaIndexHtml(), jobs2.length);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(html);
+    } catch (error) {
+      console.error("Error serving jobs page metadata:", error);
+      next();
+    }
   });
   app2.head("/", async (req, res) => {
     try {
@@ -3806,6 +3883,23 @@ async function registerRoutes(app2) {
     "uganda": "Uganda offers meaningful opportunities in refugee response, health programming, and development initiatives.",
     "tanzania": "Tanzania provides opportunities in development programming, refugee support, and health initiatives."
   };
+  const SUPPORTED_CITIES = {
+    mogadishu: {
+      name: "Mogadishu",
+      country: "Somalia",
+      description: "Mogadishu is Somalia's largest employment hub, with opportunities across NGOs, UN agencies, public-service organizations, private employers, and humanitarian programs."
+    },
+    nairobi: {
+      name: "Nairobi",
+      country: "Kenya",
+      description: "Nairobi is a major regional hub for UN agencies, international NGOs, development organizations, startups, and professional employers serving East Africa."
+    },
+    hargeisa: {
+      name: "Hargeisa",
+      country: "Somalia",
+      description: "Hargeisa attracts NGO, education, development, and private-sector opportunities for professionals in Somaliland and the wider Somali region."
+    }
+  };
   app2.get("/jobs/country/:country", async (req, res) => {
     try {
       const countryParam = req.params.country.toLowerCase();
@@ -3965,11 +4059,80 @@ async function registerRoutes(app2) {
       res.status(500).send("Error loading page");
     }
   });
+  app2.get("/jobs/city/:city", async (req, res) => {
+    try {
+      const cityParam = req.params.city.toLowerCase();
+      const cityConfig = SUPPORTED_CITIES[cityParam];
+      if (!cityConfig) {
+        return res.status(404).send("City not found");
+      }
+      const allJobs = await storage.getAllJobs();
+      const now = /* @__PURE__ */ new Date();
+      const cityJobs = allJobs.filter(
+        (job) => String(job.location || "").toLowerCase().includes(cityParam) && (!job.type || job.type === "job") && job.status === "published" && job.visibility !== "private" && (!job.deadline || new Date(job.deadline) >= now)
+      );
+      const pageUrl = `https://somkenjobs.com/jobs/city/${cityParam}`;
+      const pageTitle = `Jobs in ${cityConfig.name} | NGO, UN & Professional Vacancies | Somken Jobs`;
+      const pageDescription = `Find current jobs in ${cityConfig.name}, ${cityConfig.country}, including NGO, UN, humanitarian, development, and professional vacancies. ${cityConfig.description}`;
+      let html = readIndexTemplate();
+      html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml3(pageTitle)}</title>`);
+      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeHtml3(pageDescription)}">`);
+      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeHtml3(pageTitle)}">`);
+      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeHtml3(pageDescription)}">`);
+      html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${pageUrl}">`);
+      html = html.replace(/<meta name="twitter:title" content="[^"]*">/, `<meta name="twitter:title" content="${escapeHtml3(pageTitle)}">`);
+      html = html.replace(/<meta name="twitter:description" content="[^"]*">/, `<meta name="twitter:description" content="${escapeHtml3(pageDescription)}">`);
+      html = html.replace(/<meta name="twitter:url" content="[^"]*">/, `<meta name="twitter:url" content="${pageUrl}">`);
+      html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${pageUrl}">`);
+      const structuredData = {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": `Jobs in ${cityConfig.name}`,
+        "description": pageDescription,
+        "url": pageUrl,
+        "isPartOf": { "@type": "WebSite", "name": "Somken Jobs", "url": "https://somkenjobs.com/" },
+        "about": [`jobs in ${cityConfig.name}`, `NGO jobs in ${cityConfig.name}`, `UN jobs in ${cityConfig.name}`],
+        "mainEntity": {
+          "@type": "ItemList",
+          "numberOfItems": cityJobs.length,
+          "itemListElement": cityJobs.slice(0, 10).map((job, index) => ({
+            "@type": "ListItem",
+            "position": index + 1,
+            "url": `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`,
+            "name": job.title
+          }))
+        }
+      };
+      const breadcrumbData = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://somkenjobs.com/" },
+          { "@type": "ListItem", "position": 2, "name": "Jobs", "item": "https://somkenjobs.com/jobs" },
+          { "@type": "ListItem", "position": 3, "name": cityConfig.name, "item": pageUrl }
+        ]
+      };
+      const additionalTags = `
+    <script type="application/ld+json">${jsonLd(structuredData)}</script>
+    <script type="application/ld+json">${jsonLd(breadcrumbData)}</script>`;
+      html = html.replace(/<\/head>/, `${additionalTags}
+  </head>`);
+      res.send(html);
+    } catch (error) {
+      console.error("Error serving city page:", error);
+      res.status(500).send("Error loading page");
+    }
+  });
   app2.get("/jobs-in-somalia", (_req, res) => res.redirect(301, "/jobs/country/somalia"));
   app2.get("/jobs-in-kenya", (_req, res) => res.redirect(301, "/jobs/country/kenya"));
   app2.get("/jobs/somalia", (_req, res) => res.redirect(301, "/jobs/country/somalia"));
   app2.get("/jobs/kenya", (_req, res) => res.redirect(301, "/jobs/country/kenya"));
   app2.get("/ngo-jobs-in-somalia", (_req, res) => res.redirect(301, "/ngo-jobs/somalia"));
+  app2.get("/ngo-jobs-in-kenya", (_req, res) => res.redirect(301, "/ngo-jobs/kenya"));
+  app2.get("/un-jobs-somalia", (_req, res) => res.redirect(301, "/un-jobs/somalia"));
+  app2.get("/un-jobs-kenya", (_req, res) => res.redirect(301, "/un-jobs/kenya"));
+  app2.get("/jobs-in-mogadishu", (_req, res) => res.redirect(301, "/jobs/city/mogadishu"));
+  app2.get("/jobs-in-nairobi", (_req, res) => res.redirect(301, "/jobs/city/nairobi"));
   app2.get("/help", (_req, res) => res.redirect(301, "/help-center"));
   app2.get("/privacy", (_req, res) => res.redirect(301, "/privacy-policy"));
   app2.get("/terms", (_req, res) => res.redirect(301, "/terms-of-service"));
@@ -3981,6 +4144,11 @@ async function registerRoutes(app2) {
   const matchesNgoJob = (job) => {
     const haystack = `${job.title || ""} ${job.organization || ""} ${job.description || ""} ${job.source || ""}`.toLowerCase();
     return ngoTerms.some((term) => haystack.includes(term));
+  };
+  const unTerms = ["un ", "un-", "unicef", "unhcr", "undp", "unops", "wfp", "who", "iom", "un women", "unfpa", "un-habitat", "un habitat", "unon", "unsos"];
+  const matchesUnJob = (job) => {
+    const haystack = `${job.title || ""} ${job.organization || ""} ${job.description || ""} ${job.source || ""}`.toLowerCase();
+    return unTerms.some((term) => haystack.includes(term));
   };
   const readIndexTemplate = () => {
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -4010,9 +4178,45 @@ async function registerRoutes(app2) {
       about: ["NGO jobs in Somalia", "UN jobs Somalia", "humanitarian jobs Somalia"],
       breadcrumbName: "NGO Jobs in Somalia",
       filter: (job) => job.country === "Somalia" && matchesNgoJob(job)
+    },
+    "/ngo-jobs/kenya": {
+      title: "NGO Jobs in Kenya | UN, Humanitarian & Development Jobs | Somken Jobs",
+      description: "Find current NGO jobs in Kenya, including UN roles, humanitarian vacancies, development jobs, and nonprofit opportunities in Nairobi and across Kenya.",
+      canonicalPath: "/ngo-jobs/kenya",
+      name: "NGO Jobs in Kenya",
+      about: ["NGO jobs in Kenya", "UN jobs Kenya", "humanitarian jobs Kenya", "NGO jobs Nairobi"],
+      breadcrumbName: "NGO Jobs in Kenya",
+      filter: (job) => job.country === "Kenya" && matchesNgoJob(job)
+    },
+    "/un-jobs": {
+      title: "UN Jobs in Somalia, Kenya & East Africa | Somken Jobs",
+      description: "Find current UN jobs and United Nations vacancies across Somalia, Kenya, and East Africa, including roles with UNICEF, UNHCR, UNDP, WFP, WHO, IOM, and UNOPS.",
+      canonicalPath: "/un-jobs",
+      name: "UN Jobs in Somalia, Kenya, and East Africa",
+      about: ["UN jobs", "United Nations jobs", "UN vacancies", "UN jobs in East Africa"],
+      breadcrumbName: "UN Jobs",
+      filter: (job) => matchesUnJob(job)
+    },
+    "/un-jobs/somalia": {
+      title: "UN Jobs in Somalia | United Nations Vacancies | Somken Jobs",
+      description: "Find current UN jobs in Somalia, including United Nations vacancies in Mogadishu, Hargeisa, Kismayo, Baidoa, and field locations.",
+      canonicalPath: "/un-jobs/somalia",
+      name: "UN Jobs in Somalia",
+      about: ["UN jobs Somalia", "United Nations vacancies Somalia", "UN careers Somalia"],
+      breadcrumbName: "UN Jobs in Somalia",
+      filter: (job) => job.country === "Somalia" && matchesUnJob(job)
+    },
+    "/un-jobs/kenya": {
+      title: "UN Jobs in Kenya | United Nations Vacancies in Nairobi | Somken Jobs",
+      description: "Find current UN jobs in Kenya, including United Nations vacancies in Nairobi and regional East Africa roles with UN agencies.",
+      canonicalPath: "/un-jobs/kenya",
+      name: "UN Jobs in Kenya",
+      about: ["UN jobs Kenya", "UN jobs Nairobi", "United Nations vacancies Kenya"],
+      breadcrumbName: "UN Jobs in Kenya",
+      filter: (job) => job.country === "Kenya" && matchesUnJob(job)
     }
   };
-  app2.get(["/ngo-jobs", "/ngo-jobs/somalia"], async (req, res, next) => {
+  app2.get(["/ngo-jobs", "/ngo-jobs/somalia", "/ngo-jobs/kenya", "/un-jobs", "/un-jobs/somalia", "/un-jobs/kenya"], async (req, res, next) => {
     try {
       const acceptHeader = req.get("Accept") || "";
       if (!acceptHeader.includes("text/html")) {
@@ -4491,11 +4695,16 @@ ${jsonLd(breadcrumbData)}
       const latestDateFor = (subset) => subset.length ? getJobLastModified(subset[0]) : newestJobDate;
       const countries2 = ["Kenya", "Somalia", "Ethiopia", "Uganda", "Tanzania"];
       const sectors2 = ["Health", "Education", "Protection", "WASH", "Food Security", "Logistics", "Emergency Response"];
+      const cityKeys = Object.keys(SUPPORTED_CITIES);
       const urls = [
         { loc: "https://somkenjobs.com/", lastmod: newestJobDate, changefreq: "daily", priority: "1.0" },
         { loc: "https://somkenjobs.com/jobs", lastmod: newestJobDate, changefreq: "daily", priority: "0.9" },
         { loc: "https://somkenjobs.com/ngo-jobs", lastmod: latestDateFor(jobs2.filter(matchesNgoJob)), changefreq: "daily", priority: "0.88" },
         { loc: "https://somkenjobs.com/ngo-jobs/somalia", lastmod: latestDateFor(jobs2.filter((job) => job.country === "Somalia" && matchesNgoJob(job))), changefreq: "daily", priority: "0.88" },
+        { loc: "https://somkenjobs.com/ngo-jobs/kenya", lastmod: latestDateFor(jobs2.filter((job) => job.country === "Kenya" && matchesNgoJob(job))), changefreq: "daily", priority: "0.88" },
+        { loc: "https://somkenjobs.com/un-jobs", lastmod: latestDateFor(jobs2.filter(matchesUnJob)), changefreq: "daily", priority: "0.88" },
+        { loc: "https://somkenjobs.com/un-jobs/somalia", lastmod: latestDateFor(jobs2.filter((job) => job.country === "Somalia" && matchesUnJob(job))), changefreq: "daily", priority: "0.88" },
+        { loc: "https://somkenjobs.com/un-jobs/kenya", lastmod: latestDateFor(jobs2.filter((job) => job.country === "Kenya" && matchesUnJob(job))), changefreq: "daily", priority: "0.88" },
         { loc: "https://somkenjobs.com/tenders", lastmod: newestJobDate, changefreq: "daily", priority: "0.9" },
         { loc: "https://somkenjobs.com/about", lastmod: "2025-01-01T00:00:00.000Z", changefreq: "monthly", priority: "0.7" },
         { loc: "https://somkenjobs.com/contact", lastmod: "2025-01-01T00:00:00.000Z", changefreq: "monthly", priority: "0.7" },
@@ -4508,6 +4717,12 @@ ${jsonLd(breadcrumbData)}
           lastmod: latestDateFor(jobs2.filter((job) => job.country === country)),
           changefreq: "daily",
           priority: "0.85"
+        })),
+        ...cityKeys.map((cityKey) => ({
+          loc: `https://somkenjobs.com/jobs/city/${cityKey}`,
+          lastmod: latestDateFor(jobs2.filter((job) => String(job.location || "").toLowerCase().includes(cityKey))),
+          changefreq: "daily",
+          priority: "0.84"
         })),
         ...sectors2.map((sector) => ({
           loc: `https://somkenjobs.com/jobs/sector/${sector.toLowerCase().replace(/\s+/g, "-")}`,

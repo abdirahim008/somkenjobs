@@ -20,7 +20,7 @@ interface JobsResponse {
   };
 }
 
-type LandingKind = "country" | "ngo" | "ngo-country" | "sector";
+type LandingKind = "country" | "city" | "ngo" | "ngo-country" | "un" | "un-country" | "sector";
 
 type LandingConfig = {
   kind: LandingKind;
@@ -53,14 +53,41 @@ const sectorNames: Record<string, string> = {
   "emergency-response": "Emergency Response",
 };
 
+const cityInfo: Record<string, { name: string; country: string; focus: string }> = {
+  mogadishu: {
+    name: "Mogadishu",
+    country: "Somalia",
+    focus: "NGO jobs in Mogadishu, UN jobs in Mogadishu, humanitarian vacancies, public-service roles, and professional opportunities",
+  },
+  nairobi: {
+    name: "Nairobi",
+    country: "Kenya",
+    focus: "UN jobs in Nairobi, NGO jobs in Nairobi, humanitarian vacancies, development roles, and professional opportunities",
+  },
+  hargeisa: {
+    name: "Hargeisa",
+    country: "Somalia",
+    focus: "NGO jobs in Hargeisa, development vacancies, education roles, public-service jobs, and professional opportunities",
+  },
+};
+
 function useLandingConfig(): LandingConfig {
   const [, countryRoute] = useRoute("/jobs/country/:country");
+  const [, cityRoute] = useRoute("/jobs/city/:city");
   const [, sectorRoute] = useRoute("/jobs/sector/:sector");
   const [ngoSomaliaMatch] = useRoute("/ngo-jobs/somalia");
+  const [ngoKenyaMatch] = useRoute("/ngo-jobs/kenya");
   const [ngoMatch] = useRoute("/ngo-jobs");
+  const [unSomaliaMatch] = useRoute("/un-jobs/somalia");
+  const [unKenyaMatch] = useRoute("/un-jobs/kenya");
+  const [unMatch] = useRoute("/un-jobs");
 
   if (countryRoute?.country && countryNames[countryRoute.country.toLowerCase()]) {
     return countryConfig(countryRoute.country.toLowerCase());
+  }
+
+  if (cityRoute?.city && cityInfo[cityRoute.city.toLowerCase()]) {
+    return cityConfig(cityRoute.city.toLowerCase());
   }
 
   if (sectorRoute?.sector && sectorNames[sectorRoute.sector.toLowerCase()]) {
@@ -71,11 +98,50 @@ function useLandingConfig(): LandingConfig {
     return ngoSomaliaConfig();
   }
 
+  if (ngoKenyaMatch) {
+    return ngoKenyaConfig();
+  }
+
+  if (unSomaliaMatch) {
+    return unCountryConfig("somalia");
+  }
+
+  if (unKenyaMatch) {
+    return unCountryConfig("kenya");
+  }
+
+  if (unMatch) {
+    return unConfig();
+  }
+
   if (ngoMatch) {
     return ngoConfig();
   }
 
   return ngoConfig();
+}
+
+function cityConfig(cityKey: string): LandingConfig {
+  const city = cityInfo[cityKey];
+  return {
+    kind: "city",
+    title: `Jobs in ${city.name} | NGO, UN & Professional Jobs`,
+    h1: `Jobs in ${city.name}`,
+    description: `Find current jobs in ${city.name}, ${city.country}, including NGO, UN, humanitarian, development, public-service, and professional vacancies.`,
+    keywords: `${city.focus}, Somken Jobs`,
+    canonicalUrl: `https://somkenjobs.com/jobs/city/${cityKey}`,
+    query: { country: city.country, search: city.name },
+    contentTitle: `Current jobs in ${city.name}`,
+    contentBody: `${city.name} is an important employment center for job seekers looking for NGO, UN, humanitarian, development, public-service, and private-sector opportunities. Somken Jobs collects current openings and links each listing to a full job page with employer, location, deadline, and application details.`,
+    relatedLinks: [
+      { label: `Jobs in ${city.country}`, href: `/jobs/country/${city.country.toLowerCase()}` },
+      { label: "NGO Jobs", href: "/ngo-jobs" },
+      { label: "UN Jobs", href: "/un-jobs" },
+      { label: "Jobs in Mogadishu", href: "/jobs/city/mogadishu" },
+      { label: "Jobs in Nairobi", href: "/jobs/city/nairobi" },
+      { label: "All Jobs", href: "/jobs" },
+    ],
+  };
 }
 
 function countryConfig(countryKey: string, canonicalPath = `/jobs/country/${countryKey}`): LandingConfig {
@@ -175,7 +241,81 @@ function ngoSomaliaConfig(): LandingConfig {
   };
 }
 
+function ngoKenyaConfig(): LandingConfig {
+  return {
+    kind: "ngo-country",
+    title: "NGO Jobs in Kenya | UN, Humanitarian & Development Jobs",
+    h1: "NGO Jobs in Kenya",
+    description: "Find current NGO jobs in Kenya, including UN roles, humanitarian vacancies, development jobs, nonprofit opportunities, and Nairobi-based regional roles.",
+    keywords: "NGO jobs in Kenya, NGO jobs Nairobi, UN jobs Kenya, UN jobs Nairobi, humanitarian jobs Kenya, development jobs Kenya",
+    canonicalUrl: "https://somkenjobs.com/ngo-jobs/kenya",
+    query: { country: "Kenya", search: "NGO" },
+    contentTitle: "Kenya NGO vacancies and humanitarian roles",
+    contentBody: "This page focuses on NGO and humanitarian jobs in Kenya, including Nairobi and regional field roles. Kenya is a major East Africa hub for UN agencies, international NGOs, development programs, protection work, health, education, WASH, logistics, and monitoring and evaluation opportunities.",
+    relatedLinks: [
+      { label: "Jobs in Kenya", href: "/jobs/country/kenya" },
+      { label: "UN Jobs in Kenya", href: "/un-jobs/kenya" },
+      { label: "Jobs in Nairobi", href: "/jobs/city/nairobi" },
+      { label: "NGO Jobs in Somalia", href: "/ngo-jobs/somalia" },
+      { label: "Health Jobs", href: "/jobs/sector/health" },
+      { label: "All Jobs", href: "/jobs" },
+    ],
+  };
+}
+
+function unConfig(): LandingConfig {
+  return {
+    kind: "un",
+    title: "UN Jobs in Somalia, Kenya & East Africa",
+    h1: "UN Jobs in Somalia, Kenya, and East Africa",
+    description: "Find current UN jobs and United Nations vacancies across Somalia, Kenya, and East Africa, including roles with UNICEF, UNHCR, UNDP, WFP, WHO, IOM, and UNOPS.",
+    keywords: "UN jobs, United Nations jobs, UN vacancies, UN jobs Somalia, UN jobs Kenya, UN jobs Nairobi, UN careers East Africa",
+    canonicalUrl: "https://somkenjobs.com/un-jobs",
+    query: { search: "UN" },
+    contentTitle: "Current United Nations jobs and vacancies",
+    contentBody: "Somken Jobs helps candidates discover UN vacancies and United Nations-related roles across Somalia, Kenya, and East Africa. Listings may include opportunities with UNICEF, UNHCR, UNDP, WFP, WHO, IOM, UNOPS, UN-Habitat, and other agencies or partner programs.",
+    relatedLinks: [
+      { label: "UN Jobs in Somalia", href: "/un-jobs/somalia" },
+      { label: "UN Jobs in Kenya", href: "/un-jobs/kenya" },
+      { label: "Jobs in Mogadishu", href: "/jobs/city/mogadishu" },
+      { label: "Jobs in Nairobi", href: "/jobs/city/nairobi" },
+      { label: "NGO Jobs", href: "/ngo-jobs" },
+      { label: "All Jobs", href: "/jobs" },
+    ],
+  };
+}
+
+function unCountryConfig(countryKey: "somalia" | "kenya"): LandingConfig {
+  const country = countryNames[countryKey];
+  const isKenya = countryKey === "kenya";
+  return {
+    kind: "un-country",
+    title: `UN Jobs in ${country} | United Nations Vacancies`,
+    h1: `UN Jobs in ${country}`,
+    description: isKenya
+      ? "Find current UN jobs in Kenya, including United Nations vacancies in Nairobi and regional East Africa roles with UN agencies."
+      : "Find current UN jobs in Somalia, including United Nations vacancies in Mogadishu, Hargeisa, Kismayo, Baidoa, and field locations.",
+    keywords: isKenya
+      ? "UN jobs Kenya, UN jobs Nairobi, United Nations vacancies Kenya, UN careers Nairobi"
+      : "UN jobs Somalia, United Nations vacancies Somalia, UN careers Somalia, UN jobs Mogadishu",
+    canonicalUrl: `https://somkenjobs.com/un-jobs/${countryKey}`,
+    query: { country, search: "UN" },
+    contentTitle: `United Nations vacancies in ${country}`,
+    contentBody: `This page focuses on UN jobs in ${country}, including roles with United Nations agencies, humanitarian partners, and development programs. Use it to compare current vacancies, employers, locations, and deadlines before opening the full job details.`,
+    relatedLinks: [
+      { label: "All UN Jobs", href: "/un-jobs" },
+      { label: `Jobs in ${country}`, href: `/jobs/country/${countryKey}` },
+      { label: isKenya ? "Jobs in Nairobi" : "Jobs in Mogadishu", href: isKenya ? "/jobs/city/nairobi" : "/jobs/city/mogadishu" },
+      { label: isKenya ? "NGO Jobs in Kenya" : "NGO Jobs in Somalia", href: isKenya ? "/ngo-jobs/kenya" : "/ngo-jobs/somalia" },
+      { label: "NGO Jobs", href: "/ngo-jobs" },
+      { label: "All Jobs", href: "/jobs" },
+    ],
+  };
+}
+
 function filterFallbackJobs(jobs: Job[], config: LandingConfig): Job[] {
+  const unTerms = ["un ", "un-", "unicef", "unhcr", "undp", "unops", "wfp", "who", "iom", "un women", "unfpa", "un-habitat", "un habitat", "unon", "unsos"];
+
   if (config.kind === "ngo") {
     const terms = ["ngo", "non-government", "non government", "humanitarian", "relief", "development", "un ", "unhcr", "unicef", "wfp", "who"];
     return jobs.filter((job) => {
@@ -190,6 +330,26 @@ function filterFallbackJobs(jobs: Job[], config: LandingConfig): Job[] {
       const haystack = `${job.title} ${job.organization} ${job.description} ${job.source}`.toLowerCase();
       return job.country === "Somalia" && terms.some((term) => haystack.includes(term));
     });
+  }
+
+  if (config.kind === "un") {
+    return jobs.filter((job) => {
+      const haystack = `${job.title} ${job.organization} ${job.description} ${job.source}`.toLowerCase();
+      return unTerms.some((term) => haystack.includes(term));
+    });
+  }
+
+  if (config.kind === "un-country") {
+    const country = config.query.country;
+    return jobs.filter((job) => {
+      const haystack = `${job.title} ${job.organization} ${job.description} ${job.source}`.toLowerCase();
+      return job.country === country && unTerms.some((term) => haystack.includes(term));
+    });
+  }
+
+  if (config.kind === "city") {
+    const city = String(config.query.search || "").toLowerCase();
+    return jobs.filter((job) => String(job.location || "").toLowerCase().includes(city));
   }
 
   return jobs;
