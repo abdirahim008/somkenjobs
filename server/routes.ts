@@ -1935,11 +1935,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Replace meta tags
-      html = html.replace(/<title>[^<]*<\/title>/, `<title>${pageTitle}</title>`);
-      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${pageDescription}">`);
-      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${pageTitle}">`);
-      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${pageDescription}">`);
+      html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(pageTitle)}</title>`);
+      html = html.replace(/<meta name="title" content="[^"]*">/, `<meta name="title" content="${escapeHtml(pageTitle)}">`);
+      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeHtml(pageDescription)}">`);
+      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeHtml(pageTitle)}">`);
+      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeHtml(pageDescription)}">`);
       html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${pageUrl}">`);
+      html = html.replace(/<meta name="twitter:title" content="[^"]*">/, `<meta name="twitter:title" content="${escapeHtml(pageTitle)}">`);
+      html = html.replace(/<meta name="twitter:description" content="[^"]*">/, `<meta name="twitter:description" content="${escapeHtml(pageDescription)}">`);
+      html = html.replace(/<meta name="twitter:url" content="[^"]*">/, `<meta name="twitter:url" content="${pageUrl}">`);
       html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${pageUrl}">`);
       
       // Add collection structured data on list pages.
@@ -2059,11 +2063,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Replace meta tags
-      html = html.replace(/<title>[^<]*<\/title>/, `<title>${pageTitle}</title>`);
-      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${pageDescription}">`);
-      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${pageTitle}">`);
-      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${pageDescription}">`);
+      html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(pageTitle)}</title>`);
+      html = html.replace(/<meta name="title" content="[^"]*">/, `<meta name="title" content="${escapeHtml(pageTitle)}">`);
+      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeHtml(pageDescription)}">`);
+      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeHtml(pageTitle)}">`);
+      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeHtml(pageDescription)}">`);
       html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${pageUrl}">`);
+      html = html.replace(/<meta name="twitter:title" content="[^"]*">/, `<meta name="twitter:title" content="${escapeHtml(pageTitle)}">`);
+      html = html.replace(/<meta name="twitter:description" content="[^"]*">/, `<meta name="twitter:description" content="${escapeHtml(pageDescription)}">`);
+      html = html.replace(/<meta name="twitter:url" content="[^"]*">/, `<meta name="twitter:url" content="${pageUrl}">`);
       html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${pageUrl}">`);
       
       // Add collection structured data on list pages.
@@ -2147,6 +2155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let html = readIndexTemplate();
 
       html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(pageTitle)}</title>`);
+      html = html.replace(/<meta name="title" content="[^"]*">/, `<meta name="title" content="${escapeHtml(pageTitle)}">`);
       html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeHtml(pageDescription)}">`);
       html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeHtml(pageTitle)}">`);
       html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeHtml(pageDescription)}">`);
@@ -2321,7 +2330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get(['/ngo-jobs', '/ngo-jobs/somalia', '/ngo-jobs/kenya', '/un-jobs', '/un-jobs/somalia', '/un-jobs/kenya'], async (req, res, next) => {
     try {
       const acceptHeader = req.get('Accept') || '';
-      if (!acceptHeader.includes('text/html')) {
+      if (acceptHeader && !acceptHeader.includes('text/html') && !acceptHeader.includes('*/*')) {
         return next();
       }
 
@@ -2336,6 +2345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let html = readIndexTemplate();
 
       html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(config.title)}</title>`);
+      html = html.replace(/<meta name="title" content="[^"]*">/, `<meta name="title" content="${escapeHtml(config.title)}">`);
       html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeHtml(config.description)}">`);
       html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeHtml(config.title)}">`);
       html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeHtml(config.description)}">`);

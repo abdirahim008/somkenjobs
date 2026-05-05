@@ -3998,11 +3998,15 @@ async function registerRoutes(app2) {
         const devHtmlPath = path.join(__dirname, "../client/index.html");
         html = fs.readFileSync(devHtmlPath, "utf-8");
       }
-      html = html.replace(/<title>[^<]*<\/title>/, `<title>${pageTitle}</title>`);
-      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${pageDescription}">`);
-      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${pageTitle}">`);
-      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${pageDescription}">`);
+      html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml3(pageTitle)}</title>`);
+      html = html.replace(/<meta name="title" content="[^"]*">/, `<meta name="title" content="${escapeHtml3(pageTitle)}">`);
+      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeHtml3(pageDescription)}">`);
+      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeHtml3(pageTitle)}">`);
+      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeHtml3(pageDescription)}">`);
       html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${pageUrl}">`);
+      html = html.replace(/<meta name="twitter:title" content="[^"]*">/, `<meta name="twitter:title" content="${escapeHtml3(pageTitle)}">`);
+      html = html.replace(/<meta name="twitter:description" content="[^"]*">/, `<meta name="twitter:description" content="${escapeHtml3(pageDescription)}">`);
+      html = html.replace(/<meta name="twitter:url" content="[^"]*">/, `<meta name="twitter:url" content="${pageUrl}">`);
       html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${pageUrl}">`);
       const structuredData = {
         "@context": "https://schema.org",
@@ -4099,11 +4103,15 @@ async function registerRoutes(app2) {
         const devHtmlPath = path.join(__dirname, "../client/index.html");
         html = fs.readFileSync(devHtmlPath, "utf-8");
       }
-      html = html.replace(/<title>[^<]*<\/title>/, `<title>${pageTitle}</title>`);
-      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${pageDescription}">`);
-      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${pageTitle}">`);
-      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${pageDescription}">`);
+      html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml3(pageTitle)}</title>`);
+      html = html.replace(/<meta name="title" content="[^"]*">/, `<meta name="title" content="${escapeHtml3(pageTitle)}">`);
+      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeHtml3(pageDescription)}">`);
+      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeHtml3(pageTitle)}">`);
+      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeHtml3(pageDescription)}">`);
       html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${pageUrl}">`);
+      html = html.replace(/<meta name="twitter:title" content="[^"]*">/, `<meta name="twitter:title" content="${escapeHtml3(pageTitle)}">`);
+      html = html.replace(/<meta name="twitter:description" content="[^"]*">/, `<meta name="twitter:description" content="${escapeHtml3(pageDescription)}">`);
+      html = html.replace(/<meta name="twitter:url" content="[^"]*">/, `<meta name="twitter:url" content="${pageUrl}">`);
       html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${pageUrl}">`);
       const structuredData = {
         "@context": "https://schema.org",
@@ -4173,6 +4181,7 @@ async function registerRoutes(app2) {
       const pageDescription = `Find current jobs in ${cityConfig.name}, ${cityConfig.country}, including NGO, UN, humanitarian, development, and professional vacancies. ${cityConfig.description}`;
       let html = readIndexTemplate();
       html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml3(pageTitle)}</title>`);
+      html = html.replace(/<meta name="title" content="[^"]*">/, `<meta name="title" content="${escapeHtml3(pageTitle)}">`);
       html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeHtml3(pageDescription)}">`);
       html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeHtml3(pageTitle)}">`);
       html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeHtml3(pageDescription)}">`);
@@ -4328,7 +4337,7 @@ async function registerRoutes(app2) {
   app2.get(["/ngo-jobs", "/ngo-jobs/somalia", "/ngo-jobs/kenya", "/un-jobs", "/un-jobs/somalia", "/un-jobs/kenya"], async (req, res, next) => {
     try {
       const acceptHeader = req.get("Accept") || "";
-      if (!acceptHeader.includes("text/html")) {
+      if (acceptHeader && !acceptHeader.includes("text/html") && !acceptHeader.includes("*/*")) {
         return next();
       }
       const config = keywordLandingPages[req.path];
@@ -4340,6 +4349,7 @@ async function registerRoutes(app2) {
       const pageUrl = `https://somkenjobs.com${config.canonicalPath}`;
       let html = readIndexTemplate();
       html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml3(config.title)}</title>`);
+      html = html.replace(/<meta name="title" content="[^"]*">/, `<meta name="title" content="${escapeHtml3(config.title)}">`);
       html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeHtml3(config.description)}">`);
       html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeHtml3(config.title)}">`);
       html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeHtml3(config.description)}">`);
