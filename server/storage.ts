@@ -35,6 +35,7 @@ export interface IStorage {
   getAllJobsWithDetails(): Promise<Job[]>;
   getJobById(id: number, token?: string, skipPrivateCheck?: boolean): Promise<Job | undefined>;
   getJobByExternalId(externalId: string): Promise<Job | undefined>;
+  getJobBySourceAndUrl(source: string, url: string): Promise<Job | undefined>;
   getJobsByUserId(userId: number): Promise<Job[]>;
   createJob(job: InsertJob): Promise<Job>;
   updateJob(id: number, job: Partial<InsertJob>): Promise<Job | undefined>;
@@ -276,6 +277,12 @@ export class MemStorage implements IStorage {
   async getJobByExternalId(externalId: string): Promise<Job | undefined> {
     return Array.from(this.jobs.values()).find(
       (job) => job.externalId === externalId
+    );
+  }
+
+  async getJobBySourceAndUrl(source: string, url: string): Promise<Job | undefined> {
+    return Array.from(this.jobs.values()).find(
+      (job) => job.source === source && job.url === url
     );
   }
 
@@ -603,6 +610,15 @@ export class DatabaseStorage implements IStorage {
 
   async getJobByExternalId(externalId: string): Promise<Job | undefined> {
     const [job] = await db.select().from(jobs).where(eq(jobs.externalId, externalId));
+    return job || undefined;
+  }
+
+  async getJobBySourceAndUrl(source: string, url: string): Promise<Job | undefined> {
+    const [job] = await db
+      .select()
+      .from(jobs)
+      .where(and(eq(jobs.source, source), eq(jobs.url, url)))
+      .limit(1);
     return job || undefined;
   }
 

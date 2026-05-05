@@ -8,6 +8,7 @@ Same approach as the Chrome extension but runs server-side.
 """
 
 import hashlib
+import html as html_lib
 import json
 import os
 import re
@@ -15,7 +16,7 @@ import time
 from datetime import datetime, timedelta
 
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString, Tag
 
 # ==========================================
 # CONFIG
@@ -76,7 +77,7 @@ def detect_country(location):
 
 
 def clean_text(text):
-    """Remove encoding artifacts"""
+    """Remove encoding artifacts while preserving intentional line breaks."""
     if not text:
         return ''
     text = (text
@@ -90,6 +91,282 @@ def clean_text(text):
     text = re.sub(r'[ \t]{2,}', ' ', text)
     text = re.sub(r'\n{3,}', '\n\n', text)
     return '\n'.join(line.strip() for line in text.split('\n')).strip()
+
+
+def clean_inline_text(text):
+    """Clean a single-line metadata value."""
+    return re.sub(r'\s+', ' ', clean_text(text or '')).strip()
+
+
+def strip_html(html):
+    if not html:
+        return ''
+    soup = BeautifulSoup(html, 'html.parser')
+    return clean_text(soup.get_text('\n'))
+
+
+def linkify_text(text):
+    """Escape text and make plain emails/URLs clickable."""
+    if not text:
+        return ''
+
+    pattern = re.compile(
+        r'(?P<email>\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b)|'
+        r'(?P<url>\b(?:https?://|www\.)[^\s<>"\']+)'
+    )
+
+    parts = []
+    last = 0
+    for match in pattern.finditer(text):
+        parts.append(html_lib.escape(text[last:match.start()]))
+        value = match.group(0).rstrip('.,;)')
+        trailing = match.group(0)[len(value):]
+        if match.group('email'):
+            safe = html_lib.escape(value)
+            href = html_lib.escape(f'mailto:{value}', quote=True)
+            parts.append(f'<a href="{href}">{safe}</a>')
+        else:
+            href_value = value if value.startswith(('http://', 'https://')) else f'https://{value}'
+            safe_text = html_lib.escape(value)
+            safe_href = html_lib.escape(href_value, quote=True)
+            parts.append(f'<a href="{safe_href}">{safe_text}</a>')
+        parts.append(html_lib.escape(trailing))
+        last = match.end()
+
+    parts.append(html_lib.escape(text[last:]))
+    return ''.join(parts)
+
+
+SECTION_HEADINGS = [
+    'terms of reference',
+    'position details',
+    'organizational background',
+    'organisation background',
+    'organization background',
+    'project background',
+    'job description',
+    'key responsibilities',
+    'duties and responsibilities',
+    'responsibilities',
+    'required qualifications and experience',
+    'qualifications and experience',
+    'qualifications',
+    'skills and competencies',
+    'language requirements',
+    'working conditions',
+    'performance management and evaluation',
+    'application submission',
+    'how to apply',
+    'introduction & background',
+    'objectives of the consultancy',
+    'scope of work and deliverables',
+    'expected deliverables',
+    'duration of contract',
+    'service terms',
+    'duty station',
+    'validity',
+    'budget',
+    'payment modalities',
+]
+
+FIELD_LABELS = [
+    'Job Title',
+    'Project',
+    'Project Location',
+    'Location',
+    'Reporting To',
+    'Supervises',
+    'Contract Type',
+    'Duration',
+    'Start Date',
+    'Education',
+    'Experience',
+    'Email',
+    'Deadline',
+    'Closing Date',
+]
+
+
+def insert_structural_breaks(text):
+    """Recover likely headings/field labels from SomaliJobs text that arrives partly flattened."""
+    if not text:
+        return ''
+
+    text = clean_text(text)
+    text = re.sub(r'\s*={3,}\s*([^=\n]+?)\s*={3,}\s*', r'\n\n\1\n', text)
+
+    for heading in sorted(SECTION_HEADINGS, key=len, reverse=True):
+        words = r'\s+'.join(re.escape(part) for part in heading.split())
+        pattern = rf'(?i)(^|\n|\s\d{{1,2}}\.\s*)({words})(?=\s+(?:[A-Z]|\d{{1,2}}\.))'
+        text = re.sub(pattern, lambda m: f'{m.group(1)}\n\n{m.group(2)}\n', text)
+
+    for label in sorted(FIELD_LABELS, key=len, reverse=True):
+        prefix_guard = r'(?<!Project\s)' if label.lower() == 'location' else ''
+        text = re.sub(
+            rf'(?<!^)(?<!\n)\s+{prefix_guard}({re.escape(label)}\s*:)',
+            r'\n\1',
+            text,
+            flags=re.I,
+        )
+
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return clean_text(text)
+
+
+def is_heading_line(line):
+    if not line:
+        return False
+    normalized = re.sub(r'^\d{1,2}\.\s*', '', line).strip(':- ')
+    lower = normalized.lower()
+    if lower in SECTION_HEADINGS:
+        return True
+    if len(normalized) <= 80 and not re.search(r'[.;]$', normalized) and re.search(r'[A-Za-z]', normalized):
+        return bool(re.match(r'^\d{1,2}\.\s+[A-Z]', line))
+    return False
+
+
+def plain_text_to_html(text):
+    """Convert structured plain text into safe, simple HTML."""
+    text = insert_structural_breaks(text)
+    if not text:
+        return ''
+
+    html_parts = []
+    list_items = []
+    list_tag = 'ul'
+
+    def flush_list():
+        nonlocal list_items, list_tag
+        if list_items:
+            html_parts.append(f'<{list_tag}>{"".join(list_items)}</{list_tag}>')
+            list_items = []
+            list_tag = 'ul'
+
+    def merge_marker_lines(lines):
+        merged = []
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            if line in {'•', '-', '*'} and i + 1 < len(lines):
+                merged.append(f'• {lines[i + 1]}')
+                i += 2
+                continue
+            if re.match(r'^\d{1,2}\.$', line) and i + 1 < len(lines):
+                merged.append(f'{line} {lines[i + 1]}')
+                i += 2
+                continue
+            merged.append(line)
+            i += 1
+        return merged
+
+    paragraphs = [part.strip() for part in re.split(r'\n\s*\n', text) if part.strip()]
+    for para in paragraphs:
+        lines = merge_marker_lines([line.strip() for line in para.split('\n') if line.strip()])
+        if len(lines) == 1 and is_heading_line(lines[0]):
+            flush_list()
+            heading = re.sub(r'^\d{1,2}\.\s*', '', lines[0]).strip(':- ')
+            html_parts.append(f'<h3>{html_lib.escape(heading)}</h3>')
+            continue
+
+        for line in lines:
+            bullet_match = re.match(r'^(?:[•\-\*]\s+)(.+)$', line)
+            number_match = re.match(r'^\d{1,2}[\.)]\s+(.+)$', line)
+
+            if bullet_match:
+                if list_items and list_tag != 'ul':
+                    flush_list()
+                list_tag = 'ul'
+                list_items.append(f'<li>{linkify_text(bullet_match.group(1))}</li>')
+                continue
+
+            if number_match and not is_heading_line(line):
+                if list_items and list_tag != 'ol':
+                    flush_list()
+                list_tag = 'ol'
+                list_items.append(f'<li>{linkify_text(number_match.group(1))}</li>')
+                continue
+
+            flush_list()
+            label_match = re.match(r'^([A-Za-z][A-Za-z\s/&()-]{1,45}):\s*(.+)$', line)
+            if label_match:
+                label = html_lib.escape(label_match.group(1).strip())
+                value = linkify_text(label_match.group(2).strip())
+                html_parts.append(f'<p><strong>{label}:</strong> {value}</p>')
+            elif is_heading_line(line):
+                heading = re.sub(r'^\d{1,2}\.\s*', '', line).strip(':- ')
+                html_parts.append(f'<h3>{html_lib.escape(heading)}</h3>')
+            else:
+                html_parts.append(f'<p>{linkify_text(line)}</p>')
+
+    flush_list()
+    return '\n'.join(html_parts)
+
+
+def html_list_to_safe_html(tag):
+    list_tag = tag.name if tag.name in ('ul', 'ol') else 'ul'
+    items = []
+    for li in tag.find_all('li', recursive=False):
+        text = clean_text(li.get_text('\n'))
+        if text:
+            items.append(f'<li>{linkify_text(text)}</li>')
+    return f'<{list_tag}>{"".join(items)}</{list_tag}>' if items else ''
+
+
+def node_to_safe_html(node):
+    if isinstance(node, NavigableString):
+        return plain_text_to_html(str(node))
+    if not isinstance(node, Tag):
+        return ''
+
+    if node.name in ('script', 'style', 'footer', 'nav'):
+        return ''
+
+    if node.name in ('ul', 'ol'):
+        return html_list_to_safe_html(node)
+
+    if node.name in ('h3', 'h4'):
+        text = clean_inline_text(node.get_text(' '))
+        return f'<h3>{html_lib.escape(text)}</h3>' if text else ''
+
+    list_html = []
+    for list_tag in node.find_all(['ul', 'ol'], recursive=True):
+        rendered = html_list_to_safe_html(list_tag)
+        if rendered:
+            list_html.append(rendered)
+        list_tag.decompose()
+
+    text = clean_text(node.get_text('\n'))
+    parts = []
+    if text:
+        parts.append(plain_text_to_html(text))
+    parts.extend(list_html)
+    return '\n'.join(part for part in parts if part)
+
+
+def collect_section_nodes(h2):
+    """Collect sibling nodes after an h2 until the next h2/h1."""
+    nodes = []
+    el = h2.find_next_sibling()
+    social_names = {'facebook', 'twitter', 'linkedin', 'whatsapp', 'telegram', 'print',
+                    'twitter(x)', 'open_in_new'}
+
+    while el and el.name not in ('h1', 'h2'):
+        text = clean_inline_text(el.get_text(' ')) if hasattr(el, 'get_text') else ''
+        if 'Similar Jobs' in text or getattr(el, 'name', None) == 'footer':
+            break
+        if text.lower() in social_names:
+            el = el.find_next_sibling()
+            continue
+        if text:
+            nodes.append(el)
+        el = el.find_next_sibling()
+
+    return nodes
+
+
+def collect_section_html(h2):
+    html_parts = [node_to_safe_html(node) for node in collect_section_nodes(h2)]
+    return '\n'.join(part for part in html_parts if part).strip()
 
 
 def decode_cf_email(encoded):
@@ -311,6 +588,7 @@ def scrape_job_page(session, url):
         'location': location_from_url(url),
         'country': '',
         'description': '',
+        'bodyHtml': '',
         'url': url,
         'deadline': '',
         'datePosted': '',
@@ -376,22 +654,25 @@ def scrape_job_page(session, url):
     # --- Method 5: Extract sections by h2 headings ---
     for h2 in soup.find_all('h2'):
         heading = h2.get_text().strip().lower()
-        content = collect_section(h2)
+        content_html = collect_section_html(h2)
+        content = strip_html(content_html)
 
         if 'job description' in heading or heading == 'description':
             job['description'] = content
+            job['bodyHtml'] = content_html
         elif 'skills' in heading or 'qualifications' in heading or 'requirements' in heading:
-            job['qualifications'] = content
+            job['qualifications'] = content_html or plain_text_to_html(content)
         elif 'responsibilities' in heading or 'duties' in heading:
-            job['responsibilities'] = content
+            job['responsibilities'] = content_html or plain_text_to_html(content)
         elif 'how to apply' in heading or 'application' in heading:
-            job['howToApply'] = content
+            job['howToApply'] = content_html or plain_text_to_html(content)
             # Also grab apply link
             next_el = h2.find_next_sibling()
             if next_el:
                 apply_link = next_el.find('a', href=True)
                 if apply_link and 'somalijobs.com' not in apply_link['href']:
-                    job['howToApply'] += '\n\nApply at: ' + apply_link['href']
+                    safe_href = html_lib.escape(apply_link['href'], quote=True)
+                    job['howToApply'] += f'\n<p><strong>Apply at:</strong> <a href="{safe_href}">{safe_href}</a></p>'
         elif 'job details' in heading:
             parse_job_details_section(h2, job)
 
@@ -422,13 +703,11 @@ def scrape_job_page(session, url):
         if m:
             job['deadline'] = m.group(1).strip()
 
-    # --- Combine description ---
-    full_desc = job['description'] or ''
-    if job['qualifications']:
-        full_desc += '\n\n=== Skills & Qualifications ===\n' + job['qualifications']
-    if job['responsibilities']:
-        full_desc += '\n\n=== Responsibilities ===\n' + job['responsibilities']
-    job['description'] = clean_text(full_desc.strip()[:3000])
+    # Keep sections separate. bodyHtml is the rich main description, while description
+    # stays plain text for summaries, search, and metadata.
+    if not job['bodyHtml'] and job['description']:
+        job['bodyHtml'] = plain_text_to_html(job['description'])
+    job['description'] = strip_html(job['bodyHtml'] or job['description'])[:5000]
 
     # Fix type
     if not job['type'] or job['type'] == 'Organization':
@@ -438,9 +717,12 @@ def scrape_job_page(session, url):
     job['country'] = detect_country(job['location'])
 
     # Clean all text fields
-    for key in ['title', 'organization', 'description', 'qualifications',
-                'responsibilities', 'howToApply', 'sector', 'experience']:
-        job[key] = clean_text(job.get(key, ''))
+    for key in ['title', 'organization', 'sector', 'experience']:
+        job[key] = clean_inline_text(job.get(key, ''))
+
+    for key in ['bodyHtml', 'qualifications', 'responsibilities', 'howToApply']:
+        if job.get(key):
+            job[key] = job[key].strip()
 
     return job
 
@@ -514,7 +796,7 @@ def parse_job_details_section(h2, job):
 # MAIN SCRAPE FUNCTION
 # ==========================================
 
-def scrape_somalijobs(seen_tracker=None):
+def scrape_somalijobs(seen_tracker=None, include_seen=False, limit=None):
     """
     Full scrape pipeline:
     1. Collect job URLs from listing page
@@ -530,19 +812,22 @@ def scrape_somalijobs(seen_tracker=None):
     if not all_urls:
         return []
 
-    # Step 2: Filter to new jobs only
-    if seen_tracker:
+    # Step 2: Filter to new jobs only unless a repair/refresh run needs all current URLs.
+    if seen_tracker and not include_seen:
         new_urls = seen_tracker.filter_new(all_urls)
         print(f"  🆕 {len(new_urls)} new jobs (of {len(all_urls)} total)")
     else:
         new_urls = all_urls
+        if seen_tracker and include_seen:
+            print(f"  🔁 Refresh mode enabled — scraping {len(new_urls)} current jobs")
 
     if not new_urls:
         print("  ✅ No new jobs to scrape")
         return []
 
     # Limit
-    urls_to_scrape = new_urls[:MAX_JOBS]
+    max_jobs = limit or MAX_JOBS
+    urls_to_scrape = new_urls[:max_jobs]
 
     # Step 3: Scrape each job page
     jobs = []
@@ -555,7 +840,7 @@ def scrape_somalijobs(seen_tracker=None):
             jobs.append(job)
 
             # Mark as seen
-            if seen_tracker:
+            if seen_tracker and not include_seen:
                 seen_tracker.mark_seen(url)
 
         if (i + 1) % 10 == 0 or i == total - 1:
@@ -564,7 +849,7 @@ def scrape_somalijobs(seen_tracker=None):
         time.sleep(REQUEST_DELAY)
 
     # Save seen tracker
-    if seen_tracker:
+    if seen_tracker and not include_seen:
         seen_tracker.save()
 
     print(f"\n✅ Scraped {len(jobs)} jobs successfully")

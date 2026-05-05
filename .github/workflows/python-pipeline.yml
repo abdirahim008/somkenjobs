@@ -5,6 +5,27 @@ on:
     - cron: '30 8 * * *'
     - cron: '30 14 * * *'
   workflow_dispatch:
+    inputs:
+      refresh_existing:
+        description: 'Refresh current SomaliJobs URLs instead of only new jobs'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      backup_existing:
+        description: 'Back up existing SomaliJobs rows before uploading refreshed formatting'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      limit:
+        description: 'Optional max jobs to scrape for this run'
+        required: false
+        default: ''
 
 concurrency:
   group: python-job-pipeline
@@ -36,7 +57,18 @@ jobs:
         run: python -m playwright install chromium --with-deps
 
       - name: Run scraper pipeline
-        run: python pipeline.py
+        run: |
+          ARGS=""
+          if [ "${{ github.event.inputs.refresh_existing }}" = "true" ]; then
+            ARGS="$ARGS --refresh-existing"
+          fi
+          if [ "${{ github.event.inputs.backup_existing }}" = "true" ]; then
+            ARGS="$ARGS --backup-existing"
+          fi
+          if [ -n "${{ github.event.inputs.limit }}" ]; then
+            ARGS="$ARGS --limit ${{ github.event.inputs.limit }}"
+          fi
+          python pipeline.py $ARGS
         env:
           SOMKEN_URL: ${{ secrets.SOMKEN_URL }}
           SOMKEN_EMAIL: ${{ secrets.SOMKEN_EMAIL }}

@@ -1251,7 +1251,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Maximum 500 jobs per upload. Please split your data into smaller batches." });
       }
 
-      const results = { successCount: 0, failureCount: 0, errors: [] as { index: number; title?: string; error: string }[] };
+      const results = {
+        successCount: 0,
+        createdCount: 0,
+        updatedCount: 0,
+        failureCount: 0,
+        errors: [] as { index: number; title?: string; error: string }[],
+      };
 
       const parseFuzzyDate = (dateStr: string | undefined | null): Date => {
         if (!dateStr) return new Date();
@@ -1326,7 +1332,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
 
           const jobData = insertJobSchema.parse(jobDataWithDefaults);
-          await storage.createJob(jobData);
+          const source = String(jobData.source || "").toLowerCase();
+          const canUpdateImportedSomaliJob = source === "somalijobs";
+          const existingJob = canUpdateImportedSomaliJob
+            ? (await storage.getJobByExternalId(jobData.externalId || ""))
+              || (jobData.url ? await storage.getJobBySourceAndUrl(source, jobData.url) : undefined)
+            : undefined;
+
+          if (existingJob && existingJob.source === "somalijobs") {
+            await storage.updateJob(existingJob.id, {
+              description: jobData.description,
+              bodyHtml: jobData.bodyHtml,
+              howToApply: jobData.howToApply,
+              qualifications: jobData.qualifications,
+              responsibilities: jobData.responsibilities,
+            });
+            results.updatedCount++;
+          } else {
+            await storage.createJob(jobData);
+            results.createdCount++;
+          }
           results.successCount++;
         } catch (error) {
           results.failureCount++;
@@ -1341,9 +1366,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.status(200).json({
-        message: `Bulk upload complete. ${results.successCount} succeeded, ${results.failureCount} failed.`,
+        message: `Bulk upload complete. ${results.successCount} succeeded (${results.createdCount} created, ${results.updatedCount} updated), ${results.failureCount} failed.`,
         totalProcessed: jobsArray.length,
         successCount: results.successCount,
+        createdCount: results.createdCount,
+        updatedCount: results.updatedCount,
         failureCount: results.failureCount,
         errors: results.errors,
       });

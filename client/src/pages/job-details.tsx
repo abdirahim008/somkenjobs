@@ -317,13 +317,167 @@ export default function JobDetails() {
 
   // Safe HTML renderer for rich content — preserves tables, lists, headings.
   // Used instead of cleanText() for HTML content that comes from the editor.
+  const escapeHtml = (value: string): string => value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+  const legacyPlainTextToHtml = (value: string): string => {
+    if (!value) return '';
+
+    const headings = [
+      'Terms of Reference',
+      'Position Details',
+      'Organizational Background',
+      'Organisation Background',
+      'Organization Background',
+      'Project Background',
+      'Job Description',
+      'Key Responsibilities',
+      'Duties and Responsibilities',
+      'Responsibilities',
+      'Required Qualifications and Experience',
+      'Qualifications and Experience',
+      'Qualifications',
+      'Skills and Competencies',
+      'Language Requirements',
+      'Working Conditions',
+      'Performance Management and Evaluation',
+      'Application Submission',
+      'How to Apply',
+      'Introduction & Background',
+      'Objectives of the consultancy',
+      'Scope of Work and Deliverables',
+      'Expected Deliverables',
+      'Duration of contract',
+      'Service Terms',
+      'Duty Station',
+      'Validity',
+      'Budget',
+      'Payment Modalities',
+    ];
+
+    let text = value
+      .replace(/\s*={3,}\s*([^=\n]+?)\s*={3,}\s*/g, '\n\n$1\n')
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n');
+
+    [...headings].sort((a, b) => b.length - a.length).forEach((heading) => {
+      const strictPattern = new RegExp(`(^|\\n|\\s\\d{1,2}\\.\\s*)(${heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})(?=\\s+(?:[A-Z]|\\d{1,2}\\.))`, 'gi');
+      text = text.replace(strictPattern, '$1\n\n$2\n');
+    });
+
+    ['Job Title', 'Project', 'Project Location', 'Location', 'Reporting To', 'Supervises', 'Contract Type', 'Duration', 'Start Date', 'Education', 'Experience', 'Email', 'Deadline', 'Closing Date'].sort((a, b) => b.length - a.length).forEach((label) => {
+      const pattern = new RegExp(`\\s+(${label}\\s*:)`, 'gi');
+      text = text.replace(pattern, (match, labelText, offset, fullText) => {
+        if (offset === 0 || fullText[offset - 1] === '\n') return match;
+        const before = fullText.slice(Math.max(0, offset - 12), offset);
+        if (label.toLowerCase() === 'location' && /Project\s*$/i.test(before)) {
+          return match;
+        }
+        return `\n${labelText}`;
+      });
+    });
+
+    const htmlParts: string[] = [];
+    let listItems: string[] = [];
+    let listTag: 'ul' | 'ol' = 'ul';
+
+    const flushList = () => {
+      if (listItems.length) {
+        htmlParts.push(`<${listTag}>${listItems.join('')}</${listTag}>`);
+        listItems = [];
+        listTag = 'ul';
+      }
+    };
+
+    const isHeading = (line: string) => {
+      const normalized = line.replace(/^\d{1,2}\.\s*/, '').replace(/[:\-]\s*$/, '').trim();
+      return headings.some((heading) => heading.toLowerCase() === normalized.toLowerCase());
+    };
+
+    const mergeMarkerLines = (lines: string[]) => {
+      const merged: string[] = [];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (['•', '-', '*'].includes(line) && lines[i + 1]) {
+          merged.push(`• ${lines[i + 1]}`);
+          i++;
+        } else if (/^\d{1,2}\.$/.test(line) && lines[i + 1]) {
+          merged.push(`${line} ${lines[i + 1]}`);
+          i++;
+        } else {
+          merged.push(line);
+        }
+      }
+      return merged;
+    };
+
+    text.split(/\n\s*\n/).map(part => part.trim()).filter(Boolean).forEach((part) => {
+      const lines = mergeMarkerLines(part.split('\n').map(line => line.trim()).filter(Boolean));
+      if (lines.length === 1 && isHeading(lines[0])) {
+        flushList();
+        htmlParts.push(`<h3>${escapeHtml(lines[0].replace(/^\d{1,2}\.\s*/, '').trim())}</h3>`);
+        return;
+      }
+
+      lines.forEach((line) => {
+        const bullet = line.match(/^[•\-\*]\s+(.+)$/);
+        const numbered = line.match(/^\d{1,2}[\.)]\s+(.+)$/);
+        if (bullet) {
+          if (listItems.length && listTag !== 'ul') flushList();
+          listTag = 'ul';
+          listItems.push(`<li>${escapeHtml(bullet[1])}</li>`);
+          return;
+        }
+        if (numbered && !isHeading(line)) {
+          if (listItems.length && listTag !== 'ol') flushList();
+          listTag = 'ol';
+          listItems.push(`<li>${escapeHtml(numbered[1])}</li>`);
+          return;
+        }
+
+        flushList();
+        const label = line.match(/^([A-Za-z][A-Za-z\s/&()-]{1,45}):\s*(.+)$/);
+        if (label) {
+          htmlParts.push(`<p><strong>${escapeHtml(label[1])}:</strong> ${escapeHtml(label[2])}</p>`);
+        } else if (isHeading(line)) {
+          htmlParts.push(`<h3>${escapeHtml(line.replace(/^\d{1,2}\.\s*/, '').trim())}</h3>`);
+        } else {
+          htmlParts.push(`<p>${escapeHtml(line)}</p>`);
+        }
+      });
+    });
+
+    flushList();
+    return htmlParts.join('\n');
+  };
+
   const renderHtmlContent = (html: string): string => {
     if (!html) return '';
-    const withMarkdownFormatting = html
+    const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(html);
+    const source = hasHtmlTags ? html : legacyPlainTextToHtml(html);
+    const withMarkdownFormatting = source
       // Convert markdown bold/italic that may appear in plain-text fields
       .replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
     return sanitizeRichHtml(withMarkdownFormatting);
+  };
+
+  const getSourceLabel = (source: string | null | undefined) => {
+    switch ((source || '').toLowerCase()) {
+      case 'somalijobs':
+        return 'SomaliJobs';
+      case 'reliefweb':
+        return 'ReliefWeb';
+      case 'unjobs':
+      case 'untalent':
+        return 'UN Jobs';
+      default:
+        return source || 'Somken Jobs';
+    }
   };
 
   // Helper function to convert URLs and emails to clickable links
@@ -486,6 +640,21 @@ export default function JobDetails() {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
             </svg>
             Apply Now
+          </a>
+        </div>
+      `;
+    }
+
+    const emailMatch = text.match(/\b([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,})\b/i);
+    if (emailMatch) {
+      const email = emailMatch[1];
+      return `
+        <div class="apply-action-box">
+          <div class="text-sm text-gray-700 leading-relaxed">
+            ${convertUrlsToLinks(text)}
+          </div>
+          <a href="mailto:${email}" class="apply-action-link">
+            Email application
           </a>
         </div>
       `;
@@ -738,9 +907,7 @@ export default function JobDetails() {
                   )}
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Source</label>
-                    <p className="text-foreground">
-                      {job.source === "reliefweb" ? "ReliefWeb" : "UN Jobs"}
-                    </p>
+                    <p className="text-foreground">{getSourceLabel(job.source)}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Posted</label>
