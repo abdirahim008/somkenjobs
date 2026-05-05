@@ -33,6 +33,8 @@ type LandingConfig = {
   contentTitle: string;
   contentBody: string;
   relatedLinks: Array<{ label: string; href: string }>;
+  guideSections: Array<{ title: string; body: string }>;
+  faqs: Array<{ question: string; answer: string }>;
 };
 
 const countryNames: Record<string, string> = {
@@ -123,10 +125,11 @@ function useLandingConfig(): LandingConfig {
 
 function cityConfig(cityKey: string): LandingConfig {
   const city = cityInfo[cityKey];
+  const h1 = `Jobs in ${city.name}`;
   return {
     kind: "city",
     title: `Jobs in ${city.name} | NGO, UN & Professional Jobs`,
-    h1: `Jobs in ${city.name}`,
+    h1,
     description: `Find current jobs in ${city.name}, ${city.country}, including NGO, UN, humanitarian, development, public-service, and professional vacancies.`,
     keywords: `${city.focus}, Somken Jobs`,
     canonicalUrl: `https://somkenjobs.com/jobs/city/${cityKey}`,
@@ -141,6 +144,7 @@ function cityConfig(cityKey: string): LandingConfig {
       { label: "Jobs in Nairobi", href: "/jobs/city/nairobi" },
       { label: "All Jobs", href: "/jobs" },
     ],
+    ...buildGuideContent(h1, city.country),
   };
 }
 
@@ -153,10 +157,11 @@ function countryConfig(countryKey: string, canonicalPath = `/jobs/country/${coun
         ? "jobs in Kenya, NGO jobs in Kenya, UN jobs in Nairobi, humanitarian vacancies in Nairobi, Mombasa, Kisumu, and Dadaab"
         : `humanitarian jobs in ${country}, NGO jobs in ${country}, UN jobs in ${country}`;
 
+  const h1 = `Jobs in ${country}`;
   return {
     kind: "country",
     title: `Jobs in ${country} | NGO & Humanitarian Jobs | Somken Jobs`,
-    h1: `Jobs in ${country}`,
+    h1,
     description: `Find current NGO, UN, humanitarian, and development jobs in ${country}. Browse verified vacancies from relief agencies, international organizations, and development employers.`,
     keywords: `${focus}, development jobs, aid worker jobs, Somken Jobs`,
     canonicalUrl: `https://somkenjobs.com${canonicalPath}`,
@@ -171,15 +176,17 @@ function countryConfig(countryKey: string, canonicalPath = `/jobs/country/${coun
       { label: "Health Jobs", href: "/jobs/sector/health" },
       { label: "Protection Jobs", href: "/jobs/sector/protection" },
     ],
+    ...buildGuideContent(h1, country),
   };
 }
 
 function sectorConfig(sectorKey: string): LandingConfig {
   const sector = sectorNames[sectorKey];
+  const h1 = `${sector} Jobs in East Africa`;
   return {
     kind: "sector",
     title: `${sector} Jobs in East Africa | NGO Jobs | Somken Jobs`,
-    h1: `${sector} Jobs in East Africa`,
+    h1,
     description: `Browse current ${sector.toLowerCase()} jobs with NGOs, UN agencies, and development organizations across Somalia, Kenya, and East Africa.`,
     keywords: `${sector} jobs, NGO ${sector.toLowerCase()} jobs, humanitarian jobs, jobs in Somalia, jobs in Kenya`,
     canonicalUrl: `https://somkenjobs.com/jobs/sector/${sectorKey}`,
@@ -194,6 +201,7 @@ function sectorConfig(sectorKey: string): LandingConfig {
       { label: "WASH Jobs", href: "/jobs/sector/wash" },
       { label: "Logistics Jobs", href: "/jobs/sector/logistics" },
     ],
+    ...buildGuideContent(h1, "East Africa"),
   };
 }
 
@@ -216,6 +224,7 @@ function ngoConfig(): LandingConfig {
       { label: "Protection Jobs", href: "/jobs/sector/protection" },
       { label: "All Jobs", href: "/jobs" },
     ],
+    ...buildGuideContent("NGO Jobs in Somalia, Kenya, and East Africa", "East Africa"),
   };
 }
 
@@ -238,6 +247,7 @@ function ngoSomaliaConfig(): LandingConfig {
       { label: "Protection Jobs", href: "/jobs/sector/protection" },
       { label: "All Jobs", href: "/jobs" },
     ],
+    ...buildGuideContent("NGO Jobs in Somalia", "Somalia"),
   };
 }
 
@@ -260,6 +270,7 @@ function ngoKenyaConfig(): LandingConfig {
       { label: "Health Jobs", href: "/jobs/sector/health" },
       { label: "All Jobs", href: "/jobs" },
     ],
+    ...buildGuideContent("NGO Jobs in Kenya", "Kenya"),
   };
 }
 
@@ -282,6 +293,7 @@ function unConfig(): LandingConfig {
       { label: "NGO Jobs", href: "/ngo-jobs" },
       { label: "All Jobs", href: "/jobs" },
     ],
+    ...buildGuideContent("UN Jobs in Somalia, Kenya, and East Africa", "East Africa"),
   };
 }
 
@@ -309,6 +321,40 @@ function unCountryConfig(countryKey: "somalia" | "kenya"): LandingConfig {
       { label: isKenya ? "NGO Jobs in Kenya" : "NGO Jobs in Somalia", href: isKenya ? "/ngo-jobs/kenya" : "/ngo-jobs/somalia" },
       { label: "NGO Jobs", href: "/ngo-jobs" },
       { label: "All Jobs", href: "/jobs" },
+    ],
+    ...buildGuideContent(`UN Jobs in ${country}`, country),
+  };
+}
+
+function buildGuideContent(topic: string, place: string) {
+  return {
+    guideSections: [
+      {
+        title: `What this ${topic.toLowerCase()} page covers`,
+        body: `This page is a curated career resource for people looking for ${topic.toLowerCase()}. It brings together active listings from employers and trusted job sources, then organizes them with clear job titles, organizations, locations, sectors, dates, and direct links to full job details. The goal is to help candidates quickly compare relevant opportunities without sorting through expired or unrelated pages.`,
+      },
+      {
+        title: `How Somken Jobs keeps ${place} listings useful`,
+        body: `Somken Jobs focuses on current public vacancies and removes or de-emphasizes opportunities that are expired, private, duplicated, or no longer available. Each job detail page is designed to show the employer, deadline, role summary, requirements, and application instructions when they are available, so job seekers can move from discovery to application with fewer dead ends.`,
+      },
+      {
+        title: "How to use this page effectively",
+        body: `Start with the most recent listings, then open each role that matches your sector, experience level, and preferred location. Review the official application instructions carefully, check the deadline, and tailor your CV or cover letter to the employer's requirements. For broader discovery, use the related country, city, NGO, UN, and sector pages linked from this page.`,
+      },
+    ],
+    faqs: [
+      {
+        question: `Are the ${topic.toLowerCase()} listings current?`,
+        answer: "Somken Jobs refreshes listings regularly and filters public job pages to focus on active opportunities. Always confirm the deadline and application instructions on the full job detail page before applying.",
+      },
+      {
+        question: "Can I apply directly from Somken Jobs?",
+        answer: "Most listings provide application instructions, an employer link, an email address, or details about where to submit your documents. Follow the official instructions shown on the job detail page.",
+      },
+      {
+        question: "What types of employers are included?",
+        answer: "Listings can include NGOs, UN agencies, development organizations, public-service employers, private companies, and professional organizations depending on the page topic and available vacancies.",
+      },
     ],
   };
 }
@@ -402,6 +448,19 @@ export default function JobLanding() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
           <section>
+            <div className="mb-8 space-y-6">
+              {config.guideSections.map((section) => (
+                <Card key={section.title}>
+                  <CardHeader>
+                    <CardTitle>{section.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground leading-relaxed">{section.body}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-foreground mb-2">Latest Openings</h2>
               <p className="text-muted-foreground">
@@ -458,6 +517,20 @@ export default function JobLanding() {
                   <Link key={link.href} href={link.href} className="block text-sm text-primary hover:underline">
                     {link.label}
                   </Link>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Job Search Questions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {config.faqs.map((faq) => (
+                  <div key={faq.question}>
+                    <h3 className="font-semibold text-foreground">{faq.question}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed mt-1">{faq.answer}</p>
+                  </div>
                 ))}
               </CardContent>
             </Card>

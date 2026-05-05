@@ -1852,6 +1852,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         <summary style="font-weight:700;color:#111827;">${escapeHtml(item.question)}</summary>
         <p style="margin:10px 0 0;color:#4b5563;line-height:1.7;">${escapeHtml(item.answer)}</p>
       </details>`).join('');
+    const guideSections = [
+      {
+        title: `What this ${h1.toLowerCase()} page covers`,
+        body: `This page is a focused career resource for people searching for ${h1.toLowerCase()}. It brings together active listings from employers and trusted job sources, then organizes them with clear job titles, organizations, locations, sectors, dates, and direct links to full job details. Candidates can compare relevant opportunities without sorting through expired or unrelated pages.`,
+      },
+      {
+        title: 'How Somken Jobs keeps listings useful',
+        body: 'Somken Jobs focuses public job pages on current vacancies and filters out private, expired, duplicated, or unavailable opportunities where possible. Each job detail page is designed to show the employer, deadline, role summary, requirements, and application instructions when they are available, so candidates can move from discovery to application with fewer dead ends.',
+      },
+      {
+        title: 'How to use this page effectively',
+        body: 'Start with the most recent listings, then open each role that matches your sector, experience level, and preferred location. Review the official application instructions carefully, check the deadline, and tailor your CV or cover letter to the employer requirements. For broader discovery, use the related country, city, NGO, UN, and sector pages linked from this page.',
+      },
+    ].map((section) => `
+      <section style="border:1px solid #e5e7eb;border-radius:8px;background:#fff;padding:18px;margin:0 0 16px;">
+        <h2 style="font-size:22px;margin:0 0 10px;">${escapeHtml(section.title)}</h2>
+        <p style="color:#4b5563;line-height:1.7;margin:0;">${escapeHtml(section.body)}</p>
+      </section>`).join('');
 
     return `
       <main style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#111827;">
@@ -1864,6 +1882,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         </section>
         <section style="max-width:1120px;margin:0 auto;padding:34px 20px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;">
           <div>
+            ${guideSections}
             <h2 style="font-size:26px;margin:0 0 12px;">Latest matching jobs</h2>
             <p style="color:#4b5563;line-height:1.7;margin:0 0 22px;">${escapeHtml(intro)}</p>
             ${jobCards}
