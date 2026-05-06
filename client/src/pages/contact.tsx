@@ -18,8 +18,7 @@ export default function Contact() {
       <SEOHead 
         title="Contact Somken Jobs - Get Help & Support"
         description="Contact Somken Jobs for support, partnerships, or general inquiries. Our team is here to help humanitarian professionals navigate career opportunities in Kenya and Somalia."
-        keywords="contact Somken Jobs, humanitarian job support, partnership inquiries, NGO platform contact, East Africa job platform support"
-        canonicalUrl="https://somkenjobs.replit.app/contact"
+        canonicalUrl="https://somkenjobs.com/contact"
       />
       <Header />
       

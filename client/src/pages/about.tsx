@@ -17,8 +17,7 @@ export default function About() {
       <SEOHead 
         title="About Somken Jobs - Our Mission & Impact"
         description="Learn about Somken Jobs' mission to connect humanitarian professionals with meaningful career opportunities in Kenya and Somalia. Discover our comprehensive job aggregation platform and commitment to the humanitarian sector."
-        keywords="about Somken Jobs, humanitarian job platform, NGO career platform, East Africa humanitarian jobs, our mission humanitarian sector"
-        canonicalUrl="https://somkenjobs.replit.app/about"
+        canonicalUrl="https://somkenjobs.com/about"
       />
       <Header />
       

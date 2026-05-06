@@ -152,7 +152,6 @@ export default function Tenders() {
       <SEOHead 
         title="Tenders in Somalia & Kenya | Somken Jobs - Humanitarian Procurement"
         description="Find tender opportunities in Somalia and Kenya with leading humanitarian organizations. Browse procurement tenders, consultancy opportunities, and development contracts. Updated daily."
-        keywords="tenders in Somalia, tenders in Kenya, humanitarian tenders, procurement opportunities, consultancy tenders, development contracts, NGO tenders"
         canonicalUrl="https://somkenjobs.com/tenders"
       />
       

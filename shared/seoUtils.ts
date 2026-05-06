@@ -137,11 +137,7 @@ export function generateOptimizedTitle(
   // Build title based on page type with strategic keyword placement
   switch (pageType) {
     case 'homepage':
-      if (jobCount) {
-        title = `East Africa Jobs - ${jobCount}+ Humanitarian Opportunities | ${brand}`;
-      } else {
-        title = `East Africa Jobs - Humanitarian Careers | ${brand}`;
-      }
+      title = `East Africa Humanitarian Jobs | ${brand}`;
       break;
       
     case 'jobs':
@@ -208,9 +204,9 @@ export function generateOptimizedDescription(
   switch (pageType) {
     case 'homepage':
       if (jobStats) {
-        description = `Find ${jobStats.totalJobs}+ humanitarian jobs in East Africa. Leading NGO and UN positions in Kenya, Somalia, Ethiopia. Updated daily from ReliefWeb with ${jobStats.organizations}+ employers.`;
+        description = `Find ${jobStats.totalJobs}+ NGO, UN, humanitarian, and development jobs across East Africa. Browse verified roles in Somalia, Kenya, and nearby countries.`;
       } else {
-        description = `Discover humanitarian jobs across East Africa. Find NGO careers, UN positions, and development opportunities in Kenya, Somalia, Ethiopia, Uganda & Tanzania.`;
+        description = `Find current NGO, UN, humanitarian, and development jobs across East Africa. Browse verified opportunities in Somalia, Kenya, and nearby countries.`;
       }
       break;
       
@@ -256,7 +252,6 @@ export function generateOptimizedDescription(
 export function generateJobSEOMetadata(job: Job): {
   title: string;
   description: string;
-  keywords: string;
 } {
   const title = generateOptimizedTitle(
     job.title,
@@ -281,17 +276,7 @@ export function generateJobSEOMetadata(job: Job): {
     }
   );
   
-  // Generate relevant keywords for the job
-  const keywords = [
-    job.title,
-    job.organization,
-    `jobs in ${job.country}`,
-    `${job.location} jobs`,
-    "humanitarian jobs",
-    job.sector ? `${job.sector} careers` : "NGO careers"
-  ].filter(Boolean).join(", ");
-  
-  return { title, description, keywords };
+  return { title, description };
 }
 
 /**
@@ -300,7 +285,6 @@ export function generateJobSEOMetadata(job: Job): {
 export function generateHomepageSEOMetadata(jobStats?: JobStats): {
   title: string;
   description: string;
-  keywords: string;
 } {
   const title = generateOptimizedTitle(
     "East Africa Humanitarian Jobs",
@@ -318,9 +302,7 @@ export function generateHomepageSEOMetadata(jobStats?: JobStats): {
     }
   );
   
-  const keywords = "East Africa jobs, humanitarian careers, NGO jobs, UN positions, Kenya jobs, Somalia jobs, Ethiopia jobs, development careers, ReliefWeb jobs";
-  
-  return { title, description, keywords };
+  return { title, description };
 }
 
 /**
@@ -337,13 +319,11 @@ export function generateJobsListingSEOMetadata(
 ): {
   title: string;
   description: string;
-  keywords: string;
 } {
   if (!filters.country && !filters.location && !filters.sector && !filters.organization) {
     return {
       title: "East Africa NGO and Humanitarian Jobs | Somken Jobs",
-      description: `Browse ${totalCount}+ current NGO, UN, humanitarian, development, and public-service jobs across Somalia, Kenya, Ethiopia, Uganda, and Tanzania. Updated daily.`,
-      keywords: "East Africa jobs, NGO jobs, humanitarian jobs, UN jobs, Somalia jobs, Kenya jobs, development careers, public-service jobs"
+      description: `Browse ${totalCount}+ current NGO, UN, humanitarian, development, and public-service jobs across Somalia, Kenya, Ethiopia, Uganda, and Tanzania. Updated daily.`
     };
   }
 
@@ -380,16 +360,7 @@ export function generateJobsListingSEOMetadata(
     }
   );
   
-  // Build keywords based on filters
-  const keywordParts = ["humanitarian jobs", "NGO careers"];
-  if (filters.country) keywordParts.push(`jobs in ${filters.country}`);
-  if (filters.location) keywordParts.push(`${filters.location} jobs`);
-  if (filters.sector) keywordParts.push(`${filters.sector} careers`);
-  keywordParts.push("East Africa jobs", "development careers");
-  
-  const keywords = keywordParts.join(", ");
-  
-  return { title, description, keywords };
+  return { title, description };
 }
 
 /**
@@ -401,7 +372,6 @@ export function generateSearchSEOMetadata(
 ): {
   title: string;
   description: string;
-  keywords: string;
 } {
   const title = generateOptimizedTitle(
     `${query} Jobs`,
@@ -419,9 +389,7 @@ export function generateSearchSEOMetadata(
     }
   );
   
-  const keywords = `${query}, ${query} jobs, humanitarian careers, NGO positions, East Africa jobs`;
-  
-  return { title, description, keywords };
+  return { title, description };
 }
 
 /**

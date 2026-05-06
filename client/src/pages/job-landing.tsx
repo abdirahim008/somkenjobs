@@ -27,7 +27,6 @@ type LandingConfig = {
   title: string;
   h1: string;
   description: string;
-  keywords: string;
   canonicalUrl: string;
   query: Record<string, string | string[]>;
   contentTitle: string;
@@ -55,21 +54,18 @@ const sectorNames: Record<string, string> = {
   "emergency-response": "Emergency Response",
 };
 
-const cityInfo: Record<string, { name: string; country: string; focus: string }> = {
+const cityInfo: Record<string, { name: string; country: string }> = {
   mogadishu: {
     name: "Mogadishu",
     country: "Somalia",
-    focus: "NGO jobs in Mogadishu, UN jobs in Mogadishu, humanitarian vacancies, public-service roles, and professional opportunities",
   },
   nairobi: {
     name: "Nairobi",
     country: "Kenya",
-    focus: "UN jobs in Nairobi, NGO jobs in Nairobi, humanitarian vacancies, development roles, and professional opportunities",
   },
   hargeisa: {
     name: "Hargeisa",
     country: "Somalia",
-    focus: "NGO jobs in Hargeisa, development vacancies, education roles, public-service jobs, and professional opportunities",
   },
 };
 
@@ -131,7 +127,6 @@ function cityConfig(cityKey: string): LandingConfig {
     title: `Jobs in ${city.name} | NGO, UN & Professional Jobs`,
     h1,
     description: `Find current jobs in ${city.name}, ${city.country}, including NGO, UN, humanitarian, development, public-service, and professional vacancies.`,
-    keywords: `${city.focus}, Somken Jobs`,
     canonicalUrl: `https://somkenjobs.com/jobs/city/${cityKey}`,
     query: { country: city.country, search: city.name },
     contentTitle: `Current jobs in ${city.name}`,
@@ -150,20 +145,12 @@ function cityConfig(cityKey: string): LandingConfig {
 
 function countryConfig(countryKey: string, canonicalPath = `/jobs/country/${countryKey}`): LandingConfig {
   const country = countryNames[countryKey];
-  const focus =
-    countryKey === "somalia"
-      ? "NGO jobs in Somalia, UN jobs in Somalia, humanitarian vacancies in Mogadishu, Hargeisa, Kismayo, and Baidoa"
-      : countryKey === "kenya"
-        ? "jobs in Kenya, NGO jobs in Kenya, UN jobs in Nairobi, humanitarian vacancies in Nairobi, Mombasa, Kisumu, and Dadaab"
-        : `humanitarian jobs in ${country}, NGO jobs in ${country}, UN jobs in ${country}`;
-
   const h1 = `Jobs in ${country}`;
   return {
     kind: "country",
     title: `Jobs in ${country} | NGO & Humanitarian Jobs | Somken Jobs`,
     h1,
     description: `Find current NGO, UN, humanitarian, and development jobs in ${country}. Browse verified vacancies from relief agencies, international organizations, and development employers.`,
-    keywords: `${focus}, development jobs, aid worker jobs, Somken Jobs`,
     canonicalUrl: `https://somkenjobs.com${canonicalPath}`,
     query: { country },
     contentTitle: `Find NGO and humanitarian jobs in ${country}`,
@@ -188,7 +175,6 @@ function sectorConfig(sectorKey: string): LandingConfig {
     title: `${sector} Jobs in East Africa | NGO Jobs | Somken Jobs`,
     h1,
     description: `Browse current ${sector.toLowerCase()} jobs with NGOs, UN agencies, and development organizations across Somalia, Kenya, and East Africa.`,
-    keywords: `${sector} jobs, NGO ${sector.toLowerCase()} jobs, humanitarian jobs, jobs in Somalia, jobs in Kenya`,
     canonicalUrl: `https://somkenjobs.com/jobs/sector/${sectorKey}`,
     query: { sector },
     contentTitle: `${sector} roles with humanitarian and development organizations`,
@@ -211,7 +197,6 @@ function ngoConfig(): LandingConfig {
     title: "NGO Jobs in Somalia & Kenya | Humanitarian Careers",
     h1: "NGO Jobs in Somalia, Kenya, and East Africa",
     description: "Find NGO jobs, humanitarian vacancies, UN roles, and development careers across Somalia, Kenya, and East Africa. Updated with current openings from trusted sources.",
-    keywords: "NGO jobs, NGO jobs in Somalia, jobs in Somalia, jobs in Kenya, humanitarian jobs, UN jobs, development jobs",
     canonicalUrl: "https://somkenjobs.com/ngo-jobs",
     query: { search: "NGO" },
     contentTitle: "Current NGO jobs and humanitarian careers",
@@ -234,7 +219,6 @@ function ngoSomaliaConfig(): LandingConfig {
     title: "NGO Jobs in Somalia | UN & Humanitarian Vacancies",
     h1: "NGO Jobs in Somalia",
     description: "Find current NGO jobs in Somalia, including humanitarian, UN, development, health, protection, WASH, logistics, and program vacancies.",
-    keywords: "NGO jobs in Somalia, jobs in Somalia, Somalia NGO vacancies, UN jobs Somalia, humanitarian jobs Somalia, Mogadishu jobs",
     canonicalUrl: "https://somkenjobs.com/ngo-jobs/somalia",
     query: { country: "Somalia", search: "NGO" },
     contentTitle: "Somalia NGO vacancies and humanitarian roles",
@@ -257,7 +241,6 @@ function ngoKenyaConfig(): LandingConfig {
     title: "NGO Jobs in Kenya | UN, Humanitarian & Development Jobs",
     h1: "NGO Jobs in Kenya",
     description: "Find current NGO jobs in Kenya, including UN roles, humanitarian vacancies, development jobs, nonprofit opportunities, and Nairobi-based regional roles.",
-    keywords: "NGO jobs in Kenya, NGO jobs Nairobi, UN jobs Kenya, UN jobs Nairobi, humanitarian jobs Kenya, development jobs Kenya",
     canonicalUrl: "https://somkenjobs.com/ngo-jobs/kenya",
     query: { country: "Kenya", search: "NGO" },
     contentTitle: "Kenya NGO vacancies and humanitarian roles",
@@ -280,7 +263,6 @@ function unConfig(): LandingConfig {
     title: "UN Jobs in Somalia, Kenya & East Africa",
     h1: "UN Jobs in Somalia, Kenya, and East Africa",
     description: "Find current UN jobs and United Nations vacancies across Somalia, Kenya, and East Africa, including roles with UNICEF, UNHCR, UNDP, WFP, WHO, IOM, and UNOPS.",
-    keywords: "UN jobs, United Nations jobs, UN vacancies, UN jobs Somalia, UN jobs Kenya, UN jobs Nairobi, UN careers East Africa",
     canonicalUrl: "https://somkenjobs.com/un-jobs",
     query: { search: "UN" },
     contentTitle: "Current United Nations jobs and vacancies",
@@ -307,9 +289,6 @@ function unCountryConfig(countryKey: "somalia" | "kenya"): LandingConfig {
     description: isKenya
       ? "Find current UN jobs in Kenya, including United Nations vacancies in Nairobi and regional East Africa roles with UN agencies."
       : "Find current UN jobs in Somalia, including United Nations vacancies in Mogadishu, Hargeisa, Kismayo, Baidoa, and field locations.",
-    keywords: isKenya
-      ? "UN jobs Kenya, UN jobs Nairobi, United Nations vacancies Kenya, UN careers Nairobi"
-      : "UN jobs Somalia, United Nations vacancies Somalia, UN careers Somalia, UN jobs Mogadishu",
     canonicalUrl: `https://somkenjobs.com/un-jobs/${countryKey}`,
     query: { country, search: "UN" },
     contentTitle: `United Nations vacancies in ${country}`,
@@ -423,7 +402,6 @@ export default function JobLanding() {
       <SEOHead
         title={config.title}
         description={config.description}
-        keywords={config.keywords}
         canonicalUrl={config.canonicalUrl}
         pageType="search"
         optimizeTitleAndDescription={false}

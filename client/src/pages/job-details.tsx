@@ -812,7 +812,6 @@ export default function JobDetails() {
         <SEOHead 
           title={job.title}
           description={job.description || "Join this humanitarian organization in their mission to make a difference."}
-          keywords={`${job.title}, jobs in ${job.country}, ${job.organization}, ${job.sector || 'humanitarian'} jobs, ${job.location} jobs, NGO careers, UN jobs, ReliefWeb, ${job.country} humanitarian jobs`}
           canonicalUrl={`https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`}
           jobLocation={job.location}
           jobOrganization={job.organization}

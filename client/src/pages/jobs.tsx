@@ -156,7 +156,6 @@ export default function Jobs() {
       <SEOHead 
         title="Jobs in Somalia & Kenya | Somken Jobs - Humanitarian Careers"
         description="Find job opportunities in Somalia and Kenya with leading humanitarian organizations. Browse NGO positions, UN jobs, and development careers. Updated daily from ReliefWeb."
-        keywords="jobs in Somalia, jobs in Kenya, humanitarian jobs, NGO careers, UN jobs, ReliefWeb jobs, development careers, aid worker jobs"
         canonicalUrl="https://somkenjobs.com/jobs"
       />
       

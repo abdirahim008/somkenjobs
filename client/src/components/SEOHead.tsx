@@ -8,7 +8,6 @@ import {
 interface SEOHeadProps {
   title?: string;
   description?: string;
-  keywords?: string;
   canonicalUrl?: string;
   ogImage?: string;
   // Job-specific properties for richer social media previews
@@ -28,7 +27,6 @@ interface SEOHeadProps {
 export default function SEOHead({ 
   title, 
   description, 
-  keywords, 
   canonicalUrl,
   ogImage,
   jobLocation,
@@ -133,17 +131,6 @@ export default function SEOHead({
         document.head.appendChild(twitterDescription);
       }
       twitterDescription.setAttribute('content', optimizedDescription);
-    }
-
-    // Update keywords
-    if (keywords) {
-      let metaKeywords = document.querySelector('meta[name="keywords"]');
-      if (!metaKeywords) {
-        metaKeywords = document.createElement('meta');
-        metaKeywords.setAttribute('name', 'keywords');
-        document.head.appendChild(metaKeywords);
-      }
-      metaKeywords.setAttribute('content', keywords);
     }
 
     // Update canonical URL
@@ -450,7 +437,7 @@ export default function SEOHead({
         ogImage: 'removed - no images in social media previews'
       });
     }
-  }, [title, description, keywords, canonicalUrl, ogImage, jobLocation, jobOrganization, jobDeadline, jobSector, jobCountry, jobPostedDate, pageType, jobCount, optimizeTitleAndDescription, noindex]);
+  }, [title, description, canonicalUrl, ogImage, jobLocation, jobOrganization, jobDeadline, jobSector, jobCountry, jobPostedDate, pageType, jobCount, optimizeTitleAndDescription, noindex]);
 
   return null; // This component doesn't render anything
 }

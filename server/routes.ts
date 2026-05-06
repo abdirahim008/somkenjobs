@@ -78,7 +78,6 @@ const applyJobsListingMetadata = (html: string, totalCount: number) => {
   const metadata = generateJobsListingSEOMetadata(totalCount);
   const title = escapeHtml(metadata.title);
   const description = escapeHtml(metadata.description);
-  const keywords = escapeHtml(metadata.keywords);
 
   const replaceMetaName = (input: string, name: string, content: string) =>
     input.replace(new RegExp(`<meta\\s+name=["']${name}["']\\s+content=["'][^"']*["']\\s*/?>`, "i"), `<meta name="${name}" content="${content}">`);
@@ -89,7 +88,6 @@ const applyJobsListingMetadata = (html: string, totalCount: number) => {
   html = html.replace(/<title>[^<]*<\/title>/i, `<title>${title}</title>`);
   html = replaceMetaName(html, "title", title);
   html = replaceMetaName(html, "description", description);
-  html = replaceMetaName(html, "keywords", keywords);
   html = replaceMetaName(html, "twitter:url", pageUrl);
   html = replaceMetaName(html, "twitter:title", title);
   html = replaceMetaName(html, "twitter:description", description);
@@ -446,6 +444,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     next(); // Continue to regular routing
+  });
+
+  app.get("/", async (req, res, next) => {
+    const acceptHeader = req.get("Accept") || "";
+    const isHtmlRequest = !acceptHeader || acceptHeader.includes("text/html") || acceptHeader.includes("*/*");
+    const isSSRRequest = isBotUserAgent(req.get("User-Agent") || "") || req.query.ssr === "1";
+
+    if (!isHtmlRequest || !isSSRRequest) {
+      return next();
+    }
+
+    try {
+      const allJobs = await storage.getAllJobsWithDetails();
+      const recentJobs = allJobs
+        .filter(job => job.type !== "tender" || !job.type)
+        .sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime())
+        .slice(0, 10);
+
+      const today = new Date();
+      const jobStats = {
+        totalJobs: allJobs.length,
+        organizations: new Set(allJobs.map(job => job.organization)).size,
+        newToday: allJobs.filter(job => {
+          const jobDate = new Date(job.datePosted);
+          const createdDate = (job as any).createdAt ? new Date((job as any).createdAt) : null;
+          return jobDate.toDateString() === today.toDateString() ||
+            (createdDate && createdDate.toDateString() === today.toDateString());
+        }).length,
+      };
+
+      const html = generateHomepageHTML(jobStats, recentJobs);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(html);
+    } catch (error) {
+      console.error("Error serving homepage SSR:", error);
+      next();
+    }
   });
 
   app.get("/jobs", async (req, res, next) => {
@@ -1902,7 +1937,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
 
   const injectServerLandingContent = (html: string, content: string) =>
-    html.replace(/<div id="root"><\/div>/, `<div id="root">${content}</div>`);
+    html.replace(/<div id="root">[\s\S]*?<\/div>/, `<div id="root">${content}</div>`);
 
   const defaultRelatedKeywordLinks = [
     { label: 'Jobs in Somalia', href: '/jobs/country/somalia' },
@@ -2812,7 +2847,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Replace the empty root div with server-rendered content
       html = html.replace(
-        /<div id="root"><\/div>/,
+        /<div id="root">[\s\S]*?<\/div>/,
         `<div id="root">${serverRenderedContent}</div>`
       );
 
@@ -2848,9 +2883,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     <!-- Hreflang tags for international SEO -->
     <link rel="alternate" hreflang="en" href="${jobUrl}">
-    <link rel="alternate" hreflang="en-US" href="${jobUrl}">
-    <link rel="alternate" hreflang="en-KE" href="${jobUrl}">
-    <link rel="alternate" hreflang="en-SO" href="${jobUrl}">
     <link rel="alternate" hreflang="x-default" href="${jobUrl}">
     
     <!-- Google Jobs JobPosting Structured Data -->

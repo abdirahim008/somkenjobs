@@ -349,7 +349,6 @@ export function generateHomepageHTML(jobStats: { totalJobs: number; organization
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${seoMetadata.title}</title>
   <meta name="description" content="${seoMetadata.description}">
-  <meta name="keywords" content="${seoMetadata.keywords}">
   <link rel="canonical" href="https://somkenjobs.com/">
   
   <!-- Open Graph Tags -->
@@ -375,7 +374,7 @@ export function generateHomepageHTML(jobStats: { totalJobs: number; organization
     "description": "Leading job board for humanitarian careers across East Africa. Find NGO jobs, UN positions, and development opportunities in Kenya, Somalia, Ethiopia, Uganda, and Tanzania.",
     "potentialAction": {
       "@type": "SearchAction",
-      "target": "https://somkenjobs.com/?search={search_term_string}",
+      "target": "https://somkenjobs.com/jobs?search={search_term_string}",
       "query-input": "required name=search_term_string"
     },
     "publisher": {
@@ -390,7 +389,7 @@ export function generateHomepageHTML(jobStats: { totalJobs: number; organization
       {"@type": "Country", "name": "Uganda"},
       {"@type": "Country", "name": "Tanzania"}
     ],
-    "keywords": ["jobs in Somalia", "jobs in Kenya", "humanitarian jobs", "NGO careers", "UN jobs", "development careers"]
+    "inLanguage": "en"
   }
   </script>
 
@@ -482,7 +481,6 @@ export function generateJobsPageHTML(jobs: Job[], totalCount: number, filters: {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${seoMetadata.title}</title>
   <meta name="description" content="${seoMetadata.description}">
-  <meta name="keywords" content="${seoMetadata.keywords}">
   <link rel="canonical" href="https://somkenjobs.com/jobs">
   
   <!-- Open Graph Tags -->
@@ -594,7 +592,6 @@ export function generateJobDetailsHTML(job: Job): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(seoMetadata.title)}</title>
   <meta name="description" content="${escapeHtml(seoMetadata.description)}">
-  <meta name="keywords" content="${escapeHtml(seoMetadata.keywords)}">
   <link rel="canonical" href="${jobUrl}">
   
   <!-- Open Graph Tags -->

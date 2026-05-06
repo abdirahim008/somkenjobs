@@ -21,17 +21,6 @@ export default function CareerResources() {
       document.head.appendChild(meta);
     }
 
-    // Add keywords meta tag
-    const metaKeywords = document.querySelector('meta[name="keywords"]');
-    if (metaKeywords) {
-      metaKeywords.setAttribute('content', 'humanitarian careers, CV writing guide, interview preparation, career development, NGO jobs, Kenya jobs, Somalia jobs, humanitarian sector, career resources, professional development');
-    } else {
-      const keywords = document.createElement('meta');
-      keywords.name = 'keywords';
-      keywords.content = 'humanitarian careers, CV writing guide, interview preparation, career development, NGO jobs, Kenya jobs, Somalia jobs, humanitarian sector, career resources, professional development';
-      document.head.appendChild(keywords);
-    }
-
     // Add Open Graph tags
     const updateOrCreateOGTag = (property: string, content: string) => {
       let tag = document.querySelector(`meta[property="${property}"]`);
@@ -86,7 +75,6 @@ export default function CareerResources() {
       "datePublished": "2025-07-03",
       "dateModified": "2025-07-03",
       "articleSection": "Career Development",
-      "keywords": ["humanitarian careers", "CV writing", "interview preparation", "career development", "NGO jobs"],
       "url": window.location.href,
       "mainEntityOfPage": {
         "@type": "WebPage",

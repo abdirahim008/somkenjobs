@@ -71,8 +71,7 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <SEOHead 
         title="East Africa Humanitarian Jobs"
-        description="Leading platform for humanitarian careers across East Africa"
-        keywords="East Africa jobs, jobs in Somalia, jobs in Kenya, jobs in Ethiopia, jobs in Uganda, jobs in Tanzania, humanitarian jobs East Africa, NGO jobs, UN careers, aid worker positions, international development jobs, ReliefWeb jobs, Nairobi jobs, Mogadishu jobs, Addis Ababa jobs, Kampala jobs, Dar es Salaam jobs"
+        description="Find current NGO, UN, humanitarian, and development jobs across East Africa. Browse verified opportunities in Somalia, Kenya, and nearby countries."
         canonicalUrl="https://somkenjobs.com/"
         pageType="homepage"
         jobCount={data?.stats.totalJobs}

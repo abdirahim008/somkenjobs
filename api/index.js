@@ -1710,11 +1710,7 @@ function generateOptimizedTitle(primaryTitle, context = {}, options = {}) {
   let title = "";
   switch (pageType) {
     case "homepage":
-      if (jobCount) {
-        title = `East Africa Jobs - ${jobCount}+ Humanitarian Opportunities | ${brand}`;
-      } else {
-        title = `East Africa Jobs - Humanitarian Careers | ${brand}`;
-      }
+      title = `East Africa Humanitarian Jobs | ${brand}`;
       break;
     case "jobs":
       if (location && country) {
@@ -1754,9 +1750,9 @@ function generateOptimizedDescription(primaryContent, context = {}, options = {}
   switch (pageType) {
     case "homepage":
       if (jobStats) {
-        description = `Find ${jobStats.totalJobs}+ humanitarian jobs in East Africa. Leading NGO and UN positions in Kenya, Somalia, Ethiopia. Updated daily from ReliefWeb with ${jobStats.organizations}+ employers.`;
+        description = `Find ${jobStats.totalJobs}+ NGO, UN, humanitarian, and development jobs across East Africa. Browse verified roles in Somalia, Kenya, and nearby countries.`;
       } else {
-        description = `Discover humanitarian jobs across East Africa. Find NGO careers, UN positions, and development opportunities in Kenya, Somalia, Ethiopia, Uganda & Tanzania.`;
+        description = `Find current NGO, UN, humanitarian, and development jobs across East Africa. Browse verified opportunities in Somalia, Kenya, and nearby countries.`;
       }
       break;
     case "jobs":
@@ -1812,15 +1808,7 @@ function generateJobSEOMetadata(job) {
       pageType: "job-detail"
     }
   );
-  const keywords = [
-    job.title,
-    job.organization,
-    `jobs in ${job.country}`,
-    `${job.location} jobs`,
-    "humanitarian jobs",
-    job.sector ? `${job.sector} careers` : "NGO careers"
-  ].filter(Boolean).join(", ");
-  return { title, description, keywords };
+  return { title, description };
 }
 function generateHomepageSEOMetadata(jobStats) {
   const title = generateOptimizedTitle(
@@ -1837,15 +1825,13 @@ function generateHomepageSEOMetadata(jobStats) {
       pageType: "homepage"
     }
   );
-  const keywords = "East Africa jobs, humanitarian careers, NGO jobs, UN positions, Kenya jobs, Somalia jobs, Ethiopia jobs, development careers, ReliefWeb jobs";
-  return { title, description, keywords };
+  return { title, description };
 }
 function generateJobsListingSEOMetadata(totalCount, filters = {}) {
   if (!filters.country && !filters.location && !filters.sector && !filters.organization) {
     return {
       title: "East Africa NGO and Humanitarian Jobs | Somken Jobs",
-      description: `Browse ${totalCount}+ current NGO, UN, humanitarian, development, and public-service jobs across Somalia, Kenya, Ethiopia, Uganda, and Tanzania. Updated daily.`,
-      keywords: "East Africa jobs, NGO jobs, humanitarian jobs, UN jobs, Somalia jobs, Kenya jobs, development careers, public-service jobs"
+      description: `Browse ${totalCount}+ current NGO, UN, humanitarian, development, and public-service jobs across Somalia, Kenya, Ethiopia, Uganda, and Tanzania. Updated daily.`
     };
   }
   let titleContext = "";
@@ -1877,13 +1863,7 @@ function generateJobsListingSEOMetadata(totalCount, filters = {}) {
       pageType: "jobs"
     }
   );
-  const keywordParts = ["humanitarian jobs", "NGO careers"];
-  if (filters.country) keywordParts.push(`jobs in ${filters.country}`);
-  if (filters.location) keywordParts.push(`${filters.location} jobs`);
-  if (filters.sector) keywordParts.push(`${filters.sector} careers`);
-  keywordParts.push("East Africa jobs", "development careers");
-  const keywords = keywordParts.join(", ");
-  return { title, description, keywords };
+  return { title, description };
 }
 
 // server/utils/ssrUtils.ts
@@ -2151,7 +2131,6 @@ function generateHomepageHTML(jobStats, recentJobs) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${seoMetadata.title}</title>
   <meta name="description" content="${seoMetadata.description}">
-  <meta name="keywords" content="${seoMetadata.keywords}">
   <link rel="canonical" href="https://somkenjobs.com/">
   
   <!-- Open Graph Tags -->
@@ -2177,7 +2156,7 @@ function generateHomepageHTML(jobStats, recentJobs) {
     "description": "Leading job board for humanitarian careers across East Africa. Find NGO jobs, UN positions, and development opportunities in Kenya, Somalia, Ethiopia, Uganda, and Tanzania.",
     "potentialAction": {
       "@type": "SearchAction",
-      "target": "https://somkenjobs.com/?search={search_term_string}",
+      "target": "https://somkenjobs.com/jobs?search={search_term_string}",
       "query-input": "required name=search_term_string"
     },
     "publisher": {
@@ -2192,7 +2171,7 @@ function generateHomepageHTML(jobStats, recentJobs) {
       {"@type": "Country", "name": "Uganda"},
       {"@type": "Country", "name": "Tanzania"}
     ],
-    "keywords": ["jobs in Somalia", "jobs in Kenya", "humanitarian jobs", "NGO careers", "UN jobs", "development careers"]
+    "inLanguage": "en"
   }
   </script>
 
@@ -2275,7 +2254,6 @@ function generateJobsPageHTML(jobs2, totalCount, filters = {}) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${seoMetadata.title}</title>
   <meta name="description" content="${seoMetadata.description}">
-  <meta name="keywords" content="${seoMetadata.keywords}">
   <link rel="canonical" href="https://somkenjobs.com/jobs">
   
   <!-- Open Graph Tags -->
@@ -2372,7 +2350,6 @@ function generateJobDetailsHTML(job) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml2(seoMetadata.title)}</title>
   <meta name="description" content="${escapeHtml2(seoMetadata.description)}">
-  <meta name="keywords" content="${escapeHtml2(seoMetadata.keywords)}">
   <link rel="canonical" href="${jobUrl}">
   
   <!-- Open Graph Tags -->
@@ -2558,13 +2535,11 @@ var applyJobsListingMetadata = (html, totalCount) => {
   const metadata = generateJobsListingSEOMetadata(totalCount);
   const title = escapeHtml3(metadata.title);
   const description = escapeHtml3(metadata.description);
-  const keywords = escapeHtml3(metadata.keywords);
   const replaceMetaName = (input, name, content) => input.replace(new RegExp(`<meta\\s+name=["']${name}["']\\s+content=["'][^"']*["']\\s*/?>`, "i"), `<meta name="${name}" content="${content}">`);
   const replaceMetaProperty = (input, property, content) => input.replace(new RegExp(`<meta\\s+property=["']${property}["']\\s+content=["'][^"']*["']\\s*/?>`, "i"), `<meta property="${property}" content="${content}">`);
   html = html.replace(/<title>[^<]*<\/title>/i, `<title>${title}</title>`);
   html = replaceMetaName(html, "title", title);
   html = replaceMetaName(html, "description", description);
-  html = replaceMetaName(html, "keywords", keywords);
   html = replaceMetaName(html, "twitter:url", pageUrl);
   html = replaceMetaName(html, "twitter:title", title);
   html = replaceMetaName(html, "twitter:description", description);
@@ -2829,6 +2804,34 @@ async function registerRoutes(app2) {
       console.error("Error in SSR middleware:", error);
     }
     next();
+  });
+  app2.get("/", async (req, res, next) => {
+    const acceptHeader = req.get("Accept") || "";
+    const isHtmlRequest = !acceptHeader || acceptHeader.includes("text/html") || acceptHeader.includes("*/*");
+    const isSSRRequest = isBotUserAgent(req.get("User-Agent") || "") || req.query.ssr === "1";
+    if (!isHtmlRequest || !isSSRRequest) {
+      return next();
+    }
+    try {
+      const allJobs = await storage.getAllJobsWithDetails();
+      const recentJobs = allJobs.filter((job) => job.type !== "tender" || !job.type).sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime()).slice(0, 10);
+      const today = /* @__PURE__ */ new Date();
+      const jobStats = {
+        totalJobs: allJobs.length,
+        organizations: new Set(allJobs.map((job) => job.organization)).size,
+        newToday: allJobs.filter((job) => {
+          const jobDate = new Date(job.datePosted);
+          const createdDate = job.createdAt ? new Date(job.createdAt) : null;
+          return jobDate.toDateString() === today.toDateString() || createdDate && createdDate.toDateString() === today.toDateString();
+        }).length
+      };
+      const html = generateHomepageHTML(jobStats, recentJobs);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(html);
+    } catch (error) {
+      console.error("Error serving homepage SSR:", error);
+      next();
+    }
   });
   app2.get("/jobs", async (req, res, next) => {
     if (req.method !== "GET") {
@@ -3981,7 +3984,7 @@ async function registerRoutes(app2) {
         </section>
       </main>`;
   };
-  const injectServerLandingContent = (html, content) => html.replace(/<div id="root"><\/div>/, `<div id="root">${content}</div>`);
+  const injectServerLandingContent = (html, content) => html.replace(/<div id="root">[\s\S]*?<\/div>/, `<div id="root">${content}</div>`);
   const defaultRelatedKeywordLinks = [
     { label: "Jobs in Somalia", href: "/jobs/country/somalia" },
     { label: "Jobs in Kenya", href: "/jobs/country/kenya" },
@@ -4740,7 +4743,7 @@ async function registerRoutes(app2) {
         </div>
       `;
       html = html.replace(
-        /<div id="root"><\/div>/,
+        /<div id="root">[\s\S]*?<\/div>/,
         `<div id="root">${serverRenderedContent}</div>`
       );
       const jobStructuredDataJson = generateJobPostingJsonLd(job);
@@ -4771,9 +4774,6 @@ async function registerRoutes(app2) {
     
     <!-- Hreflang tags for international SEO -->
     <link rel="alternate" hreflang="en" href="${jobUrl}">
-    <link rel="alternate" hreflang="en-US" href="${jobUrl}">
-    <link rel="alternate" hreflang="en-KE" href="${jobUrl}">
-    <link rel="alternate" hreflang="en-SO" href="${jobUrl}">
     <link rel="alternate" hreflang="x-default" href="${jobUrl}">
     
     <!-- Google Jobs JobPosting Structured Data -->
