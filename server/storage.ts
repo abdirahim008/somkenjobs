@@ -1,6 +1,6 @@
 import { jobs, type Job, type InsertJob, type LightweightJob, users, type User, type InsertUser, invoices, type Invoice, type InsertInvoice, countries, type Country, type InsertCountry, cities, type City, type InsertCity, sectors, type Sector, type InsertSector } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, or, gte, lt, ilike, isNull } from "drizzle-orm";
+import { eq, desc, and, or, gte, lt, ilike, isNull, sql } from "drizzle-orm";
 import { generateJobSlug } from "@shared/utils";
 import { jobsCache } from "./services/jobsCache";
 import { googleIndexing } from "./services/googleIndexing";
@@ -61,6 +61,13 @@ export interface IStorage {
     organizations: number;
     newToday: number;
   }>;
+  getLightweightJobFilterOptions(): Promise<{
+    countries: string[];
+    organizations: string[];
+    sectors: string[];
+  }>;
+  getPublicJobSitemapEntries(): Promise<Array<Pick<Job, "id" | "title" | "organization" | "country" | "location" | "datePosted" | "createdAt" | "deadline" | "status" | "type" | "visibility" | "sector" | "source">>>;
+  getPublicJobPreviews(limit?: number): Promise<Array<Pick<Job, "id" | "title" | "organization" | "country" | "location" | "datePosted" | "deadline" | "sector" | "description" | "type">>>;
 
   // Invoice methods
   getAllInvoices(): Promise<Invoice[]>;
@@ -491,6 +498,52 @@ export class MemStorage implements IStorage {
     throw new Error("Lightweight job stats not supported in MemStorage");
   }
 
+  async getLightweightJobFilterOptions(): Promise<{
+    countries: string[];
+    organizations: string[];
+    sectors: string[];
+  }> {
+    const activeJobs = await this.getAllJobs();
+    return {
+      countries: Array.from(new Set(activeJobs.map((job) => job.country))).sort(),
+      organizations: Array.from(new Set(activeJobs.map((job) => job.organization))).sort(),
+      sectors: Array.from(new Set(activeJobs.map((job) => job.sector).filter(Boolean) as string[])).sort(),
+    };
+  }
+
+  async getPublicJobSitemapEntries(): Promise<Array<Pick<Job, "id" | "title" | "organization" | "country" | "location" | "datePosted" | "createdAt" | "deadline" | "status" | "type" | "visibility" | "sector" | "source">>> {
+    return (await this.getAllJobs()).map((job) => ({
+      id: job.id,
+      title: job.title,
+      organization: job.organization,
+      country: job.country,
+      location: job.location,
+      datePosted: job.datePosted,
+      createdAt: job.createdAt,
+      deadline: job.deadline,
+      status: job.status,
+      type: job.type,
+      visibility: job.visibility,
+      sector: job.sector,
+      source: job.source,
+    }));
+  }
+
+  async getPublicJobPreviews(limit = 20): Promise<Array<Pick<Job, "id" | "title" | "organization" | "country" | "location" | "datePosted" | "deadline" | "sector" | "description" | "type">>> {
+    return (await this.getAllJobs()).slice(0, limit).map((job) => ({
+      id: job.id,
+      title: job.title,
+      organization: job.organization,
+      country: job.country,
+      location: job.location,
+      datePosted: job.datePosted,
+      deadline: job.deadline,
+      sector: job.sector,
+      description: job.description,
+      type: job.type,
+    }));
+  }
+
   async getCountries(search?: string): Promise<string[]> {
     throw new Error("Country operations not supported in MemStorage");
   }
@@ -517,6 +570,18 @@ export class MemStorage implements IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  private activePublicJobConditions(now = new Date()) {
+    return and(
+      eq(jobs.status, 'published'),
+      eq(jobs.type, 'job'),
+      or(eq(jobs.visibility, 'public'), isNull(jobs.visibility)),
+      or(
+        isNull(jobs.deadline),
+        gte(jobs.deadline, now)
+      )
+    );
+  }
+
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;
@@ -1095,45 +1160,106 @@ export class DatabaseStorage implements IStorage {
     organizations: number;
     newToday: number;
   }> {
-    // Get total count of published public jobs
-    const totalJobsResult = await db
-      .select({ count: jobs.id })
-      .from(jobs)
-      .where(and(
-        eq(jobs.status, 'published'),
-        eq(jobs.type, 'job'),
-        eq(jobs.visibility, 'public')
-      ));
-
-    // Get unique organization count
-    const organizationsResult = await db
-      .selectDistinct({ organization: jobs.organization })
-      .from(jobs)
-      .where(and(
-        eq(jobs.status, 'published'),
-        eq(jobs.type, 'job'),
-        eq(jobs.visibility, 'public')
-      ));
-
-    // Get jobs posted today
     const today = new Date();
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    
-    const newTodayResult = await db
-      .select({ count: jobs.id })
+    const activeConditions = this.activePublicJobConditions(today);
+
+    const [totalJobsResult] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(jobs)
+      .where(activeConditions);
+
+    const [organizationsResult] = await db
+      .select({ count: sql<number>`count(distinct ${jobs.organization})::int` })
+      .from(jobs)
+      .where(activeConditions);
+
+    const [newTodayResult] = await db
+      .select({ count: sql<number>`count(*)::int` })
       .from(jobs)
       .where(and(
-        eq(jobs.status, 'published'),
-        eq(jobs.type, 'job'),
-        eq(jobs.visibility, 'public'),
-        gte(jobs.datePosted, startOfDay)
+        activeConditions,
+        or(gte(jobs.datePosted, startOfDay), gte(jobs.createdAt, startOfDay))
       ));
 
     return {
-      totalJobs: totalJobsResult.length,
-      organizations: organizationsResult.length,
-      newToday: newTodayResult.length
+      totalJobs: Number(totalJobsResult?.count || 0),
+      organizations: Number(organizationsResult?.count || 0),
+      newToday: Number(newTodayResult?.count || 0)
     };
+  }
+
+  async getLightweightJobFilterOptions(): Promise<{
+    countries: string[];
+    organizations: string[];
+    sectors: string[];
+  }> {
+    const activeConditions = this.activePublicJobConditions();
+    const [countriesResult, organizationsResult, sectorsResult] = await Promise.all([
+      db
+        .selectDistinct({ value: jobs.country })
+        .from(jobs)
+        .where(activeConditions)
+        .orderBy(jobs.country),
+      db
+        .selectDistinct({ value: jobs.organization })
+        .from(jobs)
+        .where(activeConditions)
+        .orderBy(jobs.organization),
+      db
+        .selectDistinct({ value: jobs.sector })
+        .from(jobs)
+        .where(and(activeConditions, sql`${jobs.sector} is not null`))
+        .orderBy(jobs.sector),
+    ]);
+
+    return {
+      countries: (countriesResult as Array<{ value: string }>).map((row) => row.value).filter(Boolean),
+      organizations: (organizationsResult as Array<{ value: string }>).map((row) => row.value).filter(Boolean),
+      sectors: (sectorsResult as Array<{ value: string | null }>).map((row) => row.value).filter(Boolean) as string[],
+    };
+  }
+
+  async getPublicJobSitemapEntries(): Promise<Array<Pick<Job, "id" | "title" | "organization" | "country" | "location" | "datePosted" | "createdAt" | "deadline" | "status" | "type" | "visibility" | "sector" | "source">>> {
+    return await db
+      .select({
+        id: jobs.id,
+        title: jobs.title,
+        organization: jobs.organization,
+        country: jobs.country,
+        location: jobs.location,
+        datePosted: jobs.datePosted,
+        createdAt: jobs.createdAt,
+        deadline: jobs.deadline,
+        status: jobs.status,
+        type: jobs.type,
+        visibility: jobs.visibility,
+        sector: jobs.sector,
+        source: jobs.source,
+      })
+      .from(jobs)
+      .where(this.activePublicJobConditions())
+      .orderBy(desc(jobs.datePosted));
+  }
+
+  async getPublicJobPreviews(limit = 20): Promise<Array<Pick<Job, "id" | "title" | "organization" | "country" | "location" | "datePosted" | "deadline" | "sector" | "description" | "type">>> {
+    return await db
+      .select({
+        id: jobs.id,
+        title: jobs.title,
+        organization: jobs.organization,
+        country: jobs.country,
+        location: jobs.location,
+        datePosted: jobs.datePosted,
+        deadline: jobs.deadline,
+        sector: jobs.sector,
+        description: jobs.description,
+        type: jobs.type,
+      })
+      .from(jobs)
+      .where(this.activePublicJobConditions())
+      .orderBy(desc(jobs.datePosted))
+      .limit(limit);
   }
 }
 

@@ -196,11 +196,18 @@ const lightweightJobFiltersSchema = z.object({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Seed database with sample data on startup
-  await seedDatabase();
+  const isProduction = process.env.NODE_ENV === "production";
+  const legacyFetchEnabled = process.env.ENABLE_LEGACY_JOB_FETCHERS === "true";
+
+  // Sample seeding is useful for local demos, but it must never run implicitly in production.
+  if (!isProduction || process.env.ENABLE_DATABASE_SEED === "true") {
+    await seedDatabase();
+  } else {
+    console.log("Skipping sample database seed in production");
+  }
   
   // Start the job scheduler (skip on Vercel — handled by Vercel Cron via /api/trigger-fetch)
-  if (!process.env.VERCEL) {
+  if (!process.env.VERCEL && (!isProduction || legacyFetchEnabled)) {
     jobFetcher.startScheduler();
   }
 
@@ -272,28 +279,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/ssr/homepage", async (req, res) => {
     console.log('SSR Homepage endpoint hit');
     try {
-      // Fetch job data and stats
-      const allJobs = await storage.getAllJobsWithDetails();
-      console.log('Fetched', allJobs.length, 'jobs for SSR');
-      const recentJobs = allJobs
-        .filter(job => job.type !== 'tender' || !job.type) // Filter out tenders
-        .sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime())
-        .slice(0, 10);
-        
-      // Calculate stats
-      const jobStats = {
-        totalJobs: allJobs.length,
-        organizations: new Set(allJobs.map(job => job.organization)).size,
-        newToday: allJobs.filter(job => {
-          const today = new Date();
-          const jobDate = new Date(job.datePosted);
-          const createdDate = (job as any).createdAt ? new Date((job as any).createdAt) : null;
-          return jobDate.toDateString() === today.toDateString() || 
-                 (createdDate && createdDate.toDateString() === today.toDateString());
-        }).length
-      };
+      const [recentJobs, jobStats] = await Promise.all([
+        storage.getPublicJobPreviews(10),
+        storage.getLightweightJobStats(),
+      ]);
+      console.log('Fetched', recentJobs.length, 'job previews for SSR');
 
-      const html = generateHomepageHTML(jobStats, recentJobs);
+      const html = generateHomepageHTML(jobStats, recentJobs as any);
       console.log('Generated HTML length:', html.length);
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.send(html);
@@ -308,13 +300,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/ssr/jobs", async (req, res) => {
     try {
-      // Fetch all jobs, filter out tenders
-      const allJobs = await storage.getAllJobsWithDetails();
-      const jobs = allJobs
-        .filter(job => job.type !== 'tender' || !job.type) // Filter out tenders
-        .sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime());
+      const [jobs, stats] = await Promise.all([
+        storage.getPublicJobPreviews(50),
+        storage.getLightweightJobStats(),
+      ]);
 
-      const html = generateJobsPageHTML(jobs, jobs.length);
+      const html = generateJobsPageHTML(jobs as any, stats.totalJobs);
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.send(html);
     } catch (error) {
@@ -362,26 +353,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle homepage
       if (req.path === "/") {
         console.log('Bot detected, serving inline SSR for homepage');
-        const allJobs = await storage.getAllJobsWithDetails();
-        console.log('Fetched', allJobs.length, 'jobs for homepage SSR');
-        const recentJobs = allJobs
-          .filter(job => job.type !== 'tender' || !job.type)
-          .sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime())
-          .slice(0, 10);
-          
-        const jobStats = {
-          totalJobs: allJobs.length,
-          organizations: new Set(allJobs.map(job => job.organization)).size,
-          newToday: allJobs.filter(job => {
-            const today = new Date();
-            const jobDate = new Date(job.datePosted);
-            const createdDate = (job as any).createdAt ? new Date((job as any).createdAt) : null;
-            return jobDate.toDateString() === today.toDateString() || 
-                   (createdDate && createdDate.toDateString() === today.toDateString());
-          }).length
-        };
+        const [recentJobs, jobStats] = await Promise.all([
+          storage.getPublicJobPreviews(10),
+          storage.getLightweightJobStats(),
+        ]);
+        console.log('Fetched', recentJobs.length, 'job previews for homepage SSR');
 
-        const html = generateHomepageHTML(jobStats, recentJobs);
+        const html = generateHomepageHTML(jobStats, recentJobs as any);
         console.log('Generated homepage HTML length:', html.length);
         
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -391,12 +369,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle jobs page
       if (req.path === "/jobs") {
         console.log('Bot detected, serving inline SSR for jobs page');
-        const allJobs = await storage.getAllJobsWithDetails();
-        const jobs = allJobs
-          .filter(job => job.type !== 'tender' || !job.type)
-          .sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime());
+        const [jobs, stats] = await Promise.all([
+          storage.getPublicJobPreviews(50),
+          storage.getLightweightJobStats(),
+        ]);
 
-        const html = generateJobsPageHTML(jobs, jobs.length);
+        const html = generateJobsPageHTML(jobs as any, stats.totalJobs);
         console.log('Generated jobs page HTML length:', html.length);
         
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -456,25 +434,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const allJobs = await storage.getAllJobsWithDetails();
-      const recentJobs = allJobs
-        .filter(job => job.type !== "tender" || !job.type)
-        .sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime())
-        .slice(0, 10);
+      const [recentJobs, jobStats] = await Promise.all([
+        storage.getPublicJobPreviews(10),
+        storage.getLightweightJobStats(),
+      ]);
 
-      const today = new Date();
-      const jobStats = {
-        totalJobs: allJobs.length,
-        organizations: new Set(allJobs.map(job => job.organization)).size,
-        newToday: allJobs.filter(job => {
-          const jobDate = new Date(job.datePosted);
-          const createdDate = (job as any).createdAt ? new Date((job as any).createdAt) : null;
-          return jobDate.toDateString() === today.toDateString() ||
-            (createdDate && createdDate.toDateString() === today.toDateString());
-        }).length,
-      };
-
-      const html = generateHomepageHTML(jobStats, recentJobs);
+      const html = generateHomepageHTML(jobStats, recentJobs as any);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.send(html);
     } catch (error) {
@@ -494,9 +459,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const allJobs = await storage.getAllJobsWithDetails();
-      const jobs = allJobs.filter(job => job.type !== "tender" || !job.type);
-      const html = applyJobsListingMetadata(readSpaIndexHtml(), jobs.length);
+      const stats = await storage.getLightweightJobStats();
+      const html = applyJobsListingMetadata(readSpaIndexHtml(), stats.totalJobs);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.send(html);
     } catch (error) {
@@ -508,25 +472,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // HEAD handlers for link unfurlers
   app.head("/", async (req, res) => {
     try {
-      const allJobs = await storage.getAllJobsWithDetails();
-      const jobStats = {
-        totalJobs: allJobs.length,
-        organizations: new Set(allJobs.map(job => job.organization)).size,
-        newToday: allJobs.filter(job => {
-          const today = new Date();
-          const jobDate = new Date(job.datePosted);
-          const createdDate = (job as any).createdAt ? new Date((job as any).createdAt) : null;
-          return jobDate.toDateString() === today.toDateString() || 
-                 (createdDate && createdDate.toDateString() === today.toDateString());
-        }).length
-      };
+      const [recentJobs, jobStats] = await Promise.all([
+        storage.getPublicJobPreviews(10),
+        storage.getLightweightJobStats(),
+      ]);
       
-      const recentJobs = allJobs
-        .filter(job => job.type !== 'tender' || !job.type)
-        .sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime())
-        .slice(0, 10);
-      
-      const html = generateHomepageHTML(jobStats, recentJobs);
+      const html = generateHomepageHTML(jobStats, recentJobs as any);
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.setHeader('Content-Length', Buffer.byteLength(html, 'utf8'));
       res.end();
@@ -538,12 +489,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.head("/jobs", async (req, res) => {
     try {
-      const allJobs = await storage.getAllJobsWithDetails();
-      const jobs = allJobs
-        .filter(job => job.type !== 'tender' || !job.type)
-        .sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime());
+      const [jobs, stats] = await Promise.all([
+        storage.getPublicJobPreviews(50),
+        storage.getLightweightJobStats(),
+      ]);
       
-      const html = generateJobsPageHTML(jobs, jobs.length);
+      const html = generateJobsPageHTML(jobs as any, stats.totalJobs);
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.setHeader('Content-Length', Buffer.byteLength(html, 'utf8'));
       res.end();
@@ -746,30 +697,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Cache miss - fetch from database
-      const jobs = await storage.getLightweightJobs(filters);
-      
-      // Get all jobs for stats and filter options (use simple getAllJobs for speed)
-      const allJobs = await storage.getAllJobs();
-      
-      // Calculate stats
-      const stats = {
-        totalJobs: allJobs.length,
-        organizations: new Set(allJobs.map(job => job.organization)).size,
-        newToday: allJobs.filter(job => {
-          const today = new Date();
-          const jobDate = new Date(job.datePosted);
-          const createdDate = (job as any).createdAt ? new Date((job as any).createdAt) : null;
-          return jobDate.toDateString() === today.toDateString() || 
-                 (createdDate && createdDate.toDateString() === today.toDateString());
-        }).length
-      };
-      
-      // Get unique filter values
-      const filterOptions = {
-        countries: Array.from(new Set(allJobs.map(job => job.country))),
-        organizations: Array.from(new Set(allJobs.map(job => job.organization))),
-        sectors: Array.from(new Set(allJobs.map(job => job.sector).filter(Boolean)))
-      };
+      const [jobs, stats, filterOptions] = await Promise.all([
+        storage.getLightweightJobs(filters),
+        storage.getLightweightJobStats(),
+        storage.getLightweightJobFilterOptions(),
+      ]);
       
       const responseData = {
         jobs,
@@ -866,33 +798,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         jobs = await storage.getAllJobs();
       }
 
-      // Get job statistics
-      const allJobs = await storage.getAllJobs();
-      const stats = {
-        totalJobs: allJobs.length,
-        organizations: new Set(allJobs.map(job => job.organization)).size,
-        newToday: allJobs.filter(job => {
-          const today = new Date();
-          const jobDate = new Date(job.datePosted);
-          const createdDate = (job as any).createdAt ? new Date((job as any).createdAt) : null;
-          return jobDate.toDateString() === today.toDateString() || 
-                 (createdDate && createdDate.toDateString() === today.toDateString());
-        }).length
-      };
-
-      // Get unique values for filters
-      const countries = Array.from(new Set(allJobs.map(job => job.country)));
-      const organizations = Array.from(new Set(allJobs.map(job => job.organization)));
-      const sectors = Array.from(new Set(allJobs.map(job => job.sector).filter(Boolean)));
+      const [stats, filterOptions] = await Promise.all([
+        storage.getLightweightJobStats(),
+        storage.getLightweightJobFilterOptions(),
+      ]);
 
       res.json({
         jobs,
         stats,
-        filters: {
-          countries,
-          organizations,
-          sectors
-        }
+        filters: filterOptions
       });
     } catch (error) {
       console.error("Error fetching jobs:", error);
@@ -1001,6 +915,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Force refresh jobs (for testing)
   app.post("/api/jobs/refresh", requireAdminOrCronSecret, async (req, res) => {
     try {
+      if (isProduction && !legacyFetchEnabled) {
+        return res.status(202).json({
+          message: "Legacy job fetchers are disabled in production",
+          hint: "Set ENABLE_LEGACY_JOB_FETCHERS=true only after the legacy sources are healthy.",
+        });
+      }
       await jobFetcher.fetchAllJobs();
       res.json({
         message: "Job refresh completed",
@@ -1022,6 +942,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cronSecret = process.env.CRON_SECRET;
       if (!cronSecret || req.headers.authorization !== `Bearer ${cronSecret}`) {
         return res.status(401).json({ message: "Unauthorized" });
+      }
+      if (isProduction && !legacyFetchEnabled) {
+        return res.status(202).json({
+          message: "Legacy job fetchers are disabled in production",
+          timestamp: new Date().toISOString(),
+          archivedExpiredJobs: 0,
+          hint: "Set ENABLE_LEGACY_JOB_FETCHERS=true only after the legacy sources are healthy.",
+        });
       }
       console.log("Job fetch triggered via /api/trigger-fetch");
       await jobFetcher.fetchAllJobs();
@@ -2926,7 +2854,7 @@ ${jsonLd(breadcrumbData)}
       .replace(/'/g, '&#39;');
 
   const getPublicActiveJobPages = async () => {
-    const allJobs = await storage.getAllJobsWithDetails();
+    const allJobs = await storage.getPublicJobSitemapEntries();
     return allJobs
       .filter(isGoogleIndexableJob)
       .sort((a, b) => new Date(getJobLastModified(b)).getTime() - new Date(getJobLastModified(a)).getTime());

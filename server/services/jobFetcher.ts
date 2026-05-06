@@ -657,10 +657,12 @@ export class JobFetcher {
       storage.archiveExpiredJobs();
     });
 
-    setTimeout(() => {
-      this.fetchAllJobs();
-      storage.archiveExpiredJobs();
-    }, 5000);
+    if (process.env.RUN_LEGACY_FETCH_ON_STARTUP === "true") {
+      setTimeout(() => {
+        this.fetchAllJobs();
+        storage.archiveExpiredJobs();
+      }, 5000);
+    }
   }
 }
 
