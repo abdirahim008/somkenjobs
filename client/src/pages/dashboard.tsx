@@ -987,7 +987,7 @@ export default function Dashboard() {
       pdf.text('Authorized Seal:', margin, sealY + 5);
 
       try {
-        const sealResponse = await fetch('/company-seal.jpg');
+        const sealResponse = await fetch('/official_stamp.png');
         if (sealResponse.ok) {
           const blob = await sealResponse.blob();
           const sealDataUrl = await new Promise<string>((resolve, reject) => {
@@ -996,7 +996,7 @@ export default function Dashboard() {
             reader.onerror = reject;
             reader.readAsDataURL(blob);
           });
-          pdf.addImage(sealDataUrl, 'JPEG', sealX, sealY, sealSize, sealSize);
+          pdf.addImage(sealDataUrl, 'PNG', sealX, sealY, sealSize, sealSize);
         } else {
           throw new Error('Seal not found');
         }
