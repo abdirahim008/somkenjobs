@@ -6,7 +6,7 @@ import {
   generateJobSEOMetadata 
 } from "@shared/seoUtils";
 import { sanitizeRichHtml } from "./sanitizeHtml";
-import { generateJobPostingJsonLd, getJobCanonicalUrl } from "./googleJobs";
+import { generateJobPostingJsonLd, getJobCanonicalUrl, isGoogleIndexableJob } from "./googleJobs";
 
 // Call validation to prevent regressions
 validateContextMaps();
@@ -564,10 +564,12 @@ export function generateJobDetailsHTML(job: Job): string {
     // Fall back to safe defaults if validation fails
   }
 
-  const structuredData = generateJobStructuredData(job);
+  const isIndexableJob = isGoogleIndexableJob(job);
+  const structuredData = isIndexableJob ? generateJobStructuredData(job) : "";
   const jobUrl = getJobCanonicalUrl(job);
   const seoMetadata = generateJobSEOMetadata(job);
   const applyUrl = safeUrl(job.url);
+  const noindexMeta = isIndexableJob ? "" : '<meta name="robots" content="noindex, follow">';
   
   // Helper functions for safe HTML generation - ONLY place that creates HTML tags
   const stripTags = (str: string) => sanitizeRichHtml(str).replace(/<[^>]*>/g, '').trim();
@@ -592,6 +594,7 @@ export function generateJobDetailsHTML(job: Job): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(seoMetadata.title)}</title>
   <meta name="description" content="${escapeHtml(seoMetadata.description)}">
+  ${noindexMeta}
   <link rel="canonical" href="${jobUrl}">
   
   <!-- Open Graph Tags -->
@@ -607,10 +610,10 @@ export function generateJobDetailsHTML(job: Job): string {
   <meta name="twitter:title" content="${escapeHtml(seoMetadata.title)}">
   <meta name="twitter:description" content="${escapeHtml(seoMetadata.description)}">
 
-  <!-- Job Structured Data -->
+  ${isIndexableJob ? `<!-- Job Structured Data -->
   <script type="application/ld+json">
   ${structuredData}
-  </script>
+  </script>` : ""}
 
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; line-height: 1.6; color: #333; }

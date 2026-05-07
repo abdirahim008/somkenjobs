@@ -16,6 +16,18 @@ import { generateJobOGTitle, generateJobOGDescription } from "@/utils/generateJo
 import { generateJobSlug } from "@shared/utils";
 import { sanitizeRichHtml } from "@/lib/sanitizeHtml";
 
+const isExpiredJob = (job: Job) => {
+  if (!job.deadline) return false;
+  return new Date(job.deadline).getTime() < Date.now();
+};
+
+const isPubliclyIndexableJob = (job: Job) => {
+  return job.status === "published"
+    && job.type === "job"
+    && job.visibility !== "private"
+    && !isExpiredJob(job);
+};
+
 export default function JobDetails() {
   const [match, params] = useRoute("/jobs/:id");
   const [, setLocation] = useLocation();
@@ -50,8 +62,8 @@ export default function JobDetails() {
       existingScript.remove();
     }
 
-    // Add new structured data only if job data exists
-    if (job) {
+    // Add new structured data only for active public jobs eligible for Google Jobs
+    if (job && isPubliclyIndexableJob(job)) {
       // Build Google Jobs 2025 compliant structured data
       const cleanDescription = job.description 
         ? job.description.replace(/<[^>]*>/g, '').substring(0, 5000)
@@ -98,11 +110,9 @@ export default function JobDetails() {
         jobStructuredData.employmentType = "FULL_TIME";
       }
 
-      // Job location type
+      // Job location type is valid only for true remote jobs.
       if (job.location && job.location.toLowerCase().includes('remote')) {
         jobStructuredData.jobLocationType = "TELECOMMUTE";
-      } else {
-        jobStructuredData.jobLocationType = "ON_SITE";
       }
 
       // Industry classification
@@ -806,6 +816,11 @@ export default function JobDetails() {
     );
   }
 
+  const expiredJob = isExpiredJob(job);
+  const indexableJob = isPubliclyIndexableJob(job);
+  const privateOrTokenJob = job.visibility === 'private' || !!token;
+  const robotsContent = !privateOrTokenJob && !indexableJob ? 'noindex, follow' : undefined;
+
   return (
     <div className="min-h-screen bg-background">
       {job && (
@@ -821,7 +836,8 @@ export default function JobDetails() {
           jobPostedDate={new Date(job.datePosted).toISOString()}
           pageType="job-detail"
           optimizeTitleAndDescription={true}
-          noindex={(job as any).visibility === 'private' || !!token}
+          noindex={privateOrTokenJob || !indexableJob}
+          robotsContent={robotsContent}
         />
       )}
       <Header />
@@ -844,6 +860,12 @@ export default function JobDetails() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Jobs
         </Button>
+
+        {expiredJob && (
+          <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            This job is expired, but the archived details remain available for reference.
+          </div>
+        )}
 
 
         {/* Desktop Layout with Sidebar */}

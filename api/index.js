@@ -2378,10 +2378,12 @@ function generateJobDetailsHTML(job) {
   } catch (error) {
     console.error("Context validation failed:", error);
   }
-  const structuredData = generateJobStructuredData(job);
+  const isIndexableJob = isGoogleIndexableJob(job);
+  const structuredData = isIndexableJob ? generateJobStructuredData(job) : "";
   const jobUrl = getJobCanonicalUrl(job);
   const seoMetadata = generateJobSEOMetadata(job);
   const applyUrl = safeUrl(job.url);
+  const noindexMeta = isIndexableJob ? "" : '<meta name="robots" content="noindex, follow">';
   const stripTags = (str) => sanitizeRichHtml(str).replace(/<[^>]*>/g, "").trim();
   const p = (content) => `<p>${content}</p>`;
   const h2 = (title) => `<h2>${title}</h2>`;
@@ -2398,6 +2400,7 @@ function generateJobDetailsHTML(job) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml2(seoMetadata.title)}</title>
   <meta name="description" content="${escapeHtml2(seoMetadata.description)}">
+  ${noindexMeta}
   <link rel="canonical" href="${jobUrl}">
   
   <!-- Open Graph Tags -->
@@ -2413,10 +2416,10 @@ function generateJobDetailsHTML(job) {
   <meta name="twitter:title" content="${escapeHtml2(seoMetadata.title)}">
   <meta name="twitter:description" content="${escapeHtml2(seoMetadata.description)}">
 
-  <!-- Job Structured Data -->
+  ${isIndexableJob ? `<!-- Job Structured Data -->
   <script type="application/ld+json">
   ${structuredData}
-  </script>
+  </script>` : ""}
 
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; line-height: 1.6; color: #333; }
@@ -2833,10 +2836,6 @@ async function registerRoutes(app2) {
           console.log("Job not found for ID:", jobId);
           return res.status(404).send("<html><head><title>Job Not Found</title></head><body><h1>Job Not Found</h1></body></html>");
         }
-        if (!isGoogleIndexableJob(job)) {
-          console.log("Job is no longer indexable for ID:", jobId);
-          return res.status(410).send("<html><head><title>Job No Longer Available</title></head><body><h1>Job No Longer Available</h1></body></html>");
-        }
         const html = generateJobDetailsHTML(job);
         console.log("Generated job details HTML length:", html.length);
         res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -2925,9 +2924,6 @@ async function registerRoutes(app2) {
       const job = await storage.getJobById(jobId);
       if (!job) {
         return res.status(404).end();
-      }
-      if (!isGoogleIndexableJob(job)) {
-        return res.status(410).end();
       }
       const html = generateJobDetailsHTML(job);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -4511,11 +4507,11 @@ async function registerRoutes(app2) {
       if (!job) {
         return res.status(404).send("Job not found");
       }
-      if (!ssrToken && !isGoogleIndexableJob(job)) {
-        return res.status(410).send("Job no longer available");
-      }
       const jobTitle = `${job.title} - ${job.organization}`;
-      const deadline = job.deadline ? ` \u2022 Deadline: ${Math.ceil((new Date(job.deadline).getTime() - Date.now()) / (1e3 * 60 * 60 * 24))} days left` : "";
+      const isIndexableJob = isGoogleIndexableJob(job);
+      const isExpiredJobPage = !isIndexableJob && job.visibility !== "private";
+      const daysUntilDeadline = job.deadline ? Math.ceil((new Date(job.deadline).getTime() - Date.now()) / (1e3 * 60 * 60 * 24)) : null;
+      const deadline = job.deadline ? ` \u2022 Deadline: ${daysUntilDeadline !== null && daysUntilDeadline < 0 ? "Expired" : `${daysUntilDeadline} days left`}` : "";
       const socialMediaText = generateSocialMediaText(job, deadline);
       const jobDescription = socialMediaText;
       const jobUrl = getJobCanonicalUrl(job);
@@ -4648,12 +4644,15 @@ async function registerRoutes(app2) {
           day: "numeric"
         });
       };
-      const getDaysLeft = (deadline2) => {
+      const getDeadlineStatus = (deadline2) => {
         const deadlineDate = new Date(deadline2);
         const today = /* @__PURE__ */ new Date();
         const diffTime = deadlineDate.getTime() - today.getTime();
         const diffDays = Math.ceil(diffTime / (1e3 * 60 * 60 * 24));
-        return diffDays > 0 ? diffDays : 0;
+        if (diffDays < 0) return "Expired";
+        if (diffDays === 0) return "Closes today";
+        if (diffDays === 1) return "1 day left";
+        return `${diffDays} days left`;
       };
       const serverRenderedContent = `
         <div class="min-h-screen bg-gray-50 py-8">
@@ -4663,6 +4662,11 @@ async function registerRoutes(app2) {
                 \u2190 Back to Jobs
               </a>
             </div>
+            ${isExpiredJobPage ? `
+            <div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900">
+              This job is expired, but the archived details remain available for reference.
+            </div>
+            ` : ""}
             
             <div class="bg-white rounded-lg shadow-sm p-8">
               <div class="flex items-start justify-between mb-6">
@@ -4723,7 +4727,7 @@ async function registerRoutes(app2) {
                       ${job.deadline ? `
                         <div>
                           <span class="font-medium">Deadline:</span>
-                          <span class="ml-2">${formatDate(job.deadline)} (${getDaysLeft(job.deadline)} days left)</span>
+                          <span class="ml-2">${formatDate(job.deadline)} (${getDeadlineStatus(job.deadline)})</span>
                         </div>
                       ` : ""}
                       <div>
@@ -4742,7 +4746,7 @@ async function registerRoutes(app2) {
                       ` : ""}
                     </div>
                     
-                    ${applyUrl ? `
+                    ${applyUrl && !isExpiredJobPage ? `
                       <div class="mt-6">
                         <a href="${applyUrl}" target="_blank" rel="noopener noreferrer" 
                            class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors inline-block text-center">
@@ -4761,7 +4765,7 @@ async function registerRoutes(app2) {
         /<div id="root">[\s\S]*?<\/div>/,
         `<div id="root">${serverRenderedContent}</div>`
       );
-      const jobStructuredDataJson = generateJobPostingJsonLd(job);
+      const jobStructuredDataJson = isIndexableJob ? generateJobPostingJsonLd(job) : "";
       const breadcrumbData = {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
@@ -4772,10 +4776,11 @@ async function registerRoutes(app2) {
           { "@type": "ListItem", "position": 4, "name": job.title.substring(0, 50), "item": jobUrl }
         ]
       };
-      const shouldNoindex = job.visibility === "private" || !!ssrToken;
+      const shouldNoindex = job.visibility === "private" || !!ssrToken || !isIndexableJob;
+      const robotsContent = job.visibility === "private" || !!ssrToken ? "noindex, nofollow" : "noindex, follow";
       const additionalMetaTags = `
     <!-- Job-specific meta tags for enhanced social media previews -->
-    ${shouldNoindex ? '<meta name="robots" content="noindex, nofollow">' : ""}
+    ${shouldNoindex ? `<meta name="robots" content="${robotsContent}">` : ""}
     <meta property="article:published_time" content="${new Date(job.datePosted).toISOString()}">
     <meta property="article:section" content="${escapeHtml3(job.sector || "Humanitarian")}">
     <meta property="article:tag" content="${escapeHtml3(job.sector || "Humanitarian")}">
@@ -4791,10 +4796,10 @@ async function registerRoutes(app2) {
     <link rel="alternate" hreflang="en" href="${jobUrl}">
     <link rel="alternate" hreflang="x-default" href="${jobUrl}">
     
-    <!-- Google Jobs JobPosting Structured Data -->
+    ${isIndexableJob ? `<!-- Google Jobs JobPosting Structured Data -->
     <script type="application/ld+json">
 ${jobStructuredDataJson}
-    </script>
+    </script>` : ""}
     
     <!-- Breadcrumb Structured Data for enhanced search appearance -->
     <script type="application/ld+json">

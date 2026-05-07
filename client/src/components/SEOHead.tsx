@@ -22,6 +22,7 @@ interface SEOHeadProps {
   jobCount?: number;
   optimizeTitleAndDescription?: boolean; // Flag to enable/disable optimization
   noindex?: boolean;
+  robotsContent?: string;
 }
 
 export default function SEOHead({ 
@@ -38,7 +39,8 @@ export default function SEOHead({
   pageType,
   jobCount,
   optimizeTitleAndDescription = true,
-  noindex = false
+  noindex = false,
+  robotsContent
 }: SEOHeadProps) {
   useEffect(() => {
     // Optimize title and description if optimization is enabled
@@ -150,7 +152,7 @@ export default function SEOHead({
       robots.setAttribute('name', 'robots');
       document.head.appendChild(robots);
     }
-    robots.setAttribute('content', noindex ? 'noindex, nofollow' : 'index, follow');
+    robots.setAttribute('content', robotsContent || (noindex ? 'noindex, nofollow' : 'index, follow'));
 
     // Update Open Graph title with optimized version
     if (optimizedTitle) {
@@ -437,7 +439,7 @@ export default function SEOHead({
         ogImage: 'removed - no images in social media previews'
       });
     }
-  }, [title, description, canonicalUrl, ogImage, jobLocation, jobOrganization, jobDeadline, jobSector, jobCountry, jobPostedDate, pageType, jobCount, optimizeTitleAndDescription, noindex]);
+  }, [title, description, canonicalUrl, ogImage, jobLocation, jobOrganization, jobDeadline, jobSector, jobCountry, jobPostedDate, pageType, jobCount, optimizeTitleAndDescription, noindex, robotsContent]);
 
   return null; // This component doesn't render anything
 }
