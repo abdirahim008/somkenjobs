@@ -228,6 +228,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   }));
 
+  // Google found old spam-style /companies/... URLs. They are not real routes,
+  // so return a hard 410 instead of letting the SPA fallback create soft 404s.
+  app.use(/^\/companies(?:\/|$)/, (req, res) => {
+    res.status(410);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    if (req.method === 'HEAD') return res.end();
+    res.send(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Page Gone | Somken Jobs</title>
+</head>
+<body>
+  <h1>Page Gone</h1>
+  <p>This page is not available on Somken Jobs.</p>
+</body>
+</html>`);
+  });
+
   // File upload endpoint
   app.post('/api/upload', authenticate, upload.single('file'), async (req: AuthRequest, res) => {
     try {
