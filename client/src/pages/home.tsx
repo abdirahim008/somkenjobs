@@ -43,7 +43,7 @@ export default function Home() {
   });
   const [sortBy, setSortBy] = useState("mostRecent");
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
-  const [displayCount, setDisplayCount] = useState(8); // Show fewer jobs initially for faster loading
+  const [displayCount, setDisplayCount] = useState(15); // Show the first 15 jobs before requiring "Load More"
 
   const { data, isLoading, refetch } = useQuery<JobsResponse>({
     queryKey: ['/api/jobs/list', filters],
