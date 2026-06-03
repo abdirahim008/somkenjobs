@@ -19,17 +19,22 @@ export default function Footer() {
   ];
 
   const jobCategories = [
-    { label: "Jobs in Kenya", href: "/jobs/country/kenya" },
     { label: "Jobs in Somalia", href: "/jobs/country/somalia" },
+    { label: "Jobs in Hargeisa", href: "/jobs/city/hargeisa" },
+    { label: "Jobs in Baidoa", href: "/jobs/city/baidoa" },
     { label: "Jobs in Mogadishu", href: "/jobs/city/mogadishu" },
+    { label: "Jobs in Kenya", href: "/jobs/country/kenya" },
     { label: "Jobs in Nairobi", href: "/jobs/city/nairobi" },
+    { label: "Jobs in Djibouti", href: "/jobs/country/djibouti" },
     { label: "NGO Jobs", href: "/ngo-jobs" },
     { label: "NGO Jobs in Somalia", href: "/ngo-jobs/somalia" },
     { label: "NGO Jobs in Kenya", href: "/ngo-jobs/kenya" },
+    { label: "NGO Jobs in Djibouti", href: "/ngo-jobs/djibouti" },
     { label: "UN Jobs Somalia", href: "/un-jobs/somalia" },
     { label: "UN Jobs Kenya", href: "/un-jobs/kenya" },
+    { label: "UN Jobs Djibouti", href: "/un-jobs/djibouti" },
+    { label: "Engineering Jobs", href: "/jobs/sector/engineering" },
     { label: "Health Jobs", href: "/jobs/sector/health" },
-    { label: "Protection Jobs", href: "/jobs/sector/protection" },
   ];
 
   return (
@@ -135,14 +140,19 @@ export default function Footer() {
           <div className="text-center text-xs text-muted-foreground space-y-2">
             <p>
               Find the best humanitarian jobs in 
-              <a href="/jobs/country/kenya" className="text-primary hover:underline mx-1">Kenya</a> 
-              and 
               <a href="/jobs/country/somalia" className="text-primary hover:underline mx-1">Somalia</a> 
+              including
+              <a href="/jobs/city/hargeisa" className="text-primary hover:underline mx-1">Hargeisa</a>,
+              <a href="/jobs/city/baidoa" className="text-primary hover:underline mx-1">Baidoa</a>,
+              <a href="/jobs/country/kenya" className="text-primary hover:underline mx-1">Kenya</a>,
+              and
+              <a href="/jobs/country/djibouti" className="text-primary hover:underline mx-1">Djibouti</a> 
               with leading organizations including UNHCR, WHO, Save the Children, and World Food Programme.
             </p>
             <p>
               Browse 
               <a href="/jobs/sector/health" className="text-primary hover:underline mx-1">health jobs</a>, 
+              <a href="/jobs/sector/engineering" className="text-primary hover:underline mx-1">engineering jobs</a>,
               <a href="/jobs/sector/education" className="text-primary hover:underline mx-1">education positions</a>, 
               <a href="/jobs/sector/protection" className="text-primary hover:underline mx-1">protection roles</a>, 
               <a href="/ngo-jobs" className="text-primary hover:underline mx-1">NGO jobs</a>,

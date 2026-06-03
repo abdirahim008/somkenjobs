@@ -178,42 +178,50 @@ export default function Home() {
               {/* Quick Links Section */}
               <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
                 <h3 className="text-sm font-semibold text-blue-900 mb-2">Popular Searches</h3>
-                <div className="flex flex-wrap gap-2 text-xs">
-                  <Button 
-                    variant="link" 
-                    size="sm" 
-                    className="h-6 p-1 text-blue-700 hover:text-blue-900"
-                    onClick={() => setFilters(prev => ({ ...prev, country: ['Kenya'] }))}
-                  >
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <a href="/jobs/country/somalia" className="text-blue-700 hover:text-blue-900 hover:underline">
+                    Jobs in Somalia
+                  </a>
+                  <span className="text-gray-400">•</span>
+                  <a href="/jobs/city/hargeisa" className="text-blue-700 hover:text-blue-900 hover:underline">
+                    Hargeisa Jobs
+                  </a>
+                  <span className="text-gray-400">•</span>
+                  <a href="/jobs/city/baidoa" className="text-blue-700 hover:text-blue-900 hover:underline">
+                    Baidoa Jobs
+                  </a>
+                  <span className="text-gray-400">•</span>
+                  <a href="/un-jobs/somalia" className="text-blue-700 hover:text-blue-900 hover:underline">
+                    UN Jobs Somalia
+                  </a>
+                  <span className="text-gray-400">•</span>
+                  <a href="/jobs/sector/engineering" className="text-blue-700 hover:text-blue-900 hover:underline">
+                    Engineering Jobs
+                  </a>
+                  <span className="text-gray-400">•</span>
+                  <a href="/jobs/country/kenya" className="text-blue-700 hover:text-blue-900 hover:underline">
                     Jobs in Kenya
-                  </Button>
+                  </a>
                   <span className="text-gray-400">•</span>
-                  <Button 
-                    variant="link" 
-                    size="sm" 
-                    className="h-6 p-1 text-blue-700 hover:text-blue-900"
-                    onClick={() => setFilters(prev => ({ ...prev, country: ['Somalia'] }))}
-                  >
-                    Jobs in Somalia  
-                  </Button>
+                  <a href="/jobs/country/djibouti" className="text-blue-700 hover:text-blue-900 hover:underline">
+                    Jobs in Djibouti
+                  </a>
                   <span className="text-gray-400">•</span>
-                  <Button 
-                    variant="link" 
-                    size="sm" 
-                    className="h-6 p-1 text-blue-700 hover:text-blue-900"
+                  <button
+                    type="button"
+                    className="text-blue-700 hover:text-blue-900 hover:underline"
                     onClick={() => setFilters(prev => ({ ...prev, sector: ['Health'] }))}
                   >
                     Health Jobs
-                  </Button>
+                  </button>
                   <span className="text-gray-400">•</span>
-                  <Button 
-                    variant="link" 
-                    size="sm" 
-                    className="h-6 p-1 text-blue-700 hover:text-blue-900"
+                  <button
+                    type="button"
+                    className="text-blue-700 hover:text-blue-900 hover:underline"
                     onClick={() => setFilters(prev => ({ ...prev, sector: ['Protection'] }))}
                   >
                     Protection Jobs
-                  </Button>
+                  </button>
                 </div>
               </div>
               

@@ -3904,10 +3904,11 @@ async function registerRoutes(app2) {
     }
     return `${phrase} ${job.title} position in ${job.location}, ${job.country} with ${job.organization}${deadline}`;
   }
-  const SUPPORTED_COUNTRIES = ["kenya", "somalia", "ethiopia", "uganda", "tanzania"];
+  const SUPPORTED_COUNTRIES = ["kenya", "somalia", "djibouti", "ethiopia", "uganda", "tanzania"];
   const COUNTRY_DISPLAY_NAMES = {
     "kenya": "Kenya",
     "somalia": "Somalia",
+    "djibouti": "Djibouti",
     "ethiopia": "Ethiopia",
     "uganda": "Uganda",
     "tanzania": "Tanzania"
@@ -3915,6 +3916,7 @@ async function registerRoutes(app2) {
   const COUNTRY_DESCRIPTIONS = {
     "kenya": "Kenya serves as East Africa's humanitarian hub, with Nairobi hosting regional headquarters for numerous international organizations.",
     "somalia": "Somalia offers unique opportunities for humanitarian professionals to contribute to post-conflict recovery and stabilization efforts.",
+    "djibouti": "Djibouti is a strategic Horn of Africa location for humanitarian, logistics, UN, NGO, and regional development work.",
     "ethiopia": "Ethiopia presents vast opportunities for development and humanitarian professionals working across diverse contexts including refugee response.",
     "uganda": "Uganda offers meaningful opportunities in refugee response, health programming, and development initiatives.",
     "tanzania": "Tanzania provides opportunities in development programming, refugee support, and health initiatives."
@@ -3934,6 +3936,11 @@ async function registerRoutes(app2) {
       name: "Hargeisa",
       country: "Somalia",
       description: "Hargeisa attracts NGO, education, development, and private-sector opportunities for professionals in Somaliland and the wider Somali region."
+    },
+    baidoa: {
+      name: "Baidoa",
+      country: "Somalia",
+      description: "Baidoa is an important humanitarian and public-service employment location in Somalia, especially for NGO, UN partner, resilience, health, protection, and field operations roles."
     }
   };
   const renderLandingJobCards = (jobs2) => jobs2.slice(0, 10).map((job) => {
@@ -4017,12 +4024,18 @@ async function registerRoutes(app2) {
   const defaultRelatedKeywordLinks = [
     { label: "Jobs in Somalia", href: "/jobs/country/somalia" },
     { label: "Jobs in Kenya", href: "/jobs/country/kenya" },
+    { label: "Jobs in Djibouti", href: "/jobs/country/djibouti" },
     { label: "Jobs in Mogadishu", href: "/jobs/city/mogadishu" },
+    { label: "Jobs in Hargeisa", href: "/jobs/city/hargeisa" },
+    { label: "Jobs in Baidoa", href: "/jobs/city/baidoa" },
     { label: "Jobs in Nairobi", href: "/jobs/city/nairobi" },
     { label: "NGO Jobs Somalia", href: "/ngo-jobs/somalia" },
     { label: "NGO Jobs Kenya", href: "/ngo-jobs/kenya" },
+    { label: "NGO Jobs Djibouti", href: "/ngo-jobs/djibouti" },
     { label: "UN Jobs Somalia", href: "/un-jobs/somalia" },
-    { label: "UN Jobs Kenya", href: "/un-jobs/kenya" }
+    { label: "UN Jobs Kenya", href: "/un-jobs/kenya" },
+    { label: "UN Jobs Djibouti", href: "/un-jobs/djibouti" },
+    { label: "Engineering Jobs", href: "/jobs/sector/engineering" }
   ];
   app2.get("/jobs/country/:country", async (req, res) => {
     try {
@@ -4110,8 +4123,9 @@ async function registerRoutes(app2) {
       res.status(500).send("Error loading page");
     }
   });
-  const SUPPORTED_SECTORS = ["health", "education", "protection", "wash", "food-security", "logistics", "emergency-response"];
+  const SUPPORTED_SECTORS = ["engineering", "health", "education", "protection", "wash", "food-security", "logistics", "emergency-response"];
   const SECTOR_DISPLAY_NAMES = {
+    "engineering": "Engineering",
     "health": "Health",
     "education": "Education",
     "protection": "Protection",
@@ -4121,6 +4135,7 @@ async function registerRoutes(app2) {
     "emergency-response": "Emergency Response"
   };
   const SECTOR_DESCRIPTIONS = {
+    "engineering": "Engineering roles include civil works, infrastructure, construction supervision, WASH engineering, project engineering, and technical consulting positions.",
     "health": "The health sector presents opportunities for medical professionals, public health specialists, and healthcare program managers.",
     "education": "Education programming offers opportunities in learning access, teacher training, and curriculum development.",
     "protection": "Protection work focuses on safeguarding vulnerable populations including refugees and displaced persons.",
@@ -4139,12 +4154,14 @@ async function registerRoutes(app2) {
       const sectorDescription = SECTOR_DESCRIPTIONS[sectorParam];
       const allJobs = await storage.getAllJobs();
       const now = /* @__PURE__ */ new Date();
-      const sectorJobs = allJobs.filter(
-        (job) => job.sector && job.sector.toLowerCase().includes(sectorParam.replace("-", " ")) && (!job.type || job.type === "job") && job.status === "published" && job.visibility !== "private" && (!job.deadline || new Date(job.deadline) >= now)
-      );
+      const sectorSearchTerms = sectorParam === "engineering" ? ["engineer", "engineering", "civil works", "infrastructure", "construction", "technical expert"] : [sectorParam.replace("-", " ")];
+      const sectorJobs = allJobs.filter((job) => {
+        const haystack = `${job.title || ""} ${job.organization || ""} ${job.sector || ""} ${job.description || ""}`.toLowerCase();
+        return sectorSearchTerms.some((term) => haystack.includes(term)) && (!job.type || job.type === "job") && job.status === "published" && job.visibility !== "private" && (!job.deadline || new Date(job.deadline) >= now);
+      });
       const pageUrl = `https://somkenjobs.com/jobs/sector/${sectorParam}`;
-      const pageTitle = `${sectorName} Jobs in East Africa | ${sectorJobs.length}+ Humanitarian Positions | Somken Jobs`;
-      const pageDescription = `Find ${sectorJobs.length}+ ${sectorName.toLowerCase()} sector jobs across Kenya, Somalia, Ethiopia, Uganda, Tanzania. ${sectorDescription}`;
+      const pageTitle = sectorParam === "engineering" ? `Engineering Jobs in Somalia & East Africa | ${sectorJobs.length}+ Openings | Somken Jobs` : `${sectorName} Jobs in East Africa | ${sectorJobs.length}+ Humanitarian Positions | Somken Jobs`;
+      const pageDescription = sectorParam === "engineering" ? `Find ${sectorJobs.length}+ engineering jobs in Somalia and East Africa, including civil, infrastructure, WASH, construction, and project engineering vacancies.` : `Find ${sectorJobs.length}+ ${sectorName.toLowerCase()} sector jobs across Kenya, Somalia, Ethiopia, Uganda, Tanzania. ${sectorDescription}`;
       const __dirname = path.dirname(fileURLToPath(import.meta.url));
       const htmlPath = path.join(__dirname, "../dist/public/index.html");
       let html = "";
@@ -4167,7 +4184,7 @@ async function registerRoutes(app2) {
       const structuredData = {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
-        "name": `${sectorName} Jobs in East Africa`,
+        "name": sectorParam === "engineering" ? "Engineering Jobs in Somalia and East Africa" : `${sectorName} Jobs in East Africa`,
         "description": pageDescription,
         "url": pageUrl,
         "isPartOf": { "@type": "WebSite", "name": "Somken Jobs", "url": "https://somkenjobs.com/" },
@@ -4198,7 +4215,7 @@ async function registerRoutes(app2) {
       html = html.replace(/<\/head>/, `${additionalTags}
   </head>`);
       html = injectServerLandingContent(html, renderServerLandingContent({
-        h1: `${sectorName} Jobs in East Africa`,
+        h1: sectorParam === "engineering" ? "Engineering Jobs in Somalia and East Africa" : `${sectorName} Jobs in East Africa`,
         description: pageDescription,
         intro: `${sectorDescription} Browse current ${sectorName.toLowerCase()} opportunities across Somalia, Kenya, and East Africa with NGOs, UN agencies, and development organizations.`,
         jobs: sectorJobs,
@@ -4294,13 +4311,21 @@ async function registerRoutes(app2) {
   });
   app2.get("/jobs-in-somalia", (_req, res) => res.redirect(301, "/jobs/country/somalia"));
   app2.get("/jobs-in-kenya", (_req, res) => res.redirect(301, "/jobs/country/kenya"));
+  app2.get("/jobs-in-djibouti", (_req, res) => res.redirect(301, "/jobs/country/djibouti"));
   app2.get("/jobs/somalia", (_req, res) => res.redirect(301, "/jobs/country/somalia"));
   app2.get("/jobs/kenya", (_req, res) => res.redirect(301, "/jobs/country/kenya"));
+  app2.get("/jobs/djibouti", (_req, res) => res.redirect(301, "/jobs/country/djibouti"));
   app2.get("/ngo-jobs-in-somalia", (_req, res) => res.redirect(301, "/ngo-jobs/somalia"));
   app2.get("/ngo-jobs-in-kenya", (_req, res) => res.redirect(301, "/ngo-jobs/kenya"));
+  app2.get("/ngo-jobs-in-djibouti", (_req, res) => res.redirect(301, "/ngo-jobs/djibouti"));
   app2.get("/un-jobs-somalia", (_req, res) => res.redirect(301, "/un-jobs/somalia"));
   app2.get("/un-jobs-kenya", (_req, res) => res.redirect(301, "/un-jobs/kenya"));
+  app2.get("/un-jobs-djibouti", (_req, res) => res.redirect(301, "/un-jobs/djibouti"));
   app2.get("/jobs-in-mogadishu", (_req, res) => res.redirect(301, "/jobs/city/mogadishu"));
+  app2.get("/jobs-in-hargeisa", (_req, res) => res.redirect(301, "/jobs/city/hargeisa"));
+  app2.get("/hargeisa-jobs", (_req, res) => res.redirect(301, "/jobs/city/hargeisa"));
+  app2.get("/jobs-in-baidoa", (_req, res) => res.redirect(301, "/jobs/city/baidoa"));
+  app2.get("/baidoa-jobs", (_req, res) => res.redirect(301, "/jobs/city/baidoa"));
   app2.get("/jobs-in-nairobi", (_req, res) => res.redirect(301, "/jobs/city/nairobi"));
   app2.get("/help", (_req, res) => res.redirect(301, "/help-center"));
   app2.get("/privacy", (_req, res) => res.redirect(301, "/privacy-policy"));
@@ -4357,6 +4382,15 @@ async function registerRoutes(app2) {
       breadcrumbName: "NGO Jobs in Kenya",
       filter: (job) => job.country === "Kenya" && matchesNgoJob(job)
     },
+    "/ngo-jobs/djibouti": {
+      title: "NGO Jobs in Djibouti | Humanitarian & Development Jobs | Somken Jobs",
+      description: "Find current NGO jobs in Djibouti, including humanitarian, development, logistics, public-service, and Horn of Africa field roles.",
+      canonicalPath: "/ngo-jobs/djibouti",
+      name: "NGO Jobs in Djibouti",
+      about: ["NGO jobs in Djibouti", "humanitarian jobs Djibouti", "development jobs Djibouti"],
+      breadcrumbName: "NGO Jobs in Djibouti",
+      filter: (job) => job.country === "Djibouti" && matchesNgoJob(job)
+    },
     "/un-jobs": {
       title: "UN Jobs in Somalia, Kenya & East Africa | Somken Jobs",
       description: "Find current UN jobs and United Nations vacancies across Somalia, Kenya, and East Africa, including roles with UNICEF, UNHCR, UNDP, WFP, WHO, IOM, and UNOPS.",
@@ -4383,9 +4417,18 @@ async function registerRoutes(app2) {
       about: ["UN jobs Kenya", "UN jobs Nairobi", "United Nations vacancies Kenya"],
       breadcrumbName: "UN Jobs in Kenya",
       filter: (job) => job.country === "Kenya" && matchesUnJob(job)
+    },
+    "/un-jobs/djibouti": {
+      title: "UN Jobs in Djibouti | United Nations Vacancies | Somken Jobs",
+      description: "Find current UN jobs in Djibouti, including United Nations vacancies, humanitarian roles, and regional Horn of Africa opportunities.",
+      canonicalPath: "/un-jobs/djibouti",
+      name: "UN Jobs in Djibouti",
+      about: ["UN jobs Djibouti", "United Nations vacancies Djibouti", "UN careers Djibouti"],
+      breadcrumbName: "UN Jobs in Djibouti",
+      filter: (job) => job.country === "Djibouti" && matchesUnJob(job)
     }
   };
-  app2.get(["/ngo-jobs", "/ngo-jobs/somalia", "/ngo-jobs/kenya", "/un-jobs", "/un-jobs/somalia", "/un-jobs/kenya"], async (req, res, next) => {
+  app2.get(["/ngo-jobs", "/ngo-jobs/somalia", "/ngo-jobs/kenya", "/ngo-jobs/djibouti", "/un-jobs", "/un-jobs/somalia", "/un-jobs/kenya", "/un-jobs/djibouti"], async (req, res, next) => {
     try {
       const acceptHeader = req.get("Accept") || "";
       if (acceptHeader && !acceptHeader.includes("text/html") && !acceptHeader.includes("*/*")) {
@@ -4881,8 +4924,8 @@ ${jsonLd(breadcrumbData)}
       const jobs2 = await getPublicActiveJobPages();
       const newestJobDate = latestJobLastmod(jobs2);
       const latestDateFor = (subset) => subset.length ? getJobLastModified(subset[0]) : newestJobDate;
-      const countries2 = ["Kenya", "Somalia", "Ethiopia", "Uganda", "Tanzania"];
-      const sectors2 = ["Health", "Education", "Protection", "WASH", "Food Security", "Logistics", "Emergency Response"];
+      const countries2 = ["Kenya", "Somalia", "Djibouti", "Ethiopia", "Uganda", "Tanzania"];
+      const sectors2 = ["Engineering", "Health", "Education", "Protection", "WASH", "Food Security", "Logistics", "Emergency Response"];
       const cityKeys = Object.keys(SUPPORTED_CITIES);
       const urls = [
         { loc: "https://somkenjobs.com/", lastmod: newestJobDate, changefreq: "daily", priority: "1.0" },
@@ -4890,9 +4933,11 @@ ${jsonLd(breadcrumbData)}
         { loc: "https://somkenjobs.com/ngo-jobs", lastmod: latestDateFor(jobs2.filter(matchesNgoJob)), changefreq: "daily", priority: "0.88" },
         { loc: "https://somkenjobs.com/ngo-jobs/somalia", lastmod: latestDateFor(jobs2.filter((job) => job.country === "Somalia" && matchesNgoJob(job))), changefreq: "daily", priority: "0.88" },
         { loc: "https://somkenjobs.com/ngo-jobs/kenya", lastmod: latestDateFor(jobs2.filter((job) => job.country === "Kenya" && matchesNgoJob(job))), changefreq: "daily", priority: "0.88" },
+        { loc: "https://somkenjobs.com/ngo-jobs/djibouti", lastmod: latestDateFor(jobs2.filter((job) => job.country === "Djibouti" && matchesNgoJob(job))), changefreq: "daily", priority: "0.86" },
         { loc: "https://somkenjobs.com/un-jobs", lastmod: latestDateFor(jobs2.filter(matchesUnJob)), changefreq: "daily", priority: "0.88" },
         { loc: "https://somkenjobs.com/un-jobs/somalia", lastmod: latestDateFor(jobs2.filter((job) => job.country === "Somalia" && matchesUnJob(job))), changefreq: "daily", priority: "0.88" },
         { loc: "https://somkenjobs.com/un-jobs/kenya", lastmod: latestDateFor(jobs2.filter((job) => job.country === "Kenya" && matchesUnJob(job))), changefreq: "daily", priority: "0.88" },
+        { loc: "https://somkenjobs.com/un-jobs/djibouti", lastmod: latestDateFor(jobs2.filter((job) => job.country === "Djibouti" && matchesUnJob(job))), changefreq: "daily", priority: "0.86" },
         { loc: "https://somkenjobs.com/tenders", lastmod: newestJobDate, changefreq: "daily", priority: "0.9" },
         { loc: "https://somkenjobs.com/about", lastmod: "2025-01-01T00:00:00.000Z", changefreq: "monthly", priority: "0.7" },
         { loc: "https://somkenjobs.com/contact", lastmod: "2025-01-01T00:00:00.000Z", changefreq: "monthly", priority: "0.7" },
@@ -4914,7 +4959,7 @@ ${jsonLd(breadcrumbData)}
         })),
         ...sectors2.map((sector) => ({
           loc: `https://somkenjobs.com/jobs/sector/${sector.toLowerCase().replace(/\s+/g, "-")}`,
-          lastmod: latestDateFor(jobs2.filter((job) => job.sector === sector)),
+          lastmod: latestDateFor(jobs2.filter((job) => sector === "Engineering" ? `${job.title || ""} ${job.sector || ""}`.toLowerCase().includes("engineer") : job.sector === sector)),
           changefreq: "daily",
           priority: "0.8"
         }))
