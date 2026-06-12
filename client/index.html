@@ -1,15 +1,6 @@
 <!DOCTYPE html>
 <html lang="en-US" xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-TFCN14Z8K8"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-TFCN14Z8K8');
-    </script>
-    
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -106,6 +97,7 @@
     <!-- Preconnect to external domains -->
     <link rel="preconnect" href="https://api.reliefweb.int">
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com">
   </head>
   <body>
     <div id="root">
@@ -128,5 +120,29 @@
       </main>
     </div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Google Analytics (gtag.js) — loaded after the page is interactive so it
+         doesn't compete with first paint / LCP. Tracking is unaffected. -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      function loadGtag(){
+        if (window.__gtagLoaded) return;
+        window.__gtagLoaded = true;
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=G-TFCN14Z8K8';
+        document.head.appendChild(s);
+        gtag('js', new Date());
+        gtag('config', 'G-TFCN14Z8K8');
+      }
+      if (document.readyState === 'complete') {
+        ('requestIdleCallback' in window ? requestIdleCallback : setTimeout)(loadGtag);
+      } else {
+        window.addEventListener('load', function(){
+          ('requestIdleCallback' in window ? requestIdleCallback : setTimeout)(loadGtag);
+        });
+      }
+    </script>
   </body>
 </html>

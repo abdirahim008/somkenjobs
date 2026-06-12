@@ -848,11 +848,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const token = typeof req.query.token === 'string' ? req.query.token : undefined;
       const job = await storage.getJobById(jobId, token);
-      
+
       if (!job) {
         return res.status(404).json({ message: "Job not found" });
       }
-      
+
+      // Edge-cache public job content so the detail page's content fetch (the LCP
+      // element) is served fast from Vercel's CDN. Skip caching for token/preview
+      // requests, which may be private/draft views.
+      if (!token) {
+        res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+      }
       res.json(job);
     } catch (error) {
       console.error("Error fetching job:", error);
@@ -917,6 +923,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .slice(0, 2) // Take top 2 most related jobs
         .map(item => item.job);
 
+      // Edge-cache related jobs (rendered below the fold on the detail page).
+      res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
       res.json(relatedJobs);
     } catch (error) {
       console.error("Error fetching related jobs:", error);

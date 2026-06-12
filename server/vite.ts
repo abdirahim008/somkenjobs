@@ -80,6 +80,11 @@ export function serveStatic(app: Express) {
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
+    // The SPA shell is identical for every client-rendered route, so let Vercel's
+    // CDN serve it from the edge. This cuts TTFB (the largest slice of LCP on these
+    // text-based job pages) for repeat visitors while stale-while-revalidate keeps
+    // it fresh after a deploy (jobs refresh ~twice daily via cron).
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
