@@ -3,7 +3,8 @@ import { type InsertJob } from "@shared/schema";
 import * as cron from "node-cron";
 
 
-const RELIEFWEB_API_URL = "https://api.reliefweb.int/v1/jobs";
+// ReliefWeb decommissioned API v1 (returns HTTP 410); v2 is schema-compatible.
+const RELIEFWEB_API_URL = "https://api.reliefweb.int/v2/jobs";
 const UNTALENT_API_URL = "https://untalent.org/api/v1/jobs";
 const UNJOBS_RSS_URL = "https://jobs.un.org/rss";
 const UNJOBS_API_URL = "https://jobs.un.org/api/v1/jobs";
@@ -89,7 +90,7 @@ export class JobFetcher {
       console.log("Fetching jobs from ReliefWeb...");
       
       // Fetch jobs for East African countries
-      const countries = ["Kenya", "Somalia", "Ethiopia", "Uganda", "Tanzania"];
+      const countries = ["Kenya", "Somalia", "Ethiopia", "Djibouti", "Uganda", "Tanzania"];
       
       for (const country of countries) {
         // Build URL parameters for GET request
@@ -160,8 +161,9 @@ export class JobFetcher {
           // Common cities in Kenya and Somalia
           const kenyanCities = ['nairobi', 'mombasa', 'kisumu', 'nakuru', 'eldoret', 'thika', 'malindi', 'kitale', 'garissa', 'isiolo'];
           const somaliCities = ['mogadishu', 'hargeisa', 'bosaso', 'kismayo', 'galkayo', 'baidoa', 'berbera', 'burao'];
-          
-          const allCities = [...kenyanCities, ...somaliCities];
+          const djiboutiCities = ['ali sabieh', 'dikhil', 'tadjoura', 'obock', 'arta'];
+
+          const allCities = [...kenyanCities, ...somaliCities, ...djiboutiCities];
           
           // Check if any city is mentioned in the job content
           for (const city of allCities) {
@@ -245,6 +247,7 @@ export class JobFetcher {
         "Kenya": "kenya",
         "Somalia": "somalia",
         "Ethiopia": "ethiopia",
+        "Djibouti": "djibouti",
         "Uganda": "uganda",
         "Tanzania": "tanzania"
       };
@@ -465,6 +468,7 @@ export class JobFetcher {
         { name: "Kenya", code: "KE" },
         { name: "Somalia", code: "SO" },
         { name: "Ethiopia", code: "ET" },
+        { name: "Djibouti", code: "DJ" },
         { name: "Uganda", code: "UG" },
         { name: "Tanzania", code: "TZ" }
       ];
@@ -627,10 +631,10 @@ export class JobFetcher {
     try {
       // Fetch from ReliefWeb (humanitarian jobs)
       await this.fetchReliefWebJobs();
-      
+
       // Fetch from UN Talent (UN organization jobs)
       await this.fetchUNTalentJobs();
-      
+
       // Fetch from UNGM (UN procurement tenders)
       await this.fetchUNGMTenders();
       

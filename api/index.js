@@ -1124,7 +1124,7 @@ var storage = new DatabaseStorage();
 
 // server/services/jobFetcher.ts
 import * as cron from "node-cron";
-var RELIEFWEB_API_URL = "https://api.reliefweb.int/v1/jobs";
+var RELIEFWEB_API_URL = "https://api.reliefweb.int/v2/jobs";
 var UNTALENT_API_URL = "https://untalent.org/api/v1/jobs";
 var UNJOBS_RSS_URL = "https://jobs.un.org/rss";
 var JobFetcher = class {
@@ -1132,7 +1132,7 @@ var JobFetcher = class {
   async fetchReliefWebJobs() {
     try {
       console.log("Fetching jobs from ReliefWeb...");
-      const countries2 = ["Kenya", "Somalia", "Ethiopia", "Uganda", "Tanzania"];
+      const countries2 = ["Kenya", "Somalia", "Ethiopia", "Djibouti", "Uganda", "Tanzania"];
       for (const country of countries2) {
         const params = new URLSearchParams();
         params.append("appname", "jobconnect-eastafrica-w2ZduVJ8jH9");
@@ -1200,7 +1200,8 @@ var JobFetcher = class {
           const titleAndDesc = `${rwJob.fields.title} ${rwJob.fields.body || ""}`.toLowerCase();
           const kenyanCities = ["nairobi", "mombasa", "kisumu", "nakuru", "eldoret", "thika", "malindi", "kitale", "garissa", "isiolo"];
           const somaliCities = ["mogadishu", "hargeisa", "bosaso", "kismayo", "galkayo", "baidoa", "berbera", "burao"];
-          const allCities = [...kenyanCities, ...somaliCities];
+          const djiboutiCities = ["ali sabieh", "dikhil", "tadjoura", "obock", "arta"];
+          const allCities = [...kenyanCities, ...somaliCities, ...djiboutiCities];
           for (const city of allCities) {
             if (titleAndDesc.includes(city)) {
               const properCityName = city.charAt(0).toUpperCase() + city.slice(1);
@@ -1257,6 +1258,7 @@ var JobFetcher = class {
         "Kenya": "kenya",
         "Somalia": "somalia",
         "Ethiopia": "ethiopia",
+        "Djibouti": "djibouti",
         "Uganda": "uganda",
         "Tanzania": "tanzania"
       };
@@ -1421,6 +1423,7 @@ var JobFetcher = class {
         { name: "Kenya", code: "KE" },
         { name: "Somalia", code: "SO" },
         { name: "Ethiopia", code: "ET" },
+        { name: "Djibouti", code: "DJ" },
         { name: "Uganda", code: "UG" },
         { name: "Tanzania", code: "TZ" }
       ];
