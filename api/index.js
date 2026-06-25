@@ -3181,6 +3181,9 @@ async function registerRoutes(app2) {
       if (!job) {
         return res.status(404).json({ message: "Job not found" });
       }
+      if (!token) {
+        res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+      }
       res.json(job);
     } catch (error) {
       console.error("Error fetching job:", error);
@@ -3221,6 +3224,7 @@ async function registerRoutes(app2) {
         }
         return { job, score };
       }).filter((item) => item.score > 0).sort((a, b) => b.score - a.score).slice(0, 2).map((item) => item.job);
+      res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
       res.json(relatedJobs);
     } catch (error) {
       console.error("Error fetching related jobs:", error);
@@ -5012,29 +5016,33 @@ ${jobUrls}
     try {
       res.setHeader("Content-Type", "application/rss+xml; charset=utf-8");
       const jobs2 = await storage.getAllJobs();
-      const latestJobs = jobs2.slice(0, 50);
+      const latestJobs = jobs2.filter(isGoogleIndexableJob).slice(0, 50);
       const formatDate = (date) => {
         return new Date(date).toUTCString();
       };
       const escapeXml2 = (text2) => {
         return text2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
       };
+      const formatDeadline = (deadline) => new Date(deadline).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
       const jobItems = latestJobs.map((job) => {
         const jobSlug = generateJobSlug(job.title, job.id);
         const jobUrl = `https://somkenjobs.com/jobs/${jobSlug}`;
-        const description = job.description ? escapeXml2(job.description.substring(0, 500)) + (job.description.length > 500 ? "..." : "") : "No description available";
-        const deadlineInfo = job.deadline ? `Application Deadline: ${new Date(job.deadline).toLocaleDateString()}` : "";
+        const location = [job.location, job.country].filter(Boolean).join(", ");
+        const qualification = job.qualifications ? escapeXml2(job.qualifications.substring(0, 300)) + (job.qualifications.length > 300 ? "\u2026" : "") : "";
+        const deadline = job.deadline ? formatDeadline(job.deadline) : "Open until filled";
+        const lines = [
+          `<strong>\u{1F4CD} Location:</strong> ${escapeXml2(location)}<br/>`,
+          qualification ? `<strong>\u{1F393} Qualification:</strong> ${qualification}<br/>` : "",
+          `<strong>\u23F0 Deadline:</strong> ${deadline}<br/>`,
+          `<strong>\u{1F517} Apply:</strong> <a href="${jobUrl}">${jobUrl}</a>`
+        ].filter(Boolean).join("\n        ");
         return `    <item>
       <title>${escapeXml2(job.title)}</title>
       <link>${jobUrl}</link>
       <guid isPermaLink="true">${jobUrl}</guid>
       <pubDate>${formatDate(job.datePosted)}</pubDate>
       <description><![CDATA[
-        <strong>Organization:</strong> ${escapeXml2(job.organization)}<br/>
-        <strong>Location:</strong> ${escapeXml2(job.location)}, ${escapeXml2(job.country)}<br/>
-        ${job.sector ? `<strong>Sector:</strong> ${escapeXml2(job.sector)}<br/>` : ""}
-        ${deadlineInfo ? `<strong>${deadlineInfo}</strong><br/><br/>` : ""}
-        ${description}
+        ${lines}
       ]]></description>
       <category>${escapeXml2(job.country)}</category>
       ${job.sector ? `<category>${escapeXml2(job.sector)}</category>` : ""}

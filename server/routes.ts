@@ -3088,9 +3088,11 @@ ${jobUrls}
     try {
       res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8');
       
-      // Get latest 50 jobs
+      // Get latest 50 published, non-expired public jobs. isGoogleIndexableJob
+      // is the same gate the sitemap uses (published + type job + public +
+      // deadline not passed), so the social feed matches what search engines see.
       const jobs = await storage.getAllJobs();
-      const latestJobs = jobs.slice(0, 50);
+      const latestJobs = jobs.filter(isGoogleIndexableJob).slice(0, 50);
       
       const formatDate = (date: Date | string) => {
         return new Date(date).toUTCString();
@@ -3105,16 +3107,27 @@ ${jobUrls}
           .replace(/'/g, '&#39;');
       };
 
+      // Clean feed for social auto-posting (LinkedIn/Facebook): only the
+      // essentials — title, location, qualification, deadline, and the link.
+      const formatDeadline = (deadline: Date | string) =>
+        new Date(deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
       const jobItems = latestJobs.map(job => {
         const jobSlug = generateJobSlug(job.title, job.id);
         const jobUrl = `https://somkenjobs.com/jobs/${jobSlug}`;
-        const description = job.description 
-          ? escapeXml(job.description.substring(0, 500)) + (job.description.length > 500 ? '...' : '')
-          : 'No description available';
-        
-        const deadlineInfo = job.deadline 
-          ? `Application Deadline: ${new Date(job.deadline).toLocaleDateString()}` 
+
+        const location = [job.location, job.country].filter(Boolean).join(', ');
+        const qualification = job.qualifications
+          ? escapeXml(job.qualifications.substring(0, 300)) + (job.qualifications.length > 300 ? '…' : '')
           : '';
+        const deadline = job.deadline ? formatDeadline(job.deadline) : 'Open until filled';
+
+        const lines = [
+          `<strong>📍 Location:</strong> ${escapeXml(location)}<br/>`,
+          qualification ? `<strong>🎓 Qualification:</strong> ${qualification}<br/>` : '',
+          `<strong>⏰ Deadline:</strong> ${deadline}<br/>`,
+          `<strong>🔗 Apply:</strong> <a href="${jobUrl}">${jobUrl}</a>`,
+        ].filter(Boolean).join('\n        ');
 
         return `    <item>
       <title>${escapeXml(job.title)}</title>
@@ -3122,11 +3135,7 @@ ${jobUrls}
       <guid isPermaLink="true">${jobUrl}</guid>
       <pubDate>${formatDate(job.datePosted)}</pubDate>
       <description><![CDATA[
-        <strong>Organization:</strong> ${escapeXml(job.organization)}<br/>
-        <strong>Location:</strong> ${escapeXml(job.location)}, ${escapeXml(job.country)}<br/>
-        ${job.sector ? `<strong>Sector:</strong> ${escapeXml(job.sector)}<br/>` : ''}
-        ${deadlineInfo ? `<strong>${deadlineInfo}</strong><br/><br/>` : ''}
-        ${description}
+        ${lines}
       ]]></description>
       <category>${escapeXml(job.country)}</category>
       ${job.sector ? `<category>${escapeXml(job.sector)}</category>` : ''}
