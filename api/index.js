@@ -5028,7 +5028,8 @@ ${jobUrls}
         const jobSlug = generateJobSlug(job.title, job.id);
         const jobUrl = `https://somkenjobs.com/jobs/${jobSlug}`;
         const location = [job.location, job.country].filter(Boolean).join(", ");
-        const qualification = job.qualifications ? escapeXml2(job.qualifications.substring(0, 300)) + (job.qualifications.length > 300 ? "\u2026" : "") : "";
+        const qualificationText = stripHtml(job.qualifications);
+        const qualification = qualificationText ? escapeXml2(qualificationText.substring(0, 300)) + (qualificationText.length > 300 ? "\u2026" : "") : "";
         const deadline = job.deadline ? formatDeadline(job.deadline) : "Open until filled";
         const lines = [
           `<strong>\u{1F4CD} Location:</strong> ${escapeXml2(location)}<br/>`,

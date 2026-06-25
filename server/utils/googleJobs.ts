@@ -21,7 +21,7 @@ const escapeHtml = (text: string | null | undefined): string =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
-const stripHtml = (text: string | null | undefined): string =>
+export const stripHtml = (text: string | null | undefined): string =>
   String(text || "")
     .replace(/<[^>]*>/g, " ")
     .replace(/&nbsp;/g, " ")

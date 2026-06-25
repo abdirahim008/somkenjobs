@@ -17,7 +17,7 @@ import { fileURLToPath } from 'url';
 import multer from "multer";
 import { parse as csvParse } from "csv-parse/sync";
 import { sanitizeJobContentFields, sanitizeRichHtml } from "./utils/sanitizeHtml";
-import { generateJobPostingJsonLd, getJobCanonicalUrl, getJobLastModified, isGoogleIndexableJob } from "./utils/googleJobs";
+import { generateJobPostingJsonLd, getJobCanonicalUrl, getJobLastModified, isGoogleIndexableJob, stripHtml } from "./utils/googleJobs";
 import { googleIndexing } from "./services/googleIndexing";
 import { 
   isBotUserAgent, 
@@ -3117,8 +3117,11 @@ ${jobUrls}
         const jobUrl = `https://somkenjobs.com/jobs/${jobSlug}`;
 
         const location = [job.location, job.country].filter(Boolean).join(', ');
-        const qualification = job.qualifications
-          ? escapeXml(job.qualifications.substring(0, 300)) + (job.qualifications.length > 300 ? '…' : '')
+        // qualifications is stored as HTML; reduce it to plain text so social
+        // posts don't show raw tags like <h3>/<ul>/<li>.
+        const qualificationText = stripHtml(job.qualifications);
+        const qualification = qualificationText
+          ? escapeXml(qualificationText.substring(0, 300)) + (qualificationText.length > 300 ? '…' : '')
           : '';
         const deadline = job.deadline ? formatDeadline(job.deadline) : 'Open until filled';
 
