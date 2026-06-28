@@ -16,6 +16,7 @@ var schema_exports = {};
 __export(schema_exports, {
   cities: () => cities,
   countries: () => countries,
+  forgotPasswordSchema: () => forgotPasswordSchema,
   insertCitySchema: () => insertCitySchema,
   insertCountrySchema: () => insertCountrySchema,
   insertInvoiceSchema: () => insertInvoiceSchema,
@@ -25,6 +26,7 @@ __export(schema_exports, {
   invoices: () => invoices,
   jobs: () => jobs,
   loginUserSchema: () => loginUserSchema,
+  resetPasswordSchema: () => resetPasswordSchema,
   sectors: () => sectors,
   users: () => users
 });
@@ -104,6 +106,9 @@ var users = pgTable("users", {
   isAdmin: boolean("is_admin").default(false).notNull(),
   approvedAt: timestamp("approved_at"),
   approvedBy: text("approved_by"),
+  // Password reset: stores a hash of the reset token (never the raw token) + its expiry.
+  resetToken: text("reset_token"),
+  resetTokenExpiry: timestamp("reset_token_expiry"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
@@ -113,11 +118,20 @@ var insertUserSchema = createInsertSchema(users).omit({
   isAdmin: true,
   approvedAt: true,
   approvedBy: true,
+  resetToken: true,
+  resetTokenExpiry: true,
   createdAt: true,
   updatedAt: true
 });
 var loginUserSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters")
+});
+var forgotPasswordSchema = z.object({
+  email: z.string().email("Please enter a valid email address")
+});
+var resetPasswordSchema = z.object({
+  token: z.string().min(1, "Reset token is required"),
   password: z.string().min(6, "Password must be at least 6 characters")
 });
 var invoices = pgTable("invoices", {
@@ -684,6 +698,10 @@ var DatabaseStorage = class {
   }
   async getUserByEmail(email) {
     const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || void 0;
+  }
+  async getUserByResetToken(resetToken) {
+    const [user] = await db.select().from(users).where(eq(users.resetToken, resetToken));
     return user || void 0;
   }
   async createUser(insertUser) {
@@ -1704,10 +1722,61 @@ import bcrypt2 from "bcryptjs";
 import jwt from "jsonwebtoken";
 import fs from "fs";
 import path from "path";
-import { randomBytes } from "crypto";
+import { randomBytes, createHash } from "crypto";
 import { fileURLToPath } from "url";
 import multer from "multer";
 import { parse as csvParse } from "csv-parse/sync";
+
+// server/services/email.ts
+var RESEND_API_URL = "https://api.resend.com/emails";
+var escapeHtml2 = (text2) => text2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+async function sendPasswordResetEmail(to, firstName, resetUrl) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM || "Somken Jobs <noreply@somkenjobs.com>";
+  if (!apiKey) {
+    console.warn(
+      `[email] RESEND_API_KEY not set \u2014 skipping send. Reset URL for ${to}: ${resetUrl}`
+    );
+    return false;
+  }
+  const safeName = escapeHtml2(firstName || "there");
+  const safeUrl3 = escapeHtml2(resetUrl);
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1a1a1a;">
+      <h2 style="color: #0077B5;">Reset your Somken Jobs password</h2>
+      <p>Hi ${safeName},</p>
+      <p>We received a request to reset the password for your Somken Jobs account.
+         Click the button below to choose a new password. This link expires in 1 hour.</p>
+      <p style="text-align: center; margin: 28px 0;">
+        <a href="${safeUrl3}" style="background: #0077B5; color: #fff; padding: 12px 24px;
+           border-radius: 6px; text-decoration: none; display: inline-block;">Reset Password</a>
+      </p>
+      <p>If the button doesn't work, copy and paste this link into your browser:</p>
+      <p style="word-break: break-all; color: #555;">${safeUrl3}</p>
+      <p style="color: #888; font-size: 13px; margin-top: 28px;">
+        If you didn't request this, you can safely ignore this email \u2014 your password won't change.
+      </p>
+    </div>`;
+  const response = await fetch(RESEND_API_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      from,
+      to,
+      subject: "Reset your Somken Jobs password",
+      html
+    })
+  });
+  if (!response.ok) {
+    const detail = await response.text().catch(() => response.statusText);
+    console.error(`[email] Resend send failed (${response.status}): ${detail}`);
+    throw new Error("Failed to send password reset email");
+  }
+  return true;
+}
 
 // shared/seoUtils.ts
 function stripMarkdown(text2) {
@@ -1958,7 +2027,7 @@ function isBotUserAgent(userAgent) {
   const lowerUserAgent = userAgent.toLowerCase();
   return botPatterns.some((pattern) => lowerUserAgent.includes(pattern));
 }
-function escapeHtml2(text2) {
+function escapeHtml3(text2) {
   return String(text2 || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 function safeUrl(url) {
@@ -2401,23 +2470,23 @@ function generateJobDetailsHTML(job) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escapeHtml2(seoMetadata.title)}</title>
-  <meta name="description" content="${escapeHtml2(seoMetadata.description)}">
+  <title>${escapeHtml3(seoMetadata.title)}</title>
+  <meta name="description" content="${escapeHtml3(seoMetadata.description)}">
   ${noindexMeta}
   <link rel="canonical" href="${jobUrl}">
   
   <!-- Open Graph Tags -->
   <meta property="og:type" content="article">
   <meta property="og:url" content="${jobUrl}">
-  <meta property="og:title" content="${escapeHtml2(seoMetadata.title)}">
-  <meta property="og:description" content="${escapeHtml2(seoMetadata.description)}">
+  <meta property="og:title" content="${escapeHtml3(seoMetadata.title)}">
+  <meta property="og:description" content="${escapeHtml3(seoMetadata.description)}">
   <meta property="og:site_name" content="Somken Jobs">
   
   <!-- Twitter Card Tags -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@SomkenJobs">
-  <meta name="twitter:title" content="${escapeHtml2(seoMetadata.title)}">
-  <meta name="twitter:description" content="${escapeHtml2(seoMetadata.description)}">
+  <meta name="twitter:title" content="${escapeHtml3(seoMetadata.title)}">
+  <meta name="twitter:description" content="${escapeHtml3(seoMetadata.description)}">
 
   ${isIndexableJob ? `<!-- Job Structured Data -->
   <script type="application/ld+json">
@@ -2440,10 +2509,10 @@ function generateJobDetailsHTML(job) {
   <main class="container">`);
   htmlParts.push(`
     <div class="job-header">
-      <h1>${escapeHtml2(job.title)}</h1>
+      <h1>${escapeHtml3(job.title)}</h1>
       <div class="job-meta">
-        <strong>${escapeHtml2(job.organization)}</strong> - ${escapeHtml2(job.location)}, ${escapeHtml2(job.country)}
-        ${job.sector ? ` - ${escapeHtml2(job.sector)}` : ""}
+        <strong>${escapeHtml3(job.organization)}</strong> - ${escapeHtml3(job.location)}, ${escapeHtml3(job.country)}
+        ${job.sector ? ` - ${escapeHtml3(job.sector)}` : ""}
         ${job.deadline ? ` \u2022 Deadline: ${new Date(job.deadline).toLocaleDateString()}` : ""}
       </div>
       ${applyUrl ? `<a href="${applyUrl}" target="_blank" rel="noopener noreferrer" class="apply-button">Apply Now</a>` : ""}
@@ -2464,10 +2533,10 @@ function generateJobDetailsHTML(job) {
     ` : ""}
     
     ${h3("Professional Environment")}
-    ${p(`This ${escapeHtml2(job.title)} position requires working in East Africa's dynamic humanitarian landscape, where professionals engage with complex operational challenges while contributing to meaningful community impact. The role demands cultural sensitivity, adaptability, and strong interpersonal skills to work effectively with diverse teams including local staff, international colleagues, government partners, and community representatives. Successful candidates will thrive in fast-paced environments that require both independent decision-making and collaborative problem-solving approaches.`)}
+    ${p(`This ${escapeHtml3(job.title)} position requires working in East Africa's dynamic humanitarian landscape, where professionals engage with complex operational challenges while contributing to meaningful community impact. The role demands cultural sensitivity, adaptability, and strong interpersonal skills to work effectively with diverse teams including local staff, international colleagues, government partners, and community representatives. Successful candidates will thrive in fast-paced environments that require both independent decision-making and collaborative problem-solving approaches.`)}
     
     ${h3("Career Development")}
-    ${p(`Professionals in this role will gain invaluable experience in ${escapeHtml2(job.sector || "humanitarian programming")}, developing specialized technical skills alongside leadership and management capabilities. The position offers exposure to international best practices, opportunities for professional networking within the East African humanitarian community, and potential for career advancement within ${escapeHtml2(job.organization)} or the broader humanitarian sector. This experience provides excellent preparation for senior management roles, technical advisory positions, or specialized program leadership opportunities.`)}
+    ${p(`Professionals in this role will gain invaluable experience in ${escapeHtml3(job.sector || "humanitarian programming")}, developing specialized technical skills alongside leadership and management capabilities. The position offers exposure to international best practices, opportunities for professional networking within the East African humanitarian community, and potential for career advancement within ${escapeHtml3(job.organization)} or the broader humanitarian sector. This experience provides excellent preparation for senior management roles, technical advisory positions, or specialized program leadership opportunities.`)}
   `));
   if (job.responsibilities) {
     htmlParts.push(section(`
@@ -2489,14 +2558,14 @@ function generateJobDetailsHTML(job) {
   `));
   htmlParts.push(section(`
     ${h2("Organization Background")}
-    ${p(`${escapeHtml2(job.organization)} maintains a strong operational presence throughout East Africa, implementing critical humanitarian and development programming that addresses the needs of vulnerable populations across the region. The organization's comprehensive approach encompasses emergency response capabilities, long-term development initiatives, and capacity building programs designed to create sustainable positive change in communities. Their commitment to local partnership, evidence-based programming, and innovative approaches makes them a respected leader in the humanitarian sector.`)}
+    ${p(`${escapeHtml3(job.organization)} maintains a strong operational presence throughout East Africa, implementing critical humanitarian and development programming that addresses the needs of vulnerable populations across the region. The organization's comprehensive approach encompasses emergency response capabilities, long-term development initiatives, and capacity building programs designed to create sustainable positive change in communities. Their commitment to local partnership, evidence-based programming, and innovative approaches makes them a respected leader in the humanitarian sector.`)}
     
-    ${p(`Working with ${escapeHtml2(job.organization)} provides opportunities to contribute to high-impact programming while developing professional skills in a supportive, mission-driven environment. The organization values staff development, maintains strong safety and security protocols, and offers competitive compensation packages designed to attract and retain talented humanitarian professionals. Team members benefit from comprehensive training programs, mentorship opportunities, and exposure to cutting-edge approaches in ${escapeHtml2(job.sector || "humanitarian")} programming.`)}
+    ${p(`Working with ${escapeHtml3(job.organization)} provides opportunities to contribute to high-impact programming while developing professional skills in a supportive, mission-driven environment. The organization values staff development, maintains strong safety and security protocols, and offers competitive compensation packages designed to attract and retain talented humanitarian professionals. Team members benefit from comprehensive training programs, mentorship opportunities, and exposure to cutting-edge approaches in ${escapeHtml3(job.sector || "humanitarian")} programming.`)}
     
     ${applyUrl ? `
     ${h3("Next Steps")}
-    ${p(`To apply for this ${escapeHtml2(job.title)} position, visit the official application portal where you can submit your comprehensive application materials directly to ${escapeHtml2(job.organization)}'s recruitment team. The organization maintains transparent, merit-based selection processes designed to identify candidates who demonstrate both technical excellence and commitment to humanitarian values.`)}
-    ${p(`<a href="${applyUrl}" target="_blank" rel="noopener noreferrer" style="color: #0077B5; font-weight: 600;">Submit Application for ${escapeHtml2(job.title)} Position</a>`)}
+    ${p(`To apply for this ${escapeHtml3(job.title)} position, visit the official application portal where you can submit your comprehensive application materials directly to ${escapeHtml3(job.organization)}'s recruitment team. The organization maintains transparent, merit-based selection processes designed to identify candidates who demonstrate both technical excellence and commitment to humanitarian values.`)}
+    ${p(`<a href="${applyUrl}" target="_blank" rel="noopener noreferrer" style="color: #0077B5; font-weight: 600;">Submit Application for ${escapeHtml3(job.title)} Position</a>`)}
     ` : ""}
   `));
   if (job.howToApply) {
@@ -2561,7 +2630,7 @@ var JWT_SECRET = (() => {
 })();
 var upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 var generatePrivateToken = () => randomBytes(32).toString("hex");
-var escapeHtml3 = (text2) => String(text2 || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+var escapeHtml4 = (text2) => String(text2 || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 var safeUrl2 = (url) => {
   if (!url) return "";
   try {
@@ -2587,8 +2656,8 @@ var readSpaIndexHtml = () => {
 var applyJobsListingMetadata = (html, totalCount) => {
   const pageUrl = "https://somkenjobs.com/jobs";
   const metadata = generateJobsListingSEOMetadata(totalCount);
-  const title = escapeHtml3(metadata.title);
-  const description = escapeHtml3(metadata.description);
+  const title = escapeHtml4(metadata.title);
+  const description = escapeHtml4(metadata.description);
   const replaceMetaName = (input, name, content) => input.replace(new RegExp(`<meta\\s+name=["']${name}["']\\s+content=["'][^"']*["']\\s*/?>`, "i"), `<meta name="${name}" content="${content}">`);
   const replaceMetaProperty = (input, property, content) => input.replace(new RegExp(`<meta\\s+property=["']${property}["']\\s+content=["'][^"']*["']\\s*/?>`, "i"), `<meta property="${property}" content="${content}">`);
   html = html.replace(/<title>[^<]*<\/title>/i, `<title>${title}</title>`);
@@ -3001,6 +3070,54 @@ async function registerRoutes(app2) {
     } catch (error) {
       console.error("Login error:", error);
       res.status(401).json({ message: "Login failed" });
+    }
+  });
+  app2.post("/api/auth/forgot-password", async (req, res) => {
+    const genericMessage = "If an account exists for that email, a password reset link has been sent.";
+    try {
+      const { email } = forgotPasswordSchema.parse(req.body);
+      const user = await storage.getUserByEmail(email);
+      if (user) {
+        const rawToken = randomBytes(32).toString("hex");
+        const tokenHash = createHash("sha256").update(rawToken).digest("hex");
+        const expiry = new Date(Date.now() + 60 * 60 * 1e3);
+        await storage.updateUser(user.id, {
+          resetToken: tokenHash,
+          resetTokenExpiry: expiry
+        });
+        const baseUrl = process.env.APP_BASE_URL || "https://somkenjobs.com";
+        const resetUrl = `${baseUrl}/reset-password?token=${rawToken}`;
+        try {
+          await sendPasswordResetEmail(user.email, user.firstName, resetUrl);
+        } catch (emailError) {
+          console.error("Failed to send password reset email:", emailError);
+        }
+      }
+      res.json({ message: genericMessage });
+    } catch (error) {
+      res.status(400).json({ message: "Please enter a valid email address." });
+    }
+  });
+  app2.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, password } = resetPasswordSchema.parse(req.body);
+      const tokenHash = createHash("sha256").update(token).digest("hex");
+      const user = await storage.getUserByResetToken(tokenHash);
+      if (!user || !user.resetTokenExpiry || new Date(user.resetTokenExpiry) < /* @__PURE__ */ new Date()) {
+        return res.status(400).json({
+          message: "This reset link is invalid or has expired. Please request a new one."
+        });
+      }
+      const hashedPassword = await bcrypt2.hash(password, 10);
+      await storage.updateUser(user.id, {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpiry: null
+      });
+      res.json({ message: "Your password has been reset. You can now log in." });
+    } catch (error) {
+      console.error("Reset password error:", error);
+      res.status(400).json({ message: "Password reset failed. Please try again." });
     }
   });
   app2.get("/api/auth/user", authenticate, (req, res) => {
@@ -3956,10 +4073,10 @@ async function registerRoutes(app2) {
     return `
       <article style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:0 0 14px;background:#fff;">
         <h3 style="font-size:18px;margin:0 0 8px;">
-          <a href="${jobUrl}" style="color:#005ea8;text-decoration:none;">${escapeHtml3(job.title)}</a>
+          <a href="${jobUrl}" style="color:#005ea8;text-decoration:none;">${escapeHtml4(job.title)}</a>
         </h3>
-        <p style="margin:0 0 8px;color:#4b5563;"><strong>${escapeHtml3(job.organization)}</strong>${location ? ` \u2022 ${escapeHtml3(location)}` : ""}</p>
-        <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">${escapeHtml3(String(job.description || "").replace(/<[^>]*>/g, "").slice(0, 180))}${String(job.description || "").length > 180 ? "..." : ""}</p>
+        <p style="margin:0 0 8px;color:#4b5563;"><strong>${escapeHtml4(job.organization)}</strong>${location ? ` \u2022 ${escapeHtml4(location)}` : ""}</p>
+        <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">${escapeHtml4(String(job.description || "").replace(/<[^>]*>/g, "").slice(0, 180))}${String(job.description || "").length > 180 ? "..." : ""}</p>
       </article>`;
   }).join("");
   const renderServerLandingContent = ({
@@ -3974,11 +4091,11 @@ async function registerRoutes(app2) {
       <div style="border:1px solid #e5e7eb;border-radius:8px;padding:18px;background:#fff;">
         <p style="margin:0;color:#4b5563;">No matching jobs are available right now. Browse all current jobs or check again after the next update.</p>
       </div>`;
-    const linksHtml = relatedLinks.map((link) => `<a href="${link.href}" style="display:inline-block;margin:0 8px 8px 0;padding:8px 12px;border:1px solid #dbeafe;border-radius:999px;color:#005ea8;text-decoration:none;background:#eff6ff;">${escapeHtml3(link.label)}</a>`).join("");
+    const linksHtml = relatedLinks.map((link) => `<a href="${link.href}" style="display:inline-block;margin:0 8px 8px 0;padding:8px 12px;border:1px solid #dbeafe;border-radius:999px;color:#005ea8;text-decoration:none;background:#eff6ff;">${escapeHtml4(link.label)}</a>`).join("");
     const faqHtml = faqItems.map((item) => `
       <details style="border-top:1px solid #e5e7eb;padding:14px 0;">
-        <summary style="font-weight:700;color:#111827;">${escapeHtml3(item.question)}</summary>
-        <p style="margin:10px 0 0;color:#4b5563;line-height:1.7;">${escapeHtml3(item.answer)}</p>
+        <summary style="font-weight:700;color:#111827;">${escapeHtml4(item.question)}</summary>
+        <p style="margin:10px 0 0;color:#4b5563;line-height:1.7;">${escapeHtml4(item.answer)}</p>
       </details>`).join("");
     const guideSections = [
       {
@@ -3995,23 +4112,23 @@ async function registerRoutes(app2) {
       }
     ].map((section) => `
       <section style="border:1px solid #e5e7eb;border-radius:8px;background:#fff;padding:18px;margin:0 0 16px;">
-        <h2 style="font-size:22px;margin:0 0 10px;">${escapeHtml3(section.title)}</h2>
-        <p style="color:#4b5563;line-height:1.7;margin:0;">${escapeHtml3(section.body)}</p>
+        <h2 style="font-size:22px;margin:0 0 10px;">${escapeHtml4(section.title)}</h2>
+        <p style="color:#4b5563;line-height:1.7;margin:0;">${escapeHtml4(section.body)}</p>
       </section>`).join("");
     return `
       <main style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#111827;">
         <section style="background:#0077B5;color:#fff;padding:42px 20px;">
           <div style="max-width:1120px;margin:0 auto;">
             <p style="margin:0 0 10px;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Somken Jobs</p>
-            <h1 style="margin:0 0 14px;font-size:38px;line-height:1.15;">${escapeHtml3(h1)}</h1>
-            <p style="max-width:820px;margin:0;font-size:18px;line-height:1.7;">${escapeHtml3(description)}</p>
+            <h1 style="margin:0 0 14px;font-size:38px;line-height:1.15;">${escapeHtml4(h1)}</h1>
+            <p style="max-width:820px;margin:0;font-size:18px;line-height:1.7;">${escapeHtml4(description)}</p>
           </div>
         </section>
         <section style="max-width:1120px;margin:0 auto;padding:34px 20px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;">
           <div>
             ${guideSections}
             <h2 style="font-size:26px;margin:0 0 12px;">Latest matching jobs</h2>
-            <p style="color:#4b5563;line-height:1.7;margin:0 0 22px;">${escapeHtml3(intro)}</p>
+            <p style="color:#4b5563;line-height:1.7;margin:0 0 22px;">${escapeHtml4(intro)}</p>
             ${jobCards}
           </div>
           <aside>
@@ -4069,14 +4186,14 @@ async function registerRoutes(app2) {
         const devHtmlPath = path.join(__dirname, "../client/index.html");
         html = fs.readFileSync(devHtmlPath, "utf-8");
       }
-      html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml3(pageTitle)}</title>`);
-      html = html.replace(/<meta name="title" content="[^"]*">/, `<meta name="title" content="${escapeHtml3(pageTitle)}">`);
-      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeHtml3(pageDescription)}">`);
-      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeHtml3(pageTitle)}">`);
-      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeHtml3(pageDescription)}">`);
+      html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml4(pageTitle)}</title>`);
+      html = html.replace(/<meta name="title" content="[^"]*">/, `<meta name="title" content="${escapeHtml4(pageTitle)}">`);
+      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeHtml4(pageDescription)}">`);
+      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeHtml4(pageTitle)}">`);
+      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeHtml4(pageDescription)}">`);
       html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${pageUrl}">`);
-      html = html.replace(/<meta name="twitter:title" content="[^"]*">/, `<meta name="twitter:title" content="${escapeHtml3(pageTitle)}">`);
-      html = html.replace(/<meta name="twitter:description" content="[^"]*">/, `<meta name="twitter:description" content="${escapeHtml3(pageDescription)}">`);
+      html = html.replace(/<meta name="twitter:title" content="[^"]*">/, `<meta name="twitter:title" content="${escapeHtml4(pageTitle)}">`);
+      html = html.replace(/<meta name="twitter:description" content="[^"]*">/, `<meta name="twitter:description" content="${escapeHtml4(pageDescription)}">`);
       html = html.replace(/<meta name="twitter:url" content="[^"]*">/, `<meta name="twitter:url" content="${pageUrl}">`);
       html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${pageUrl}">`);
       const structuredData = {
@@ -4178,14 +4295,14 @@ async function registerRoutes(app2) {
         const devHtmlPath = path.join(__dirname, "../client/index.html");
         html = fs.readFileSync(devHtmlPath, "utf-8");
       }
-      html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml3(pageTitle)}</title>`);
-      html = html.replace(/<meta name="title" content="[^"]*">/, `<meta name="title" content="${escapeHtml3(pageTitle)}">`);
-      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeHtml3(pageDescription)}">`);
-      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeHtml3(pageTitle)}">`);
-      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeHtml3(pageDescription)}">`);
+      html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml4(pageTitle)}</title>`);
+      html = html.replace(/<meta name="title" content="[^"]*">/, `<meta name="title" content="${escapeHtml4(pageTitle)}">`);
+      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeHtml4(pageDescription)}">`);
+      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeHtml4(pageTitle)}">`);
+      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeHtml4(pageDescription)}">`);
       html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${pageUrl}">`);
-      html = html.replace(/<meta name="twitter:title" content="[^"]*">/, `<meta name="twitter:title" content="${escapeHtml3(pageTitle)}">`);
-      html = html.replace(/<meta name="twitter:description" content="[^"]*">/, `<meta name="twitter:description" content="${escapeHtml3(pageDescription)}">`);
+      html = html.replace(/<meta name="twitter:title" content="[^"]*">/, `<meta name="twitter:title" content="${escapeHtml4(pageTitle)}">`);
+      html = html.replace(/<meta name="twitter:description" content="[^"]*">/, `<meta name="twitter:description" content="${escapeHtml4(pageDescription)}">`);
       html = html.replace(/<meta name="twitter:url" content="[^"]*">/, `<meta name="twitter:url" content="${pageUrl}">`);
       html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${pageUrl}">`);
       const structuredData = {
@@ -4255,14 +4372,14 @@ async function registerRoutes(app2) {
       const pageTitle = `Jobs in ${cityConfig.name} | NGO, UN & Professional Vacancies | Somken Jobs`;
       const pageDescription = `Find current jobs in ${cityConfig.name}, ${cityConfig.country}, including NGO, UN, humanitarian, development, and professional vacancies. ${cityConfig.description}`;
       let html = readIndexTemplate();
-      html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml3(pageTitle)}</title>`);
-      html = html.replace(/<meta name="title" content="[^"]*">/, `<meta name="title" content="${escapeHtml3(pageTitle)}">`);
-      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeHtml3(pageDescription)}">`);
-      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeHtml3(pageTitle)}">`);
-      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeHtml3(pageDescription)}">`);
+      html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml4(pageTitle)}</title>`);
+      html = html.replace(/<meta name="title" content="[^"]*">/, `<meta name="title" content="${escapeHtml4(pageTitle)}">`);
+      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeHtml4(pageDescription)}">`);
+      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeHtml4(pageTitle)}">`);
+      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeHtml4(pageDescription)}">`);
       html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${pageUrl}">`);
-      html = html.replace(/<meta name="twitter:title" content="[^"]*">/, `<meta name="twitter:title" content="${escapeHtml3(pageTitle)}">`);
-      html = html.replace(/<meta name="twitter:description" content="[^"]*">/, `<meta name="twitter:description" content="${escapeHtml3(pageDescription)}">`);
+      html = html.replace(/<meta name="twitter:title" content="[^"]*">/, `<meta name="twitter:title" content="${escapeHtml4(pageTitle)}">`);
+      html = html.replace(/<meta name="twitter:description" content="[^"]*">/, `<meta name="twitter:description" content="${escapeHtml4(pageDescription)}">`);
       html = html.replace(/<meta name="twitter:url" content="[^"]*">/, `<meta name="twitter:url" content="${pageUrl}">`);
       html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${pageUrl}">`);
       const structuredData = {
@@ -4449,14 +4566,14 @@ async function registerRoutes(app2) {
       const matchingJobs = allJobs.filter((job) => isPublicCurrentJob(job) && config.filter(job));
       const pageUrl = `https://somkenjobs.com${config.canonicalPath}`;
       let html = readIndexTemplate();
-      html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml3(config.title)}</title>`);
-      html = html.replace(/<meta name="title" content="[^"]*">/, `<meta name="title" content="${escapeHtml3(config.title)}">`);
-      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeHtml3(config.description)}">`);
-      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeHtml3(config.title)}">`);
-      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeHtml3(config.description)}">`);
+      html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml4(config.title)}</title>`);
+      html = html.replace(/<meta name="title" content="[^"]*">/, `<meta name="title" content="${escapeHtml4(config.title)}">`);
+      html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeHtml4(config.description)}">`);
+      html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeHtml4(config.title)}">`);
+      html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeHtml4(config.description)}">`);
       html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${pageUrl}">`);
-      html = html.replace(/<meta name="twitter:title" content="[^"]*">/, `<meta name="twitter:title" content="${escapeHtml3(config.title)}">`);
-      html = html.replace(/<meta name="twitter:description" content="[^"]*">/, `<meta name="twitter:description" content="${escapeHtml3(config.description)}">`);
+      html = html.replace(/<meta name="twitter:title" content="[^"]*">/, `<meta name="twitter:title" content="${escapeHtml4(config.title)}">`);
+      html = html.replace(/<meta name="twitter:description" content="[^"]*">/, `<meta name="twitter:description" content="${escapeHtml4(config.description)}">`);
       html = html.replace(/<meta name="twitter:url" content="[^"]*">/, `<meta name="twitter:url" content="${pageUrl}">`);
       html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${pageUrl}">`);
       const structuredData = {
@@ -4678,9 +4795,9 @@ async function registerRoutes(app2) {
       const twitterLabels = `
     <!-- Enhanced Twitter Cards for Job Previews -->
     <meta name="twitter:label1" content="Employer">
-    <meta name="twitter:data1" content="${escapeHtml3(job.organization)}">
+    <meta name="twitter:data1" content="${escapeHtml4(job.organization)}">
     <meta name="twitter:label2" content="Location">
-    <meta name="twitter:data2" content="${escapeHtml3(job.location)}, ${escapeHtml3(job.country)}">
+    <meta name="twitter:data2" content="${escapeHtml4(job.location)}, ${escapeHtml4(job.country)}">
     ${job.deadline ? `<meta name="twitter:label3" content="Deadline">
     <meta name="twitter:data3" content="${Math.ceil((new Date(job.deadline).getTime() - Date.now()) / (1e3 * 60 * 60 * 24))} days left">` : ""}`;
       html = html.replace(
@@ -4739,15 +4856,15 @@ async function registerRoutes(app2) {
             <div class="bg-white rounded-lg shadow-sm p-8">
               <div class="flex items-start justify-between mb-6">
                 <div class="flex-1">
-                  <h1 class="text-3xl font-bold text-gray-900 mb-4">${escapeHtml3(job.title)}</h1>
+                  <h1 class="text-3xl font-bold text-gray-900 mb-4">${escapeHtml4(job.title)}</h1>
                   <div class="flex flex-wrap items-center gap-4 text-gray-600">
                     <div class="flex items-center">
-                      <span class="font-medium">${escapeHtml3(job.organization)}</span>
+                      <span class="font-medium">${escapeHtml4(job.organization)}</span>
                     </div>
                     <div class="flex items-center">
-                      <span>${escapeHtml3(job.location)}, ${escapeHtml3(job.country)}</span>
+                      <span>${escapeHtml4(job.location)}, ${escapeHtml4(job.country)}</span>
                     </div>
-                    ${job.sector ? `<span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">${escapeHtml3(job.sector)}</span>` : ""}
+                    ${job.sector ? `<span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">${escapeHtml4(job.sector)}</span>` : ""}
                   </div>
                 </div>
               </div>
@@ -4774,7 +4891,7 @@ async function registerRoutes(app2) {
                         <div class="space-y-2">${urls.map((url) => {
             const safeAttachmentUrl = safeUrl2(url) || (url.startsWith("/uploads/") ? url : "");
             if (!safeAttachmentUrl) return "";
-            const name = escapeHtml3(url.split("/").pop()?.replace(/^\d+-/, "") || "Download");
+            const name = escapeHtml4(url.split("/").pop()?.replace(/^\d+-/, "") || "Download");
             return `<div><a href="${safeAttachmentUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline">${name}</a></div>`;
           }).join("")}</div>`;
         } catch {
@@ -4800,16 +4917,16 @@ async function registerRoutes(app2) {
                       ` : ""}
                       <div>
                         <span class="font-medium">Organization:</span>
-                        <span class="ml-2">${escapeHtml3(job.organization)}</span>
+                        <span class="ml-2">${escapeHtml4(job.organization)}</span>
                       </div>
                       <div>
                         <span class="font-medium">Location:</span>
-                        <span class="ml-2">${escapeHtml3(job.location)}, ${escapeHtml3(job.country)}</span>
+                        <span class="ml-2">${escapeHtml4(job.location)}, ${escapeHtml4(job.country)}</span>
                       </div>
                       ${job.sector ? `
                         <div>
                           <span class="font-medium">Sector:</span>
-                          <span class="ml-2">${escapeHtml3(job.sector)}</span>
+                          <span class="ml-2">${escapeHtml4(job.sector)}</span>
                         </div>
                       ` : ""}
                     </div>
@@ -4850,13 +4967,13 @@ async function registerRoutes(app2) {
     <!-- Job-specific meta tags for enhanced social media previews -->
     ${shouldNoindex ? `<meta name="robots" content="${robotsContent}">` : ""}
     <meta property="article:published_time" content="${new Date(job.datePosted).toISOString()}">
-    <meta property="article:section" content="${escapeHtml3(job.sector || "Humanitarian")}">
-    <meta property="article:tag" content="${escapeHtml3(job.sector || "Humanitarian")}">
-    <meta property="article:author" content="${escapeHtml3(job.organization)}">
-    <meta property="job:location" content="${escapeHtml3(job.location)}, ${escapeHtml3(job.country)}">
-    <meta property="job:company" content="${escapeHtml3(job.organization)}">
+    <meta property="article:section" content="${escapeHtml4(job.sector || "Humanitarian")}">
+    <meta property="article:tag" content="${escapeHtml4(job.sector || "Humanitarian")}">
+    <meta property="article:author" content="${escapeHtml4(job.organization)}">
+    <meta property="job:location" content="${escapeHtml4(job.location)}, ${escapeHtml4(job.country)}">
+    <meta property="job:company" content="${escapeHtml4(job.organization)}">
     ${job.deadline ? `<meta property="job:expires" content="${Math.ceil((new Date(job.deadline).getTime() - Date.now()) / (1e3 * 60 * 60 * 24))} days left">` : ""}
-    <meta property="job:category" content="${escapeHtml3(job.sector || "Humanitarian")}">
+    <meta property="job:category" content="${escapeHtml4(job.sector || "Humanitarian")}">
     <meta property="og:site_name" content="Somken Jobs">
     <meta property="og:locale" content="en_US">
     

@@ -86,6 +86,9 @@ export const users = pgTable("users", {
   isAdmin: boolean("is_admin").default(false).notNull(),
   approvedAt: timestamp("approved_at"),
   approvedBy: text("approved_by"),
+  // Password reset: stores a hash of the reset token (never the raw token) + its expiry.
+  resetToken: text("reset_token"),
+  resetTokenExpiry: timestamp("reset_token_expiry"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -96,6 +99,8 @@ export const insertUserSchema = createInsertSchema(users).omit({
   isAdmin: true,
   approvedAt: true,
   approvedBy: true,
+  resetToken: true,
+  resetTokenExpiry: true,
   createdAt: true,
   updatedAt: true,
 });
@@ -105,8 +110,19 @@ export const loginUserSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Reset token is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type LoginUser = z.infer<typeof loginUserSchema>;
+export type ForgotPassword = z.infer<typeof forgotPasswordSchema>;
+export type ResetPassword = z.infer<typeof resetPasswordSchema>;
 export type User = typeof users.$inferSelect;
 
 // Invoice schema for employers to generate invoices for published jobs

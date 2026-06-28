@@ -23,6 +23,7 @@ export interface IStorage {
   // User authentication methods
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByResetToken(resetToken: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
   getAllPendingUsers(): Promise<User[]>;
@@ -190,6 +191,12 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getUserByResetToken(resetToken: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.resetToken === resetToken,
+    );
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
     const user: User = { 
@@ -207,6 +214,8 @@ export class MemStorage implements IStorage {
       isAdmin: false,
       approvedAt: null,
       approvedBy: null,
+      resetToken: null,
+      resetTokenExpiry: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -589,6 +598,11 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async getUserByResetToken(resetToken: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.resetToken, resetToken));
     return user || undefined;
   }
 

@@ -9,10 +9,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { insertUserSchema, loginUserSchema, type InsertUser, type LoginUser } from "@shared/schema";
-import { UserPlus, LogIn } from "lucide-react";
+import { insertUserSchema, loginUserSchema, forgotPasswordSchema, type InsertUser, type LoginUser, type ForgotPassword } from "@shared/schema";
+import { UserPlus, LogIn, KeyRound, MailCheck } from "lucide-react";
 import { showSuccessToast, showErrorToast, showWarningToast } from "@/lib/toast-utils";
 
 interface AuthModalProps {
@@ -25,18 +27,53 @@ interface AuthModalProps {
 export default function AuthModal({ children, open: controlledOpen, onOpenChange, defaultTab = "login" }: AuthModalProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(defaultTab);
-  
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotSubmitted, setForgotSubmitted] = useState(false);
+
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = onOpenChange || setInternalOpen;
 
-  // Update active tab when defaultTab changes and modal opens
+  // Update active tab when defaultTab changes and modal opens; reset the
+  // forgot-password view each time the modal opens.
   useEffect(() => {
     if (open) {
       setActiveTab(defaultTab);
+      setShowForgot(false);
+      setForgotSubmitted(false);
     }
   }, [open, defaultTab]);
   const { login, register } = useAuth();
   const { toast } = useToast();
+
+  const forgotForm = useForm<ForgotPassword>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: "" },
+  });
+
+  const forgotPassword = useMutation({
+    mutationFn: async (data: ForgotPassword): Promise<{ message: string }> => {
+      const response = await apiRequest("POST", "/api/auth/forgot-password", data);
+      return response.json();
+    },
+  });
+
+  const onForgot = async (data: ForgotPassword) => {
+    try {
+      await forgotPassword.mutateAsync(data);
+      setForgotSubmitted(true);
+    } catch (error) {
+      showErrorToast(
+        "Request Failed",
+        error instanceof Error ? error.message : "Please try again",
+      );
+    }
+  };
+
+  const backToLogin = () => {
+    setShowForgot(false);
+    setForgotSubmitted(false);
+    forgotForm.reset();
+  };
 
   const loginForm = useForm<LoginUser>({
     resolver: zodResolver(loginUserSchema),
@@ -102,6 +139,71 @@ export default function AuthModal({ children, open: controlledOpen, onOpenChange
           </DialogDescription>
         </DialogHeader>
         
+        {showForgot ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5" />
+                Reset Password
+              </CardTitle>
+              <CardDescription>
+                {forgotSubmitted
+                  ? "Check your email for a reset link"
+                  : "Enter your account email and we'll send you a reset link"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {forgotSubmitted ? (
+                <div className="space-y-4 text-center">
+                  <MailCheck className="h-10 w-10 mx-auto text-green-600" />
+                  <p className="text-sm text-muted-foreground">
+                    If an account exists for that email, a password reset link is on its way.
+                    The link expires in 1 hour.
+                  </p>
+                  <Button variant="outline" className="w-full" onClick={backToLogin}>
+                    Back to Login
+                  </Button>
+                </div>
+              ) : (
+                <Form {...forgotForm}>
+                  <form onSubmit={forgotForm.handleSubmit(onForgot)} className="space-y-4">
+                    <FormField
+                      control={forgotForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input placeholder="your.email@company.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <LoadingButton
+                      type="submit"
+                      className="w-full"
+                      style={{ backgroundColor: "#0077B5" }}
+                      loading={forgotPassword.isPending}
+                      loadingText="Sending..."
+                    >
+                      Send Reset Link
+                    </LoadingButton>
+                    <div className="text-center">
+                      <button
+                        type="button"
+                        onClick={backToLogin}
+                        className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+                      >
+                        Back to Login
+                      </button>
+                    </div>
+                  </form>
+                </Form>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "login" | "register")}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>
@@ -148,15 +250,24 @@ export default function AuthModal({ children, open: controlledOpen, onOpenChange
                         </FormItem>
                       )}
                     />
-                    <LoadingButton 
-                      type="submit" 
-                      className="w-full" 
+                    <LoadingButton
+                      type="submit"
+                      className="w-full"
                       style={{ backgroundColor: "#0077B5" }}
                       loading={login.isPending}
                       loadingText="Signing in..."
                     >
                       Sign In
                     </LoadingButton>
+                    <div className="text-center">
+                      <button
+                        type="button"
+                        onClick={() => setShowForgot(true)}
+                        className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
                   </form>
                 </Form>
               </CardContent>
@@ -292,6 +403,7 @@ export default function AuthModal({ children, open: controlledOpen, onOpenChange
             </Card>
           </TabsContent>
         </Tabs>
+        )}
       </DialogContent>
     </Dialog>
   );

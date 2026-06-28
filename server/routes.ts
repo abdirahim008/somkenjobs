@@ -5,19 +5,20 @@ import { storage } from "./storage";
 import { jobFetcher } from "./services/jobFetcher";
 import { seedDatabase } from "./seed";
 import { z } from "zod";
-import { insertUserSchema, loginUserSchema, insertJobSchema, type User, insertCountrySchema, insertCitySchema, insertSectorSchema } from "@shared/schema";
+import { insertUserSchema, loginUserSchema, forgotPasswordSchema, resetPasswordSchema, insertJobSchema, type User, insertCountrySchema, insertCitySchema, insertSectorSchema } from "@shared/schema";
 import { extractJobIdFromSlug, generateJobSlug } from "@shared/utils";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import fs from "fs";
 import path from "path";
-import { randomBytes } from "crypto";
+import { randomBytes, createHash } from "crypto";
 import { fileURLToPath } from 'url';
 import multer from "multer";
 import { parse as csvParse } from "csv-parse/sync";
 import { sanitizeJobContentFields, sanitizeRichHtml } from "./utils/sanitizeHtml";
 import { generateJobPostingJsonLd, getJobCanonicalUrl, getJobLastModified, isGoogleIndexableJob, stripHtml } from "./utils/googleJobs";
+import { sendPasswordResetEmail } from "./services/email";
 import { googleIndexing } from "./services/googleIndexing";
 import { 
   isBotUserAgent, 
@@ -608,6 +609,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Login error:", error);
       res.status(401).json({ message: "Login failed" });
+    }
+  });
+
+  // Request a password reset link. Always responds with the same generic
+  // message so it can't be used to discover which emails have accounts.
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    const genericMessage =
+      "If an account exists for that email, a password reset link has been sent.";
+    try {
+      const { email } = forgotPasswordSchema.parse(req.body);
+      const user = await storage.getUserByEmail(email);
+
+      if (user) {
+        // Store only a hash of the token; the raw token goes in the email link.
+        const rawToken = randomBytes(32).toString("hex");
+        const tokenHash = createHash("sha256").update(rawToken).digest("hex");
+        const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+        await storage.updateUser(user.id, {
+          resetToken: tokenHash,
+          resetTokenExpiry: expiry,
+        });
+
+        // Use a fixed base URL (never the request Host header) to avoid
+        // reset-link poisoning via a spoofed Host.
+        const baseUrl = process.env.APP_BASE_URL || "https://somkenjobs.com";
+        const resetUrl = `${baseUrl}/reset-password?token=${rawToken}`;
+
+        try {
+          await sendPasswordResetEmail(user.email, user.firstName, resetUrl);
+        } catch (emailError) {
+          console.error("Failed to send password reset email:", emailError);
+          // Don't surface email failures to the caller (still generic success).
+        }
+      }
+
+      res.json({ message: genericMessage });
+    } catch (error) {
+      // Invalid email format etc. — return the same generic message.
+      res.status(400).json({ message: "Please enter a valid email address." });
+    }
+  });
+
+  // Complete a password reset with a valid, unexpired token.
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, password } = resetPasswordSchema.parse(req.body);
+      const tokenHash = createHash("sha256").update(token).digest("hex");
+
+      const user = await storage.getUserByResetToken(tokenHash);
+      if (
+        !user ||
+        !user.resetTokenExpiry ||
+        new Date(user.resetTokenExpiry) < new Date()
+      ) {
+        return res.status(400).json({
+          message:
+            "This reset link is invalid or has expired. Please request a new one.",
+        });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      await storage.updateUser(user.id, {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpiry: null,
+      });
+
+      res.json({ message: "Your password has been reset. You can now log in." });
+    } catch (error) {
+      console.error("Reset password error:", error);
+      res.status(400).json({ message: "Password reset failed. Please try again." });
     }
   });
 
