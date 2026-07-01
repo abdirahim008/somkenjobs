@@ -5,8 +5,6 @@ import * as cron from "node-cron";
 
 // ReliefWeb decommissioned API v1 (returns HTTP 410); v2 is schema-compatible.
 const RELIEFWEB_API_URL = "https://api.reliefweb.int/v2/jobs";
-const UNJOBS_RSS_URL = "https://jobs.un.org/rss";
-const UNJOBS_API_URL = "https://jobs.un.org/api/v1/jobs";
 
 const DEADLINE_MONTHS: Record<string, number> = {
   jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
@@ -279,77 +277,6 @@ export class JobFetcher {
       }
     } catch (error) {
       console.error("Error fetching ReliefWeb jobs:", error);
-    }
-  }
-
-  async fetchUNJobs(): Promise<void> {
-    try {
-      console.log("Fetching jobs from UN Jobs RSS...");
-      
-      const response = await fetch(UNJOBS_RSS_URL);
-      if (!response.ok) {
-        throw new Error(`UN Jobs RSS error: ${response.status} ${response.statusText}`);
-      }
-
-      const xmlText = await response.text();
-      
-      // Simple XML parsing for RSS (in production, you'd use a proper XML parser)
-      const itemMatches = xmlText.match(/<item>[\s\S]*?<\/item>/g) || [];
-      
-      for (const item of itemMatches) {
-        const titleMatch = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/);
-        const linkMatch = item.match(/<link>(.*?)<\/link>/);
-        const descMatch = item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/);
-        const pubDateMatch = item.match(/<pubDate>(.*?)<\/pubDate>/);
-        
-        if (!titleMatch || !linkMatch) continue;
-        
-        const title = titleMatch[1];
-        const url = linkMatch[1];
-        const description = descMatch ? descMatch[1].replace(/<[^>]*>/g, "").substring(0, 500) : "";
-        const pubDate = pubDateMatch ? new Date(pubDateMatch[1]) : new Date();
-        
-        // Filter for Kenya and Somalia jobs
-        const titleLower = title.toLowerCase();
-        const descLower = description.toLowerCase();
-        
-        if (!titleLower.includes("kenya") && !titleLower.includes("somalia") && 
-            !descLower.includes("kenya") && !descLower.includes("somalia")) {
-          continue;
-        }
-        
-        // Determine country
-        let country = "Kenya"; // default
-        if (titleLower.includes("somalia") || descLower.includes("somalia")) {
-          country = "Somalia";
-        }
-        
-        const externalId = `unjobs-${Buffer.from(url).toString('base64').substring(0, 20)}`;
-        const existingJob = await storage.getJobByExternalId(externalId);
-        if (existingJob) continue;
-
-        const job: InsertJob = {
-          title: title,
-          organization: "United Nations",
-          location: country,
-          country: country,
-          description: description,
-          url: url,
-          datePosted: pubDate,
-          deadline: parseDeadlineFromText(description),
-          sector: "General",
-          source: "unjobs",
-          externalId: externalId,
-          visibility: "public" as const,
-          type: "job" // UN Jobs are always job opportunities, not tenders
-        };
-
-        await storage.createJob(job);
-      }
-      
-      console.log("Finished fetching UN Jobs");
-    } catch (error) {
-      console.error("Error fetching UN Jobs:", error);
     }
   }
 
