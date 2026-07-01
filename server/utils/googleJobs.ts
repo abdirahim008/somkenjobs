@@ -49,10 +49,29 @@ const normalizeHtmlBlock = (label: string, value: string | null | undefined): st
 export const getJobCanonicalUrl = (job: Pick<Job, "id" | "title">): string =>
   `${SITE_URL}/jobs/${generateJobSlug(job.title, job.id)}`;
 
-export const isExpiredJob = (job: Pick<Job, "deadline">, now = new Date()): boolean =>
-  !!job.deadline && new Date(job.deadline) < now;
+// How long a job without a parsed deadline stays "fresh" before we treat it as
+// expired. Some sources only put the closing date in the free-text body, so the
+// structured `deadline` column is null and the job would otherwise never expire.
+const STALE_JOB_AFTER_DAYS = 60;
 
-export const isGoogleIndexableJob = (job: Pick<Job, "status" | "type" | "visibility" | "deadline">): boolean =>
+export const isExpiredJob = (
+  job: Pick<Job, "deadline" | "datePosted" | "createdAt">,
+  now = new Date(),
+): boolean => {
+  if (job.deadline) return new Date(job.deadline) < now;
+
+  // No structured deadline — fall back to a staleness window from when the job
+  // was posted so undated jobs don't stay indexable (and in the sitemap) forever.
+  const posted = job.datePosted ?? job.createdAt;
+  if (!posted) return false;
+  const staleCutoff = new Date(posted);
+  staleCutoff.setDate(staleCutoff.getDate() + STALE_JOB_AFTER_DAYS);
+  return staleCutoff < now;
+};
+
+export const isGoogleIndexableJob = (
+  job: Pick<Job, "status" | "type" | "visibility" | "deadline" | "datePosted" | "createdAt">,
+): boolean =>
   job.status === "published" &&
   job.type === "job" &&
   job.visibility !== "private" &&
