@@ -9,6 +9,73 @@ const UNTALENT_API_URL = "https://untalent.org/api/v1/jobs";
 const UNJOBS_RSS_URL = "https://jobs.un.org/rss";
 const UNJOBS_API_URL = "https://jobs.un.org/api/v1/jobs";
 
+const DEADLINE_MONTHS: Record<string, number> = {
+  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+};
+
+const makeUtcDate = (year: number, monthIndex: number, day: number): Date | null => {
+  if (monthIndex < 0 || monthIndex > 11 || day < 1 || day > 31) return null;
+  const date = new Date(Date.UTC(year, monthIndex, day));
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+// Pull an explicit calendar date out of a short text fragment. Only accepts
+// unambiguous formats so we never guess. Returns a UTC Date or null.
+const extractDateFromFragment = (fragment: string): Date | null => {
+  const text = fragment.replace(/(\d)(st|nd|rd|th)\b/gi, "$1"); // strip ordinals
+  const monthOf = (name: string) => DEADLINE_MONTHS[name.slice(0, 3).toLowerCase()];
+
+  let m = text.match(/(\d{4})-(\d{2})-(\d{2})/); // ISO 2026-02-26
+  if (m) return makeUtcDate(+m[1], +m[2] - 1, +m[3]);
+
+  m = text.match(/([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})/); // Feb 26, 2026
+  if (m && monthOf(m[1]) !== undefined) return makeUtcDate(+m[3], monthOf(m[1]), +m[2]);
+
+  m = text.match(/(\d{1,2})\s+([A-Za-z]{3,9})\.?,?\s+(\d{4})/); // 26 February 2026
+  if (m && monthOf(m[2]) !== undefined) return makeUtcDate(+m[3], monthOf(m[2]), +m[1]);
+
+  m = text.match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})/); // 10/31/2025 (US), 31/10/2025
+  if (m) {
+    let month = +m[1], day = +m[2];
+    if (month > 12 && day <= 12) [month, day] = [day, month];
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) return makeUtcDate(+m[3], month - 1, day);
+  }
+  return null;
+};
+
+const DEADLINE_LABEL =
+  /(?:application\s+deadline|deadline|closing\s+date|apply\s+(?:by|before)|last\s+date(?:\s+(?:for|of)\s+applications?)?)\s*[:\-]?\s*([^\n<]{4,40})/gi;
+
+/**
+ * Best-effort extraction of a closing date from a job's free-text body, used as
+ * a fallback when the source API doesn't provide a structured deadline. Only
+ * accepts a date that immediately follows an explicit deadline/closing label,
+ * so it won't pick up the posted date or "observing deadlines" boilerplate.
+ * Dates outside a sane window (last year → +3 years) are rejected.
+ */
+export const parseDeadlineFromText = (...texts: Array<string | null | undefined>): Date | null => {
+  const now = new Date();
+  const minYear = now.getUTCFullYear() - 1;
+  const maxYear = now.getUTCFullYear() + 3;
+  for (const raw of texts) {
+    if (!raw) continue;
+    const text = String(raw)
+      .replace(/<[^>]*>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/\s+/g, " ");
+    const re = new RegExp(DEADLINE_LABEL);
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      const date = extractDateFromFragment(m[1]);
+      if (date && date.getUTCFullYear() >= minYear && date.getUTCFullYear() <= maxYear) {
+        return date;
+      }
+    }
+  }
+  return null;
+};
+
 interface ReliefWebJob {
   id: string;
   fields: {
@@ -213,7 +280,9 @@ export class JobFetcher {
             url: rwJob.fields.url || 
                  (rwJob.fields.url_alias ? `https://reliefweb.int${rwJob.fields.url_alias}` : `https://reliefweb.int/job/${rwJob.id}`),
             datePosted: new Date(rwJob.fields.date.created),
-            deadline: rwJob.fields.date.closing ? new Date(rwJob.fields.date.closing) : null,
+            deadline: rwJob.fields.date.closing
+              ? new Date(rwJob.fields.date.closing)
+              : parseDeadlineFromText(fullHtmlDescription, rawDescription),
             sector: rwJob.fields.theme?.[0]?.name || sector,
             source: "reliefweb",
             externalId: `reliefweb-${rwJob.id}`,
@@ -353,7 +422,9 @@ export class JobFetcher {
               description: description,
               url: jobUrl,
               datePosted: new Date(), // UN Talent doesn't provide posted date in API
-              deadline: unJob.expiresAt ? new Date(unJob.expiresAt) : null,
+              deadline: unJob.expiresAt
+                ? new Date(unJob.expiresAt)
+                : parseDeadlineFromText(rawDescription),
               sector: sector,
               source: "untalent",
               externalId: externalId,
@@ -442,7 +513,7 @@ export class JobFetcher {
           description: description,
           url: url,
           datePosted: pubDate,
-          deadline: null,
+          deadline: parseDeadlineFromText(description),
           sector: "General",
           source: "unjobs",
           externalId: externalId,
