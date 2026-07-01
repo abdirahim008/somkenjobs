@@ -130,7 +130,7 @@ export class JobFetcher {
       console.log("Fetching jobs from ReliefWeb...");
       
       // Fetch jobs for East African countries
-      const countries = ["Kenya", "Somalia", "Ethiopia", "Djibouti", "Uganda", "Tanzania"];
+      const countries = ["Kenya", "Somalia", "Ethiopia", "Djibouti"];
       
       for (const country of countries) {
         // Build URL parameters for GET request
