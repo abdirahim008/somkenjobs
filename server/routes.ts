@@ -3300,6 +3300,9 @@ Disallow: /internal
 Disallow: /dashboard
 Disallow: /preview
 
+# Block Cloudflare-injected utility paths (not real pages; cause soft 404s)
+Disallow: /cdn-cgi/
+
 # Reference to sitemap and RSS feed
 Sitemap: https://somkenjobs.com/sitemap.xml
 Sitemap: https://somkenjobs.com/sitemap-jobs.xml
