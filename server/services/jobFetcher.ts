@@ -691,6 +691,28 @@ export class JobFetcher {
     }
   }
 
+  /**
+   * Runs only the ReliefWeb source. Used in production, where the other legacy
+   * fetchers (UN Talent, UNGM) stay disabled behind ENABLE_LEGACY_JOB_FETCHERS
+   * until they're verified healthy, but ReliefWeb v2 is confirmed working.
+   */
+  async fetchReliefWebOnly(): Promise<void> {
+    if (this.isRunning) {
+      console.log("Job fetch already in progress, skipping...");
+      return;
+    }
+    this.isRunning = true;
+    console.log("Fetching jobs from ReliefWeb only (other legacy sources disabled)...");
+    try {
+      await this.fetchReliefWebJobs();
+      console.log("ReliefWeb fetch completed successfully");
+    } catch (error) {
+      console.error("Error in ReliefWeb fetch:", error);
+    } finally {
+      this.isRunning = false;
+    }
+  }
+
   async fetchAllJobs(): Promise<void> {
     if (this.isRunning) {
       console.log("Job fetch already in progress, skipping...");

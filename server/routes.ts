@@ -1008,13 +1008,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Force refresh jobs (for testing)
   app.post("/api/jobs/refresh", requireAdminOrCronSecret, async (req, res) => {
     try {
+      // ReliefWeb v2 is verified healthy and runs in production; UN Talent and
+      // UNGM stay gated behind ENABLE_LEGACY_JOB_FETCHERS until verified.
       if (isProduction && !legacyFetchEnabled) {
-        return res.status(202).json({
-          message: "Legacy job fetchers are disabled in production",
-          hint: "Set ENABLE_LEGACY_JOB_FETCHERS=true only after the legacy sources are healthy.",
-        });
+        await jobFetcher.fetchReliefWebOnly();
+      } else {
+        await jobFetcher.fetchAllJobs();
       }
-      await jobFetcher.fetchAllJobs();
       res.json({
         message: "Job refresh completed",
         indexing: {
@@ -1036,16 +1036,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!cronSecret || req.headers.authorization !== `Bearer ${cronSecret}`) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      if (isProduction && !legacyFetchEnabled) {
-        return res.status(202).json({
-          message: "Legacy job fetchers are disabled in production",
-          timestamp: new Date().toISOString(),
-          archivedExpiredJobs: 0,
-          hint: "Set ENABLE_LEGACY_JOB_FETCHERS=true only after the legacy sources are healthy.",
-        });
-      }
       console.log("Job fetch triggered via /api/trigger-fetch");
-      await jobFetcher.fetchAllJobs();
+      // ReliefWeb v2 is verified healthy, so it runs in production. The other
+      // legacy fetchers (UN Talent, UNGM) stay gated behind the flag until
+      // they're confirmed working.
+      if (isProduction && !legacyFetchEnabled) {
+        await jobFetcher.fetchReliefWebOnly();
+      } else {
+        await jobFetcher.fetchAllJobs();
+      }
       const archivedExpiredJobs = await storage.archiveExpiredJobs();
       res.json({
         message: "Job fetch completed",
