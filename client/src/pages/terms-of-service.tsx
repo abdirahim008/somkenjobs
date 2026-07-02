@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Users, Shield, AlertTriangle, Scale, Globe, Calendar, Mail } from "lucide-react";
+import { FileText, Users, Shield, AlertTriangle, Scale, Globe, Calendar, Mail, Briefcase, ShieldCheck } from "lucide-react";
 
 export default function TermsOfService() {
   useEffect(() => {
@@ -34,10 +34,11 @@ export default function TermsOfService() {
       title: "Description of Service",
       icon: Globe,
       content: [
-        "Somken Jobs is a job search platform specializing in humanitarian opportunities",
-        "We aggregate job listings from verified organizations working in Kenya and Somalia",
+        "Somken Jobs is a job search platform specializing in humanitarian and development opportunities",
+        "We aggregate listings from public sources and allow approved recruiters and organizations to post jobs directly",
+        "We cover roles across East Africa, including Kenya, Somalia, Ethiopia, and Djibouti",
         "Our service includes job search, career resources, and professional development content",
-        "We facilitate connections between job seekers and humanitarian organizations"
+        "We facilitate connections between job seekers and hiring organizations"
       ]
     },
     {
@@ -58,6 +59,19 @@ export default function TermsOfService() {
         "Do not use the service to transmit harmful, offensive, or inappropriate content",
         "Do not attempt to gain unauthorized access to any part of the service",
         "Do not interfere with or disrupt the service or servers connected to the service"
+      ]
+    },
+    {
+      title: "Recruiter and Employer Obligations",
+      icon: Briefcase,
+      content: [
+        "Accounts that can post jobs are available only to legitimate employers and recruitment agencies, and are subject to review, verification, and approval by Somken Jobs",
+        "You must ensure every listing is genuine, lawful, accurate, and for a real vacancy that you are authorized to recruit for",
+        "You must not post content that is discriminatory, misleading, or fraudulent, and you must comply with all applicable labour, anti-discrimination, and data-protection laws where you recruit",
+        "Somken Jobs never charges candidates to apply; you must not request fees, deposits, payments, or personal financial information from applicants",
+        "You are solely responsible for your listings and for all interactions with, and hiring decisions concerning, applicants",
+        "By submitting a listing you grant Somken Jobs a non-exclusive, royalty-free licence to display, distribute, and syndicate it (including via search engines, RSS feeds, and social channels) to operate and promote the service",
+        "We may edit, reject, suspend, or remove any listing, and may decline, suspend, or revoke any recruiter account, at our discretion and without liability"
       ]
     },
     {
@@ -102,7 +116,7 @@ export default function TermsOfService() {
           </p>
           <div className="mt-6 inline-flex items-center gap-2 text-sm text-gray-500">
             <Calendar className="h-4 w-4" />
-            <span>Effective date: July 3, 2025</span>
+            <span>Effective date: July 2, 2026</span>
           </div>
         </div>
 
@@ -165,6 +179,25 @@ export default function TermsOfService() {
                 </li>
               ))}
             </ul>
+          </CardContent>
+        </Card>
+
+        {/* Indemnification */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3">
+              <ShieldCheck className="h-5 w-5 text-[#0077B5]" />
+              Indemnification
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 leading-relaxed">
+              You agree to indemnify, defend, and hold harmless Somken Jobs and its team from and
+              against any claims, losses, liabilities, damages, and expenses (including reasonable
+              legal fees) arising out of or related to: (a) content you submit, including job
+              listings; (b) your use of the service; (c) your breach of these Terms of Service; or
+              (d) your violation of any law or the rights of any third party.
+            </p>
           </CardContent>
         </Card>
 
