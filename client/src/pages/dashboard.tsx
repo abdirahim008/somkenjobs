@@ -762,17 +762,22 @@ export default function Dashboard() {
     
     if (selectedJobIds.length > 0) {
       try {
-        // Fetch job details from the API
-        const jobPromises = selectedJobIds.map(async (jobId: number) => {
-          const response = await fetch(`/api/jobs/${jobId}`);
-          if (response.ok) {
-            return await response.json();
-          }
-          return null;
+        // Use the authenticated "my jobs" endpoint so private/billed employer
+        // jobs are included. The public /api/jobs/:id route hides private jobs,
+        // which left invoices with no line items and no organization to show.
+        const response = await fetch('/api/user/jobs', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+          },
         });
-        
-        const jobs = await Promise.all(jobPromises);
-        selectedJobs = jobs.filter(job => job !== null);
+        if (!response.ok) {
+          throw new Error(`Failed to load jobs: ${response.statusText}`);
+        }
+        const userJobs = await response.json();
+        const jobsById = new Map<number, any>(userJobs.map((job: any) => [job.id, job]));
+        selectedJobs = selectedJobIds
+          .map((jobId: number) => jobsById.get(jobId))
+          .filter(Boolean);
       } catch (error) {
         console.error('Error fetching job details:', error);
         // Fallback to creating dummy data from invoice info
@@ -872,9 +877,14 @@ export default function Dashboard() {
       })}`, margin, currentY + 14);
       
       // Right column - Customer details
+      // Receiver is the organization that posted the selected jobs.
+      const receiverOrganization =
+        selectedJobs.find((job: any) => job.organization)?.organization ||
+        invoice.clientOrganization ||
+        'Client Organization';
       pdf.text('Receiver:', pageWidth - 80, currentY);
       pdf.setFont('helvetica', 'normal');
-      pdf.text(`${invoice.clientOrganization || 'Humanitarian Organization'}`, pageWidth - 80, currentY + 7);
+      pdf.text(`${receiverOrganization}`, pageWidth - 80, currentY + 7);
       pdf.text(`${invoice.clientEmail || (user as any)?.email}`, pageWidth - 80, currentY + 14);
       
       currentY += 35;
@@ -976,10 +986,10 @@ export default function Dashboard() {
       pdf.setFontSize(10);
       pdf.setTextColor(0, 0, 0);
       pdf.setFont('helvetica', 'normal');
-      pdf.text('Kindly make your payment to:', margin, currentY);
-      pdf.text('Bank: Somken Jobs Payment Services', margin, currentY + 7);
-      pdf.text('Account: 123-456-7890', margin, currentY + 14);
-      pdf.text('BIC: SOMKEN123', margin, currentY + 21);
+      pdf.text('Kindly send your payment to:', margin, currentY);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('+252 613320906', margin, currentY + 7);
+      pdf.setFont('helvetica', 'normal');
       
       currentY += 35;
       
@@ -1002,7 +1012,7 @@ export default function Dashboard() {
       pdf.text('Authorized Seal:', margin, sealY + 5);
 
       try {
-        const sealResponse = await fetch('/official_stamp.png');
+        const sealResponse = await fetch('/company-seal.jpg');
         if (sealResponse.ok) {
           const blob = await sealResponse.blob();
           const sealDataUrl = await new Promise<string>((resolve, reject) => {
@@ -1011,7 +1021,7 @@ export default function Dashboard() {
             reader.onerror = reject;
             reader.readAsDataURL(blob);
           });
-          pdf.addImage(sealDataUrl, 'PNG', sealX, sealY, sealSize, sealSize);
+          pdf.addImage(sealDataUrl, 'JPEG', sealX, sealY, sealSize, sealSize);
         } else {
           throw new Error('Seal not found');
         }
