@@ -379,7 +379,7 @@ export default function AuthModal({ children, open: controlledOpen, onOpenChange
                       name="phoneNumber"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Phone Number (Optional)</FormLabel>
+                          <FormLabel>Contact Number (Optional)</FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="+254 700 000 000" 
