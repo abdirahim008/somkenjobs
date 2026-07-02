@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Eye, Cookie, Mail, Lock, UserCheck, Calendar, Globe } from "lucide-react";
+import { Shield, Eye, Cookie, Mail, Lock, UserCheck, Calendar, Globe, Briefcase } from "lucide-react";
 
 export default function PrivacyPolicy() {
   useEffect(() => {
@@ -24,7 +24,7 @@ export default function PrivacyPolicy() {
       title: "Information We Collect",
       icon: Eye,
       content: [
-        "Personal information you provide when creating an account (name, email, professional details)",
+        "Personal information you provide when creating an account (name, email, company or agency name, job title, and contact number)",
         "Usage data including pages visited, search queries, and interaction patterns",
         "Device information such as IP address, browser type, and operating system",
         "Cookies and similar tracking technologies for website functionality"
@@ -36,6 +36,7 @@ export default function PrivacyPolicy() {
       content: [
         "Provide and improve our job search platform and services",
         "Send relevant job opportunities and career resources",
+        "Review, verify, and approve recruiter accounts, and contact recruiters about their account and job listings",
         "Analyze usage patterns to enhance user experience",
         "Communicate important updates about our services",
         "Ensure platform security and prevent fraud"
@@ -49,6 +50,16 @@ export default function PrivacyPolicy() {
         "Job applications are submitted directly to hiring organizations",
         "Anonymous usage statistics may be shared with partners for improvement",
         "Legal compliance may require disclosure in specific circumstances"
+      ]
+    },
+    {
+      title: "Recruiter and Employer Data",
+      icon: Briefcase,
+      content: [
+        "When you register as a recruiter, we collect your name, work email, company or agency name, job title, and contact number where provided",
+        "We use these details to verify and approve your account, and to contact you about your account, your listings, and approval decisions",
+        "Job listings you publish — including any organization name, contact details, or application instructions you include — are shown publicly and may be indexed by search engines and shared through our RSS feed and social channels",
+        "You are responsible for ensuring you have the right to share any personal or organizational information contained in your listings"
       ]
     },
     {
@@ -97,7 +108,7 @@ export default function PrivacyPolicy() {
           </p>
           <div className="mt-6 inline-flex items-center gap-2 text-sm text-gray-500">
             <Calendar className="h-4 w-4" />
-            <span>Last updated: July 3, 2025</span>
+            <span>Last updated: July 2, 2026</span>
           </div>
         </div>
 
