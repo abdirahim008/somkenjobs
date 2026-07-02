@@ -133,9 +133,9 @@ export default function AuthModal({ children, open: controlledOpen, onOpenChange
       )}
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Access Your Account</DialogTitle>
+          <DialogTitle>Recruiter Access</DialogTitle>
           <DialogDescription>
-            Login to your existing account or register as an employer/recruiter
+            For employers &amp; recruitment agencies. Log in, or sign up to post jobs.
           </DialogDescription>
         </DialogHeader>
         
@@ -207,7 +207,7 @@ export default function AuthModal({ children, open: controlledOpen, onOpenChange
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "login" | "register")}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>
-            <TabsTrigger value="register">Register</TabsTrigger>
+            <TabsTrigger value="register">Recruiter Sign Up</TabsTrigger>
           </TabsList>
           
           <TabsContent value="login" className="space-y-4">
@@ -279,15 +279,21 @@ export default function AuthModal({ children, open: controlledOpen, onOpenChange
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <UserPlus className="h-5 w-5" />
-                  Register
+                  Recruiter Sign Up
                 </CardTitle>
                 <CardDescription>
-                  Create an employer/recruiter account (requires admin approval)
+                  For employers &amp; recruitment agencies who want to post jobs. New accounts are reviewed and approved by our team before you can post.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Form {...registerForm}>
                   <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
+                    <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm">
+                      <p className="font-medium text-blue-900">Looking for a job? You don&apos;t need an account.</p>
+                      <p className="mt-1 text-blue-800">
+                        Just browse the listings and apply directly on each job. This sign-up is only for recruiters and organizations posting vacancies.
+                      </p>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={registerForm.control}
@@ -347,9 +353,9 @@ export default function AuthModal({ children, open: controlledOpen, onOpenChange
                       name="companyName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Company Name</FormLabel>
+                          <FormLabel>Company / Agency Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Your Organization" {...field} />
+                            <Input placeholder="Your company or recruitment agency" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -393,9 +399,9 @@ export default function AuthModal({ children, open: controlledOpen, onOpenChange
                       className="w-full" 
                       style={{ backgroundColor: "#0077B5" }}
                       loading={register.isPending}
-                      loadingText="Registering..."
+                      loadingText="Submitting..."
                     >
-                      Register Account
+                      Create Recruiter Account
                     </LoadingButton>
                   </form>
                 </Form>

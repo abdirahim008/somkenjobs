@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Menu, User, LayoutDashboard, LogOut, Loader2 } from "lucide-react";
+import { Menu, User, LayoutDashboard, LogOut, Loader2, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useLocation } from "wouter";
@@ -122,8 +122,8 @@ export default function Header() {
                       }}
                       className="font-medium transition-colors text-left text-muted-foreground hover:text-foreground flex items-center"
                     >
-                      <User className="mr-2 h-4 w-4" />
-                      Register
+                      <Building className="mr-2 h-4 w-4" />
+                      Recruiter Sign Up
                     </button>
                   </>
                 ) : (

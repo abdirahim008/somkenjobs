@@ -46,8 +46,8 @@ export default function UserMenu() {
               setAuthTab("register");
               setAuthModalOpen(true);
             }}>
-              <User className="mr-2 h-4 w-4" />
-              <span>Register</span>
+              <Building className="mr-2 h-4 w-4" />
+              <span>Recruiter Sign Up</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
