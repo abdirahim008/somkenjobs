@@ -265,19 +265,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 301 Redirects for SEO - Handle old URL patterns
-  app.get("/help-center", (req, res) => {
-    res.redirect(301, "/help");
-  });
-  
-  app.get("/privacy-policy", (req, res) => {
-    res.redirect(301, "/privacy");
-  });
-  
-  app.get("/terms-of-service", (req, res) => {
-    res.redirect(301, "/terms");
-  });
-  
+  // 301 Redirects for SEO - Handle old URL patterns.
+  // NOTE: /help-center, /privacy-policy and /terms-of-service are the canonical
+  // SPA routes and must NOT redirect to the short forms. The short forms
+  // (/help, /privacy, /terms) redirect *to* these canonical URLs below;
+  // redirecting both ways created an infinite loop that broke the pages.
   app.get("/career-guide", (req, res) => {
     res.redirect(301, "/career-resources");
   });
