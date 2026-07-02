@@ -1814,22 +1814,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Country landing pages for SEO - e.g., /jobs/country/kenya
-  const SUPPORTED_COUNTRIES = ['kenya', 'somalia', 'djibouti', 'ethiopia', 'uganda', 'tanzania'];
+  // Uganda and Tanzania were dropped from job fetching, so their landing pages
+  // were empty. They are excluded here (route returns 404) and from the sitemap.
+  const SUPPORTED_COUNTRIES = ['kenya', 'somalia', 'djibouti', 'ethiopia'];
   const COUNTRY_DISPLAY_NAMES: Record<string, string> = {
     'kenya': 'Kenya',
-    'somalia': 'Somalia', 
+    'somalia': 'Somalia',
     'djibouti': 'Djibouti',
-    'ethiopia': 'Ethiopia',
-    'uganda': 'Uganda',
-    'tanzania': 'Tanzania'
+    'ethiopia': 'Ethiopia'
   };
   const COUNTRY_DESCRIPTIONS: Record<string, string> = {
     'kenya': 'Kenya serves as East Africa\'s humanitarian hub, with Nairobi hosting regional headquarters for numerous international organizations.',
     'somalia': 'Somalia offers unique opportunities for humanitarian professionals to contribute to post-conflict recovery and stabilization efforts.',
     'djibouti': 'Djibouti is a strategic Horn of Africa location for humanitarian, logistics, UN, NGO, and regional development work.',
-    'ethiopia': 'Ethiopia presents vast opportunities for development and humanitarian professionals working across diverse contexts including refugee response.',
-    'uganda': 'Uganda offers meaningful opportunities in refugee response, health programming, and development initiatives.',
-    'tanzania': 'Tanzania provides opportunities in development programming, refugee support, and health initiatives.'
+    'ethiopia': 'Ethiopia presents vast opportunities for development and humanitarian professionals working across diverse contexts including refugee response.'
   };
 
   const SUPPORTED_CITIES: Record<string, { name: string; country: string; description: string }> = {
@@ -3037,7 +3035,7 @@ ${jsonLd(breadcrumbData)}
       const jobs = await getPublicActiveJobPages();
       const newestJobDate = latestJobLastmod(jobs);
       const latestDateFor = (subset: typeof jobs) => subset.length ? getJobLastModified(subset[0]) : newestJobDate;
-      const countries = ['Kenya', 'Somalia', 'Djibouti', 'Ethiopia', 'Uganda', 'Tanzania'];
+      const countries = ['Kenya', 'Somalia', 'Djibouti', 'Ethiopia'];
       const sectors = ['Engineering', 'Health', 'Education', 'Protection', 'WASH', 'Food Security', 'Logistics', 'Emergency Response'];
       const cityKeys = Object.keys(SUPPORTED_CITIES);
 
