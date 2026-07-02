@@ -792,13 +792,28 @@ export default function Dashboard() {
       const margin = 20;
       let currentY = margin;
       
-      // Header with company logo (using text-based logo)
-      pdf.setFillColor(0, 119, 181); // #0077B5
-      pdf.rect(margin, currentY, 15, 15, 'F');
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('SJ', margin + 7.5, currentY + 9, { align: 'center' });
+      // Header with company logo (actual Somken Jobs logo)
+      const logoSize = 15;
+      try {
+        const logoResponse = await fetch('/apple-touch-icon.png');
+        if (!logoResponse.ok) throw new Error('Logo not found');
+        const logoBlob = await logoResponse.blob();
+        const logoDataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(logoBlob);
+        });
+        pdf.addImage(logoDataUrl, 'PNG', margin, currentY, logoSize, logoSize);
+      } catch {
+        // Fallback to text-based logo if the image can't be loaded
+        pdf.setFillColor(0, 119, 181); // #0077B5
+        pdf.rect(margin, currentY, logoSize, logoSize, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('SJ', margin + 7.5, currentY + 9, { align: 'center' });
+      }
       pdf.setFontSize(18);
       pdf.setTextColor(0, 119, 181); // #0077B5
       pdf.setFont('helvetica', 'bold');
