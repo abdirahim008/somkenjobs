@@ -884,10 +884,15 @@ export default function Dashboard() {
         'Client Organization';
       pdf.text('Receiver:', pageWidth - 80, currentY);
       pdf.setFont('helvetica', 'normal');
-      pdf.text(`${receiverOrganization}`, pageWidth - 80, currentY + 7);
-      pdf.text(`${invoice.clientEmail || (user as any)?.email}`, pageWidth - 80, currentY + 14);
-      
-      currentY += 35;
+      // Wrap long organization names onto multiple lines instead of
+      // overflowing off the right edge of the page.
+      const receiverMaxWidth = (pageWidth - margin) - (pageWidth - 80);
+      const receiverLines = pdf.splitTextToSize(`${receiverOrganization}`, receiverMaxWidth);
+      pdf.text(receiverLines, pageWidth - 80, currentY + 7);
+
+      // Keep the table clear of the receiver block when the name wraps.
+      const receiverBottom = currentY + 7 + receiverLines.length * 5;
+      currentY = Math.max(currentY + 35, receiverBottom + 10);
       
       // Items table with clean design matching reference
       const tableStartY = currentY;
