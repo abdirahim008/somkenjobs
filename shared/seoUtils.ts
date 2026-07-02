@@ -323,7 +323,7 @@ export function generateJobsListingSEOMetadata(
   if (!filters.country && !filters.location && !filters.sector && !filters.organization) {
     return {
       title: "East Africa NGO and Humanitarian Jobs | Somken Jobs",
-      description: `Browse ${totalCount}+ current NGO, UN, humanitarian, development, and public-service jobs across Somalia, Kenya, Ethiopia, Uganda, and Tanzania. Updated daily.`
+      description: `Browse ${totalCount}+ current NGO, UN, humanitarian, development, and public-service jobs across Somalia, Kenya, Ethiopia, and Djibouti. Updated daily.`
     };
   }
 

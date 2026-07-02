@@ -1400,7 +1400,7 @@ export default function Dashboard() {
                         onChange={(value) => {
                           setJobForm({ ...jobForm, country: value, location: "" }); // Reset location when country changes
                         }}
-                        placeholder="e.g. Kenya, Somalia, Uganda"
+                        placeholder="e.g. Kenya, Somalia, Djibouti"
                         required
                       />
                     </div>

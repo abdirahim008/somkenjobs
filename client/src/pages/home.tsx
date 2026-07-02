@@ -92,7 +92,7 @@ export default function Home() {
               East Africa Jobs - 500+ Humanitarian Career Opportunities
             </h1>
             <p className="text-white/90 text-lg max-w-4xl mx-auto">
-              Find jobs across Kenya, Somalia, Ethiopia, Uganda, and Tanzania with leading NGOs, UN agencies, and humanitarian organizations. Browse {data?.stats.totalJobs || '500+'} current opportunities updated daily from ReliefWeb.
+              Find jobs across Kenya, Somalia, Ethiopia, and Djibouti with leading NGOs, UN agencies, and humanitarian organizations. Browse {data?.stats.totalJobs || '500+'} current opportunities updated daily from ReliefWeb.
             </p>
           </div>
 

@@ -236,7 +236,7 @@ function applySanitychecks(htmlContent: string, pageName: string): string {
 const HOMEPAGE_SECTIONS = Object.freeze({
   hero: {
     title: (stats: any) => `East Africa Jobs - ${stats.totalJobs}+ Humanitarian Career Opportunities`,
-    description: (stats: any) => `Find jobs across Kenya, Somalia, Ethiopia, Uganda, and Tanzania with leading NGOs, UN agencies, and humanitarian organizations. Browse ${stats.totalJobs} current opportunities updated daily from ReliefWeb.`
+    description: (stats: any) => `Find jobs across Kenya, Somalia, Ethiopia, and Djibouti with leading NGOs, UN agencies, and humanitarian organizations. Browse ${stats.totalJobs} current opportunities updated daily from ReliefWeb.`
   },
   latestJobs: {
     title: 'Latest Job Opportunities',
@@ -247,7 +247,7 @@ const HOMEPAGE_SECTIONS = Object.freeze({
   leadingSector: {
     title: 'Leading Job Board for East Africa\'s Humanitarian Sector',
     paragraphs: [
-      'Somken Jobs has established itself as the premier destination for humanitarian and development professionals seeking meaningful career opportunities across East Africa. Our platform specializes in connecting talented individuals with organizations that are making a tangible difference in communities throughout Kenya, Somalia, Ethiopia, Uganda, and Tanzania. We understand the unique challenges and rewards of humanitarian work, and our platform is designed specifically to serve the needs of this dedicated professional community.'
+      'Somken Jobs has established itself as the premier destination for humanitarian and development professionals seeking meaningful career opportunities across East Africa. Our platform specializes in connecting talented individuals with organizations that are making a tangible difference in communities throughout Kenya, Somalia, Ethiopia, and Djibouti. We understand the unique challenges and rewards of humanitarian work, and our platform is designed specifically to serve the needs of this dedicated professional community.'
     ],
     subsections: {
       coverage: {
@@ -371,7 +371,7 @@ export function generateHomepageHTML(jobStats: { totalJobs: number; organization
     "@type": "WebSite",
     "name": "Somken Jobs",
     "url": "https://somkenjobs.com/",
-    "description": "Leading job board for humanitarian careers across East Africa. Find NGO jobs, UN positions, and development opportunities in Kenya, Somalia, Ethiopia, Uganda, and Tanzania.",
+    "description": "Leading job board for humanitarian careers across East Africa. Find NGO jobs, UN positions, and development opportunities in Kenya, Somalia, Ethiopia, and Djibouti.",
     "potentialAction": {
       "@type": "SearchAction",
       "target": "https://somkenjobs.com/jobs?search={search_term_string}",
@@ -380,14 +380,13 @@ export function generateHomepageHTML(jobStats: { totalJobs: number; organization
     "publisher": {
       "@type": "Organization",
       "name": "Somken Jobs",
-      "description": "Connecting humanitarian professionals with career opportunities across Kenya, Somalia, Ethiopia, Uganda, and Tanzania"
+      "description": "Connecting humanitarian professionals with career opportunities across Kenya, Somalia, Ethiopia, and Djibouti"
     },
     "areaServed": [
       {"@type": "Country", "name": "Kenya"},
       {"@type": "Country", "name": "Somalia"},
       {"@type": "Country", "name": "Ethiopia"},
-      {"@type": "Country", "name": "Uganda"},
-      {"@type": "Country", "name": "Tanzania"}
+      {"@type": "Country", "name": "Djibouti"}
     ],
     "inLanguage": "en"
   }
@@ -506,14 +505,14 @@ export function generateJobsPageHTML(jobs: Job[], totalCount: number, filters: {
   <header class="hero">
     <div class="container">
       <h1>East Africa Humanitarian Jobs - ${totalCount}+ Career Opportunities</h1>
-      <p>Discover comprehensive career opportunities across Somalia, Kenya, Ethiopia, Uganda, and Tanzania with leading humanitarian organizations. Browse ${totalCount} current positions from international NGOs, UN agencies, and development organizations operating throughout East Africa's dynamic humanitarian landscape.</p>
+      <p>Discover comprehensive career opportunities across Somalia, Kenya, Ethiopia, and Djibouti with leading humanitarian organizations. Browse ${totalCount} current positions from international NGOs, UN agencies, and development organizations operating throughout East Africa's dynamic humanitarian landscape.</p>
     </div>
   </header>
 
   <main class="container">
     <section>
       <h2>Comprehensive Job Listings Across East Africa</h2>
-      <p>Explore ${totalCount} current humanitarian and development career opportunities across Somalia, Kenya, Ethiopia, Uganda, and Tanzania. Our comprehensive job listings feature positions from leading international organizations, NGOs, and UN agencies operating throughout the region. Each listing is carefully curated and verified to ensure you have access to legitimate, high-quality career opportunities in the humanitarian sector. Our database includes positions ranging from entry-level field roles to senior management positions, covering all major humanitarian specializations and geographic locations across East Africa.</p>
+      <p>Explore ${totalCount} current humanitarian and development career opportunities across Somalia, Kenya, Ethiopia, and Djibouti. Our comprehensive job listings feature positions from leading international organizations, NGOs, and UN agencies operating throughout the region. Each listing is carefully curated and verified to ensure you have access to legitimate, high-quality career opportunities in the humanitarian sector. Our database includes positions ranging from entry-level field roles to senior management positions, covering all major humanitarian specializations and geographic locations across East Africa.</p>
       
       ${jobListings}
       
@@ -522,7 +521,7 @@ export function generateJobsPageHTML(jobs: Job[], totalCount: number, filters: {
 
     <section style="margin-top: 40px;">
       <h2>Comprehensive Career Opportunities in Humanitarian Sector</h2>
-      <p>East Africa's humanitarian landscape offers unparalleled opportunities for professionals seeking meaningful careers that make a direct impact on communities and vulnerable populations. Whether you're interested in working in Somalia's dynamic post-conflict recovery environment, Kenya's established humanitarian hub in Nairobi, or the emerging opportunities in Ethiopia, Uganda, and Tanzania, our platform connects you with positions that match your skills and career aspirations. From emergency response roles that require rapid deployment to long-term development positions focused on sustainable change, we feature the complete spectrum of humanitarian careers available in the region.</p>
+      <p>East Africa's humanitarian landscape offers unparalleled opportunities for professionals seeking meaningful careers that make a direct impact on communities and vulnerable populations. Whether you're interested in working in Somalia's dynamic post-conflict recovery environment, Kenya's established humanitarian hub in Nairobi, or the emerging opportunities in Ethiopia and Djibouti, our platform connects you with positions that match your skills and career aspirations. From emergency response roles that require rapid deployment to long-term development positions focused on sustainable change, we feature the complete spectrum of humanitarian careers available in the region.</p>
 
       <h3>Major Humanitarian Sectors and Specializations</h3>
       <p><strong>Health and Medical Services:</strong> The region offers extensive opportunities for medical professionals, public health specialists, epidemiologists, and healthcare coordinators. Organizations like WHO, Médecins Sans Frontières (MSF), Partners in Health, and numerous local health NGOs are actively recruiting professionals to address ongoing health challenges including infectious disease control, maternal health, nutrition, and health system strengthening initiatives across East Africa.</p>

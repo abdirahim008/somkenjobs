@@ -2122,7 +2122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : `${sectorName} Jobs in East Africa | ${sectorJobs.length}+ Humanitarian Positions | Somken Jobs`;
       const pageDescription = sectorParam === 'engineering'
         ? `Find ${sectorJobs.length}+ engineering jobs in Somalia and East Africa, including civil, infrastructure, WASH, construction, and project engineering vacancies.`
-        : `Find ${sectorJobs.length}+ ${sectorName.toLowerCase()} sector jobs across Kenya, Somalia, Ethiopia, Uganda, Tanzania. ${sectorDescription}`;
+        : `Find ${sectorJobs.length}+ ${sectorName.toLowerCase()} sector jobs across Kenya, Somalia, Ethiopia, and Djibouti. ${sectorDescription}`;
       
       // Read HTML template
       const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -2523,7 +2523,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const pageUrl = 'https://somkenjobs.com/tenders';
       const pageTitle = `Humanitarian Tenders in East Africa | ${tenders.length}+ Active Opportunities | Somken Jobs`;
-      const pageDescription = `Browse ${tenders.length}+ humanitarian tenders across Kenya, Somalia, Ethiopia, Uganda, and Tanzania. Find procurement opportunities from UN agencies, NGOs, and international organizations.`;
+      const pageDescription = `Browse ${tenders.length}+ humanitarian tenders across Kenya, Somalia, Ethiopia, and Djibouti. Find procurement opportunities from UN agencies, NGOs, and international organizations.`;
       
       const __dirname = path.dirname(fileURLToPath(import.meta.url));
       const htmlPath = path.join(__dirname, '../dist/public/index.html');
@@ -3200,7 +3200,7 @@ ${jobUrls}
   <channel>
     <title>Somken Jobs - East Africa Humanitarian Jobs</title>
     <link>https://somkenjobs.com</link>
-    <description>Latest humanitarian job opportunities across Kenya, Somalia, Ethiopia, Uganda, and Tanzania from leading UN agencies, NGOs, and international organizations.</description>
+    <description>Latest humanitarian job opportunities across Kenya, Somalia, Ethiopia, and Djibouti from leading UN agencies, NGOs, and international organizations.</description>
     <language>en-us</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
     <pubDate>${latestJobs.length > 0 ? formatDate(latestJobs[0].datePosted) : new Date().toUTCString()}</pubDate>
