@@ -73,15 +73,16 @@ export default function RecruiterAdBanner({ onRegister }: RecruiterAdBannerProps
           </div>
 
           <div className="flex-1 p-4 sm:p-5">
-            <div className="relative min-h-[70px]">
+            {/* All slides share one grid cell so the card height stays stable
+                (sized to the tallest slide) and cross-fades without any jump. */}
+            <div className="grid">
               {SLIDES.map((slide, i) => (
                 <div
                   key={i}
                   aria-hidden={i !== index}
                   className={
-                    i === index
-                      ? "opacity-100 transition-opacity duration-700"
-                      : "pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-700"
+                    "col-start-1 row-start-1 transition-opacity duration-700 " +
+                    (i === index ? "opacity-100" : "pointer-events-none opacity-0")
                   }
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -96,7 +97,7 @@ export default function RecruiterAdBanner({ onRegister }: RecruiterAdBannerProps
                     </div>
                     <Button
                       onClick={onRegister}
-                      className="shrink-0 bg-[#0077B5] text-white hover:bg-[#00669c]"
+                      className="w-full shrink-0 justify-center bg-[#0077B5] text-white hover:bg-[#00669c] sm:w-auto"
                     >
                       {slide.cta}
                       <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
