@@ -835,7 +835,7 @@ export default function Dashboard() {
       let currentY = margin;
       
       // Header with company logo (actual Somken Jobs logo)
-      const logoSize = 15;
+      const logoSize = 18;
       try {
         const logoResponse = await fetch('/apple-touch-icon.png');
         if (!logoResponse.ok) throw new Error('Logo not found');
