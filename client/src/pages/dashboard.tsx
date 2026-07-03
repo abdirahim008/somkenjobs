@@ -312,7 +312,17 @@ export default function Dashboard() {
       return response.json();
     },
     onSuccess: (data: any, variables: any) => {
-      showSuccessToast("Job Created Successfully", variables.status === 'draft' ? "Your job posting has been saved as a draft. You can publish it from your job list." : "Your job posting has been created and published!");
+      // The server is authoritative about the resulting status: a recruiter's
+      // post comes back as 'pending' (awaiting payment) regardless of what the
+      // form requested.
+      if (data?.status === 'pending') {
+        showSuccessToast(
+          "Job Submitted",
+          "Your posting has been received and is pending payment. It will go live once we confirm your payment (send to +252 613320906)."
+        );
+      } else {
+        showSuccessToast("Job Created Successfully", data?.status === 'draft' ? "Your job posting has been saved as a draft. You can publish it from your job list." : "Your job posting has been created and published!");
+      }
       if (data?.visibility === 'private' && data?.privateToken) {
         const slug = data.title ? `${data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${data.id}` : `${data.id}`;
         setPrivateJobLink(`${window.location.origin}/jobs/${slug}?token=${data.privateToken}`);
@@ -416,6 +426,33 @@ export default function Dashboard() {
     },
     onError: (error: any) => {
       showErrorToast("Failed to Delete Job", error.message || "Please try again");
+    },
+  });
+
+  // Admin publish job mutation — approve a pending posting once payment is
+  // confirmed. Uses the admin bulk-action endpoint (single id).
+  const adminPublishJobMutation = useMutation({
+    mutationFn: async (jobId: number) => {
+      const response = await fetch(`/api/admin/jobs/bulk-action`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+        body: JSON.stringify({ action: "publish", jobIds: [jobId] }),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to publish job: ${response.statusText}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      showSuccessToast("Job Published", "The posting is now live and searchable.");
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
+    },
+    onError: (error: any) => {
+      showErrorToast("Failed to Publish Job", error.message || "Please try again");
     },
   });
 
@@ -1708,21 +1745,30 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor="status">Publication Status *</Label>
-                    <Select value={jobForm.status} onValueChange={(value) => setJobForm({ ...jobForm, status: value })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="draft">Save as Draft</SelectItem>
-                        <SelectItem value="published">Publish Job</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {jobForm.status === 'draft' ? 'Job will be saved but not visible to job seekers' : 'Job will be live and searchable immediately'}
-                    </p>
-                  </div>
+                  {isAdmin ? (
+                    <div>
+                      <Label htmlFor="status">Publication Status *</Label>
+                      <Select value={jobForm.status} onValueChange={(value) => setJobForm({ ...jobForm, status: value })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="draft">Save as Draft</SelectItem>
+                          <SelectItem value="published">Publish Job</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {jobForm.status === 'draft' ? 'Job will be saved but not visible to job seekers' : 'Job will be live and searchable immediately'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                      <p className="text-sm text-amber-800">
+                        Your posting will be submitted for review and goes live once payment is confirmed.
+                        Send payment to <span className="font-semibold">+252 613320906</span>.
+                      </p>
+                    </div>
+                  )}
 
                   <div>
                     <Label>Visibility</Label>
@@ -1800,14 +1846,14 @@ export default function Dashboard() {
                       loading={createJobMutation.isPending || updateJobMutation.isPending}
                       loadingText={editingJob ? "Updating..." : "Creating..."}
                     >
-                      {editingJob 
+                      {editingJob
                         ? "Update Job Posting"
-                        : "Create Job"
+                        : isAdmin ? "Create Job" : "Submit Job Posting"
                       }
                     </LoadingButton>
-                    
-                    {!editingJob && (
-                      <LoadingButton 
+
+                    {!editingJob && isAdmin && (
+                      <LoadingButton
                         type="button"
                         variant="outline"
                         className="w-full"
@@ -2054,22 +2100,25 @@ export default function Dashboard() {
                         
                         {/* Status column */}
                         <div className="w-24 flex flex-col gap-1">
-                          <Badge 
+                          <Badge
                             variant={job.status === 'published' ? 'default' : 'secondary'}
                             className={
-                              job.status === 'published' 
-                                ? 'bg-green-100 text-green-800 hover:bg-green-100' 
+                              job.status === 'published'
+                                ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                                : job.status === 'pending'
+                                ? 'bg-amber-100 text-amber-800 hover:bg-amber-100'
                                 : 'bg-gray-100 text-gray-800 hover:bg-gray-100'
                             }
                           >
-                            {job.status === 'published' ? 'Live' : 'Draft'}
+                            {job.status === 'published' ? 'Live' : job.status === 'pending' ? 'Pending Payment' : 'Draft'}
                           </Badge>
                         </div>
 
                         {/* Actions column */}
                         <div className="w-40 flex items-center gap-2">
-                          {/* Publish Button - Only show for draft jobs */}
-                          {job.status === 'draft' && (
+                          {/* Publish Button - admins only; recruiters' jobs are
+                              published by an admin after payment is confirmed. */}
+                          {job.status === 'draft' && isAdmin && (
                             <Button
                               size="sm"
                               variant="ghost"
@@ -2782,11 +2831,13 @@ export default function Dashboard() {
                           </div>
                           <div className="w-24 flex flex-col gap-1">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              job.status === 'published' 
-                                ? 'bg-green-100 text-green-800' 
+                              job.status === 'published'
+                                ? 'bg-green-100 text-green-800'
+                                : job.status === 'pending'
+                                ? 'bg-amber-100 text-amber-800'
                                 : 'bg-gray-100 text-gray-800'
                             }`}>
-                              {job.status === 'published' ? 'Live' : 'Draft'}
+                              {job.status === 'published' ? 'Live' : job.status === 'pending' ? 'Pending Payment' : 'Draft'}
                             </span>
                             {job.visibility === 'private' && (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 w-fit">
@@ -2795,6 +2846,22 @@ export default function Dashboard() {
                             )}
                           </div>
                           <div className="w-40 flex items-center gap-2">
+                            {/* Approve & publish a pending posting after payment */}
+                            {job.status !== 'published' && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  if (confirm('Publish this job? It will become live and searchable immediately. Only do this after payment is confirmed.')) {
+                                    adminPublishJobMutation.mutate(job.id);
+                                  }
+                                }}
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50 p-1"
+                                title="Publish Job (approve after payment)"
+                              >
+                                <Upload className="h-4 w-4" />
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="ghost"

@@ -1239,6 +1239,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Build transformed data — strip createdAt (must never change) and convert all date strings to Date objects
       const { createdAt: _omitCreatedAt, ...jobDataWithoutCreatedAt } = jobData;
+      // Non-admins may edit their own job's content but must not be able to
+      // publish it (or disguise it as a scraper source) by editing — that only
+      // happens once we confirm payment. Drop status/source for non-admins.
+      if (!isAdmin) {
+        delete jobDataWithoutCreatedAt.status;
+        delete jobDataWithoutCreatedAt.source;
+      }
       const isNowPrivate = jobData.visibility === 'private';
       const transformedData = {
         ...jobDataWithoutCreatedAt,
@@ -1291,7 +1298,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/jobs", authenticate, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.id;
-      
+      // Only privileged accounts (admins, incl. the scraper login) may publish
+      // directly. A granted recruiter's post is held as 'pending' until we
+      // confirm payment and publish it manually. Enforced server-side so the
+      // client cannot self-publish by sending status/source in the body.
+      const isPrivileged = req.user!.isAdmin === true;
+
       // Generate defaults for required fields that users don't need to provide
       const isPrivate = req.body.visibility === 'private';
       // Serialize attachmentUrls array to JSON string for storage in attachmentUrl column
@@ -1303,7 +1315,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         attachmentUrl: attachmentUrlValue,
         createdBy: userId,
-        source: req.body.source || "user",
+        source: isPrivileged ? (req.body.source || "user") : "user",
+        status: isPrivileged ? (req.body.status || "published") : "pending",
         externalId: req.body.externalId || `user-${userId}-${Date.now()}`,
         datePosted: req.body.datePosted || new Date(),
         url: req.body.url || "",
@@ -1329,6 +1342,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/jobs/bulk-upload", authenticate, upload.single("file"), async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.id;
+      // Same gate as POST /api/jobs: only admins (incl. the scraper account)
+      // may bulk-publish. Non-admin uploads are held as 'pending' for payment.
+      const isPrivileged = req.user!.isAdmin === true;
       let jobsArray: any[] = [];
 
       if (req.file) {
@@ -1438,7 +1454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             datePosted: parseFuzzyDate(rawJob.datePosted),
             deadline: rawJob.deadline ? parseFuzzyDate(rawJob.deadline) : null,
             sector: rawJob.sector || null,
-            source: rawJob.source || "user",
+            source: isPrivileged ? (rawJob.source || "user") : "user",
             externalId: rawJob.externalId || `user-${userId}-${Date.now()}-${i}`,
             howToApply: rawJob.howToApply || null,
             experience: rawJob.experience || null,
@@ -1446,7 +1462,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             responsibilities: rawJob.responsibilities || null,
             bodyHtml: rawJob.bodyHtml || null,
             createdBy: userId,
-            status: rawJob.status || "published",
+            status: isPrivileged ? (rawJob.status || "published") : "pending",
             type: rawJob.type || "job",
             attachmentUrl: rawJob.attachmentUrl || null,
             jobNumber: rawJob.jobNumber || null,
