@@ -164,15 +164,19 @@ function cityConfig(cityKey: string): LandingConfig {
 function countryConfig(countryKey: string, canonicalPath = `/jobs/country/${countryKey}`): LandingConfig {
   const country = countryNames[countryKey];
   const h1 = `Jobs in ${country}`;
+  // Broad country landing page. NGO/UN keywords are deliberately owned by the
+  // /ngo-jobs/<country> and /un-jobs/<country> pages to avoid cannibalising them
+  // — this page targets the general "jobs in <country>" intent. Keep this SEO
+  // config in sync with the SSR handler in server/routes.ts.
   return {
     kind: "country",
-    title: `Jobs in ${country} | NGO & Humanitarian Jobs | Somken Jobs`,
+    title: `Jobs in ${country} | Current Vacancies & Openings | Somken Jobs`,
     h1,
-    description: `Find current NGO, UN, humanitarian, and development jobs in ${country}. Browse verified vacancies from relief agencies, international organizations, and development employers.`,
+    description: `Browse current job vacancies in ${country} across health, education, engineering, WASH, logistics, finance, and professional roles. Verified openings with direct application links.`,
     canonicalUrl: `https://somkenjobs.com${canonicalPath}`,
     query: { country },
-    contentTitle: `Find NGO and humanitarian jobs in ${country}`,
-    contentBody: `${country} job seekers use Somken Jobs to find current humanitarian, NGO, UN, development, health, protection, education, logistics, and WASH roles. Listings are refreshed from trusted job sources and employer posts, with each opening linking to a detailed job page and official application instructions where available.`,
+    contentTitle: `Find current jobs in ${country}`,
+    contentBody: `${country} job seekers use Somken Jobs to find current vacancies across health, protection, education, engineering, logistics, WASH, finance, and professional roles. Listings are refreshed from trusted job sources and employer posts, with each opening linking to a detailed job page and official application instructions where available. Use the related links to browse NGO- and UN-specific openings.`,
     relatedLinks: [
       { label: "NGO Jobs", href: "/ngo-jobs" },
       { label: "NGO Jobs in Somalia", href: "/ngo-jobs/somalia" },

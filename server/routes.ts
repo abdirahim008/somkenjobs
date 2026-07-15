@@ -1842,7 +1842,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const COUNTRY_DESCRIPTIONS: Record<string, string> = {
     'kenya': 'Kenya serves as East Africa\'s humanitarian hub, with Nairobi hosting regional headquarters for numerous international organizations.',
     'somalia': 'Somalia offers unique opportunities for humanitarian professionals to contribute to post-conflict recovery and stabilization efforts.',
-    'djibouti': 'Djibouti is a strategic Horn of Africa location for humanitarian, logistics, UN, NGO, and regional development work.',
+    'djibouti': 'Djibouti is a strategic Horn of Africa location for humanitarian, logistics, and regional development work.',
     'ethiopia': 'Ethiopia presents vast opportunities for development and humanitarian professionals working across diverse contexts including refugee response.'
   };
 
@@ -1999,8 +1999,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       const pageUrl = `https://somkenjobs.com/jobs/country/${countryParam}`;
-      const pageTitle = `Humanitarian Jobs in ${countryName} | ${countryJobs.length}+ Current Openings | Somken Jobs`;
-      const pageDescription = `Find ${countryJobs.length}+ humanitarian and development jobs in ${countryName}. ${countryDescription} Browse NGO, UN, and international organization positions.`;
+      // Broad country landing page. NGO/UN-specific terms are deliberately owned
+      // by /ngo-jobs/<country> and /un-jobs/<country> to avoid keyword
+      // cannibalisation — this page targets the general "jobs in <country>" intent.
+      const pageTitle = `Jobs in ${countryName} | ${countryJobs.length}+ Current Vacancies & Openings | Somken Jobs`;
+      const pageDescription = `Browse ${countryJobs.length}+ current job vacancies in ${countryName}. ${countryDescription} Find openings across health, education, engineering, WASH, logistics, and professional roles with direct application links.`;
       
       // Read HTML template
       const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -2030,11 +2033,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const structuredData = {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
-        "name": `Humanitarian Jobs in ${countryName}`,
+        "name": `Jobs in ${countryName}`,
         "description": pageDescription,
         "url": pageUrl,
         "isPartOf": { "@type": "WebSite", "name": "Somken Jobs", "url": "https://somkenjobs.com/" },
-        "about": [`jobs in ${countryName}`, `NGO jobs in ${countryName}`, `humanitarian jobs in ${countryName}`],
+        "about": [`jobs in ${countryName}`, `vacancies in ${countryName}`, `careers in ${countryName}`],
         "mainEntity": {
           "@type": "ItemList",
           "numberOfItems": countryJobs.length,
@@ -2066,7 +2069,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       html = injectServerLandingContent(html, renderServerLandingContent({
         h1: `Jobs in ${countryName}`,
         description: pageDescription,
-        intro: `${countryDescription} Somken Jobs lists current NGO, UN, humanitarian, development, and professional vacancies with direct links to job details and application instructions.`,
+        intro: `${countryDescription} Somken Jobs lists current vacancies in ${countryName} across health, education, engineering, WASH, logistics, finance, and professional roles with direct links to job details and application instructions. Use the related links to browse NGO- and UN-specific openings.`,
         jobs: countryJobs,
         relatedLinks: defaultRelatedKeywordLinks,
         faqItems: [
@@ -2938,10 +2941,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Add job-specific Open Graph properties for richer Facebook previews (no duplicate og:type)
       const shouldNoindex = job.visibility === 'private' || !!ssrToken || !isIndexableJob;
-      const robotsContent = job.visibility === 'private' || !!ssrToken ? 'noindex, nofollow' : 'noindex, follow';
+      const robotsContent = shouldNoindex
+        ? (job.visibility === 'private' || !!ssrToken ? 'noindex, nofollow' : 'noindex, follow')
+        : 'index, follow';
+      // The static template ships a default `index, follow` robots tag. Strip it so
+      // the page carries exactly ONE robots directive — conflicting duplicates
+      // resolve unpredictably across crawlers (Google picks the most restrictive).
+      html = html.replace(/<meta name="robots"[^>]*>\s*/i, '');
       const additionalMetaTags = `
     <!-- Job-specific meta tags for enhanced social media previews -->
-    ${shouldNoindex ? `<meta name="robots" content="${robotsContent}">` : ''}
+    <meta name="robots" content="${robotsContent}">
+
     <meta property="article:published_time" content="${new Date(job.datePosted).toISOString()}">
     <meta property="article:section" content="${escapeHtml(job.sector || 'Humanitarian')}">
     <meta property="article:tag" content="${escapeHtml(job.sector || 'Humanitarian')}">

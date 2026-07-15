@@ -450,7 +450,15 @@ var normalizeHtmlBlock = (label, value) => {
   return `<p><strong>${escapeHtml(label)}</strong></p>${paragraphs}`;
 };
 var getJobCanonicalUrl = (job) => `${SITE_URL}/jobs/${generateJobSlug(job.title, job.id)}`;
-var isExpiredJob = (job, now = /* @__PURE__ */ new Date()) => !!job.deadline && new Date(job.deadline) < now;
+var STALE_JOB_AFTER_DAYS = 60;
+var isExpiredJob = (job, now = /* @__PURE__ */ new Date()) => {
+  if (job.deadline) return new Date(job.deadline) < now;
+  const posted = job.datePosted ?? job.createdAt;
+  if (!posted) return false;
+  const staleCutoff = new Date(posted);
+  staleCutoff.setDate(staleCutoff.getDate() + STALE_JOB_AFTER_DAYS);
+  return staleCutoff < now;
+};
 var isGoogleIndexableJob = (job) => job.status === "published" && job.type === "job" && job.visibility !== "private" && !isExpiredJob(job);
 var getJobLastModified = (job) => {
   const candidates = [job.createdAt, job.datePosted].filter(Boolean).map((value) => new Date(value)).filter((date) => !Number.isNaN(date.getTime()));
@@ -1143,14 +1151,67 @@ var storage = new DatabaseStorage();
 // server/services/jobFetcher.ts
 import * as cron from "node-cron";
 var RELIEFWEB_API_URL = "https://api.reliefweb.int/v2/jobs";
-var UNTALENT_API_URL = "https://untalent.org/api/v1/jobs";
-var UNJOBS_RSS_URL = "https://jobs.un.org/rss";
+var DEADLINE_MONTHS = {
+  jan: 0,
+  feb: 1,
+  mar: 2,
+  apr: 3,
+  may: 4,
+  jun: 5,
+  jul: 6,
+  aug: 7,
+  sep: 8,
+  oct: 9,
+  nov: 10,
+  dec: 11
+};
+var makeUtcDate = (year, monthIndex, day) => {
+  if (monthIndex < 0 || monthIndex > 11 || day < 1 || day > 31) return null;
+  const date = new Date(Date.UTC(year, monthIndex, day));
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+var extractDateFromFragment = (fragment) => {
+  const text2 = fragment.replace(/(\d)(st|nd|rd|th)\b/gi, "$1");
+  const monthOf = (name) => DEADLINE_MONTHS[name.slice(0, 3).toLowerCase()];
+  let m = text2.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return makeUtcDate(+m[1], +m[2] - 1, +m[3]);
+  m = text2.match(/([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})/);
+  if (m && monthOf(m[1]) !== void 0) return makeUtcDate(+m[3], monthOf(m[1]), +m[2]);
+  m = text2.match(/(\d{1,2})\s+([A-Za-z]{3,9})\.?,?\s+(\d{4})/);
+  if (m && monthOf(m[2]) !== void 0) return makeUtcDate(+m[3], monthOf(m[2]), +m[1]);
+  m = text2.match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})/);
+  if (m) {
+    let month = +m[1], day = +m[2];
+    if (month > 12 && day <= 12) [month, day] = [day, month];
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) return makeUtcDate(+m[3], month - 1, day);
+  }
+  return null;
+};
+var DEADLINE_LABEL = /(?:application\s+deadline|deadline|closing\s+date|apply\s+(?:by|before)|last\s+date(?:\s+(?:for|of)\s+applications?)?)\s*[:\-]?\s*([^\n<]{4,40})/gi;
+var parseDeadlineFromText = (...texts) => {
+  const now = /* @__PURE__ */ new Date();
+  const minYear = now.getUTCFullYear() - 1;
+  const maxYear = now.getUTCFullYear() + 3;
+  for (const raw of texts) {
+    if (!raw) continue;
+    const text2 = String(raw).replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ");
+    const re = new RegExp(DEADLINE_LABEL);
+    let m;
+    while ((m = re.exec(text2)) !== null) {
+      const date = extractDateFromFragment(m[1]);
+      if (date && date.getUTCFullYear() >= minYear && date.getUTCFullYear() <= maxYear) {
+        return date;
+      }
+    }
+  }
+  return null;
+};
 var JobFetcher = class {
   isRunning = false;
   async fetchReliefWebJobs() {
     try {
       console.log("Fetching jobs from ReliefWeb...");
-      const countries2 = ["Kenya", "Somalia", "Ethiopia", "Djibouti", "Uganda", "Tanzania"];
+      const countries2 = ["Kenya", "Somalia", "Ethiopia", "Djibouti"];
       for (const country of countries2) {
         const params = new URLSearchParams();
         params.append("appname", "jobconnect-eastafrica-w2ZduVJ8jH9");
@@ -1244,7 +1305,7 @@ var JobFetcher = class {
             description,
             url: rwJob.fields.url || (rwJob.fields.url_alias ? `https://reliefweb.int${rwJob.fields.url_alias}` : `https://reliefweb.int/job/${rwJob.id}`),
             datePosted: new Date(rwJob.fields.date.created),
-            deadline: rwJob.fields.date.closing ? new Date(rwJob.fields.date.closing) : null,
+            deadline: rwJob.fields.date.closing ? new Date(rwJob.fields.date.closing) : parseDeadlineFromText(fullHtmlDescription, rawDescription),
             sector: rwJob.fields.theme?.[0]?.name || sector,
             source: "reliefweb",
             externalId: `reliefweb-${rwJob.id}`,
@@ -1269,300 +1330,16 @@ var JobFetcher = class {
       console.error("Error fetching ReliefWeb jobs:", error);
     }
   }
-  async fetchUNTalentJobs() {
-    try {
-      console.log("Fetching jobs from UN Talent...");
-      const locationMap = {
-        "Kenya": "kenya",
-        "Somalia": "somalia",
-        "Ethiopia": "ethiopia",
-        "Djibouti": "djibouti",
-        "Uganda": "uganda",
-        "Tanzania": "tanzania"
-      };
-      let totalNewJobs = 0;
-      let totalSkippedJobs = 0;
-      for (const [countryName, locationSlug] of Object.entries(locationMap)) {
-        try {
-          const url = `${UNTALENT_API_URL}?locationSlugs=${locationSlug}`;
-          console.log(`Fetching ${countryName} jobs from UN Talent...`);
-          const response = await fetch(url, {
-            method: "GET",
-            headers: {
-              "Accept": "application/json",
-              "User-Agent": "JobConnect-EastAfrica/1.0"
-            }
-          });
-          if (!response.ok) {
-            console.error(`UN Talent API error for ${countryName}: ${response.status} ${response.statusText}`);
-            continue;
-          }
-          const data = await response.json();
-          if (!data.data || data.data.length === 0) {
-            console.log(`No jobs found for ${countryName} from UN Talent`);
-            continue;
-          }
-          console.log(`UN Talent returned ${data.data.length} jobs for ${countryName}`);
-          let newJobsCount = 0;
-          let skippedJobsCount = 0;
-          for (const unJob of data.data) {
-            const externalId = `untalent-${unJob.slug}`;
-            const existingJob = await storage.getJobByExternalId(externalId);
-            if (existingJob) {
-              skippedJobsCount++;
-              console.log(`Skipping existing job: ${unJob.slug} - ${unJob.title}`);
-              continue;
-            }
-            let location = unJob.location || countryName;
-            if (location.toLowerCase().includes(countryName.toLowerCase())) {
-              location = location;
-            } else {
-              location = `${location}, ${countryName}`;
-            }
-            const rawDescription = unJob.description || unJob.shortDescription || "";
-            const description = rawDescription.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().substring(0, 800) || "No description available";
-            const experienceMapping = {
-              "Entry": "Entry level",
-              "Mid": "Mid-level / 3-5 years",
-              "Senior": "Senior level / 5-10 years",
-              "Leadership": "Leadership / 10+ years",
-              "Executive": "Executive level"
-            };
-            const experience = unJob.jobLevel ? experienceMapping[unJob.jobLevel] || unJob.jobLevel : null;
-            const sectorMapping = {
-              "human-resources": "Human Resources",
-              "finance": "Finance",
-              "logistics": "Logistics",
-              "health": "Health",
-              "education": "Education",
-              "protection": "Protection",
-              "wash": "WASH",
-              "food-security": "Food Security",
-              "it-telecom": "Information Technology"
-            };
-            const sector = unJob.areaSlugs && unJob.areaSlugs.length > 0 ? sectorMapping[unJob.areaSlugs[0]] || "General" : "General";
-            const jobUrl = unJob.url || `https://untalent.org/jobs/${unJob.slug}`;
-            const job = {
-              title: unJob.title,
-              organization: unJob.company || "UN Organization",
-              location,
-              country: countryName,
-              description,
-              url: jobUrl,
-              datePosted: /* @__PURE__ */ new Date(),
-              // UN Talent doesn't provide posted date in API
-              deadline: unJob.expiresAt ? new Date(unJob.expiresAt) : null,
-              sector,
-              source: "untalent",
-              externalId,
-              howToApply: `Apply directly through UN Talent: ${jobUrl}`,
-              experience,
-              qualifications: null,
-              responsibilities: null,
-              bodyHtml: rawDescription || void 0,
-              visibility: "public",
-              type: "job"
-            };
-            await storage.createJob(job);
-            newJobsCount++;
-            console.log(`Created new job: ${unJob.slug} - ${unJob.title}`);
-          }
-          totalNewJobs += newJobsCount;
-          totalSkippedJobs += skippedJobsCount;
-          console.log(`Fetched ${data.data.length} jobs from UN Talent for ${countryName} - ${newJobsCount} new, ${skippedJobsCount} existing`);
-        } catch (countryError) {
-          console.error(`Error fetching UN Talent jobs for ${countryName}:`, countryError);
-          continue;
-        }
-      }
-      console.log(`UN Talent fetch completed - Total: ${totalNewJobs} new jobs, ${totalSkippedJobs} existing`);
-    } catch (error) {
-      console.error("Error fetching UN Talent jobs:", error);
-    }
-  }
-  async fetchUNJobs() {
-    try {
-      console.log("Fetching jobs from UN Jobs RSS...");
-      const response = await fetch(UNJOBS_RSS_URL);
-      if (!response.ok) {
-        throw new Error(`UN Jobs RSS error: ${response.status} ${response.statusText}`);
-      }
-      const xmlText = await response.text();
-      const itemMatches = xmlText.match(/<item>[\s\S]*?<\/item>/g) || [];
-      for (const item of itemMatches) {
-        const titleMatch = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/);
-        const linkMatch = item.match(/<link>(.*?)<\/link>/);
-        const descMatch = item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/);
-        const pubDateMatch = item.match(/<pubDate>(.*?)<\/pubDate>/);
-        if (!titleMatch || !linkMatch) continue;
-        const title = titleMatch[1];
-        const url = linkMatch[1];
-        const description = descMatch ? descMatch[1].replace(/<[^>]*>/g, "").substring(0, 500) : "";
-        const pubDate = pubDateMatch ? new Date(pubDateMatch[1]) : /* @__PURE__ */ new Date();
-        const titleLower = title.toLowerCase();
-        const descLower = description.toLowerCase();
-        if (!titleLower.includes("kenya") && !titleLower.includes("somalia") && !descLower.includes("kenya") && !descLower.includes("somalia")) {
-          continue;
-        }
-        let country = "Kenya";
-        if (titleLower.includes("somalia") || descLower.includes("somalia")) {
-          country = "Somalia";
-        }
-        const externalId = `unjobs-${Buffer.from(url).toString("base64").substring(0, 20)}`;
-        const existingJob = await storage.getJobByExternalId(externalId);
-        if (existingJob) continue;
-        const job = {
-          title,
-          organization: "United Nations",
-          location: country,
-          country,
-          description,
-          url,
-          datePosted: pubDate,
-          deadline: null,
-          sector: "General",
-          source: "unjobs",
-          externalId,
-          visibility: "public",
-          type: "job"
-          // UN Jobs are always job opportunities, not tenders
-        };
-        await storage.createJob(job);
-      }
-      console.log("Finished fetching UN Jobs");
-    } catch (error) {
-      console.error("Error fetching UN Jobs:", error);
-    }
-  }
-  async fetchUNGMTenders() {
-    try {
-      console.log("Fetching tenders from UNGM...");
-      const countries2 = [
-        { name: "Kenya", code: "KE" },
-        { name: "Somalia", code: "SO" },
-        { name: "Ethiopia", code: "ET" },
-        { name: "Djibouti", code: "DJ" },
-        { name: "Uganda", code: "UG" },
-        { name: "Tanzania", code: "TZ" }
-      ];
-      let totalNewTenders = 0;
-      let totalSkippedTenders = 0;
-      for (const country of countries2) {
-        try {
-          const url = `https://www.ungm.org/Public/Notice`;
-          console.log(`Fetching tenders for ${country.name} from UNGM...`);
-          const response = await fetch(url, {
-            method: "GET",
-            headers: {
-              "Accept": "text/html,application/xhtml+xml",
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            }
-          });
-          if (!response.ok) {
-            console.error(`UNGM error for ${country.name}: ${response.status} ${response.statusText}`);
-            continue;
-          }
-          const html = await response.text();
-          const tenderPattern = /<div[^>]*class="[^"]*notice[^"]*"[^>]*>([\s\S]*?)<\/div>/gi;
-          const titlePattern = /<a[^>]*href="([^"]*)"[^>]*>([^<]+)<\/a>/i;
-          const datePattern = /(\d{1,2}[-\/]\w{3}[-\/]\d{4}|\d{4}[-\/]\d{2}[-\/]\d{2})/g;
-          const orgPattern = /(UNDP|UNICEF|WHO|WFP|FAO|UNHCR|IOM|UNOPS|UNESCO|UNFPA|UN Women|UNEP)/gi;
-          const noticeLinks = html.match(/\/Public\/Notice\/(\d+)/g) || [];
-          const uniqueNoticeIds = [...new Set(noticeLinks.map((link) => link.match(/(\d+)$/)?.[1]).filter(Boolean))];
-          console.log(`Found ${uniqueNoticeIds.length} potential tenders on UNGM`);
-          for (const noticeId of uniqueNoticeIds.slice(0, 20)) {
-            try {
-              const noticeUrl = `https://www.ungm.org/Public/Notice/${noticeId}`;
-              const noticeResponse = await fetch(noticeUrl, {
-                headers: {
-                  "Accept": "text/html",
-                  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-                }
-              });
-              if (!noticeResponse.ok) continue;
-              const noticeHtml = await noticeResponse.text();
-              const countryMentioned = countries2.some(
-                (c) => noticeHtml.toLowerCase().includes(c.name.toLowerCase())
-              );
-              if (!countryMentioned) continue;
-              const titleMatch = noticeHtml.match(/<h1[^>]*>([^<]+)<\/h1>/i) || noticeHtml.match(/<title>([^<]+)<\/title>/i);
-              const title = titleMatch ? titleMatch[1].replace(/\s+/g, " ").trim() : `UNGM Tender ${noticeId}`;
-              const orgMatch = noticeHtml.match(orgPattern);
-              const organization = orgMatch ? orgMatch[0] : "United Nations";
-              const deadlineMatch = noticeHtml.match(/deadline[:\s]*([^<\n]+)/i) || noticeHtml.match(/closing[:\s]*([^<\n]+)/i);
-              let deadline = null;
-              if (deadlineMatch) {
-                const dateStr = deadlineMatch[1].match(datePattern);
-                if (dateStr) {
-                  deadline = new Date(dateStr[0]);
-                  if (isNaN(deadline.getTime())) deadline = null;
-                }
-              }
-              let tenderCountry = "Kenya";
-              for (const c of countries2) {
-                if (noticeHtml.toLowerCase().includes(c.name.toLowerCase())) {
-                  tenderCountry = c.name;
-                  break;
-                }
-              }
-              const descMatch = noticeHtml.match(/<div[^>]*class="[^"]*description[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
-              const description = descMatch ? descMatch[1].replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().substring(0, 800) : `UN procurement opportunity for ${tenderCountry}`;
-              const externalId = `ungm-${noticeId}`;
-              const existingJob = await storage.getJobByExternalId(externalId);
-              if (existingJob) {
-                totalSkippedTenders++;
-                continue;
-              }
-              const tender = {
-                title: title.substring(0, 500),
-                organization,
-                location: tenderCountry,
-                country: tenderCountry,
-                description,
-                url: noticeUrl,
-                datePosted: /* @__PURE__ */ new Date(),
-                deadline,
-                sector: "Procurement",
-                source: "ungm",
-                externalId,
-                howToApply: `Submit through UNGM: ${noticeUrl}`,
-                experience: null,
-                qualifications: null,
-                responsibilities: null,
-                bodyHtml: void 0,
-                visibility: "public",
-                type: "tender"
-              };
-              await storage.createJob(tender);
-              totalNewTenders++;
-              console.log(`Created new tender: ${noticeId} - ${title.substring(0, 60)}...`);
-            } catch (noticeError) {
-              console.error(`Error fetching UNGM notice ${noticeId}:`, noticeError);
-              continue;
-            }
-          }
-        } catch (countryError) {
-          console.error(`Error fetching UNGM tenders for ${country.name}:`, countryError);
-          continue;
-        }
-      }
-      console.log(`UNGM fetch completed - Total: ${totalNewTenders} new tenders, ${totalSkippedTenders} existing`);
-    } catch (error) {
-      console.error("Error fetching UNGM tenders:", error);
-    }
-  }
   async fetchAllJobs() {
     if (this.isRunning) {
       console.log("Job fetch already in progress, skipping...");
       return;
     }
     this.isRunning = true;
-    console.log("Fetching comprehensive jobs and tenders from all sources...");
+    console.log("Fetching jobs from ReliefWeb...");
     try {
       await this.fetchReliefWebJobs();
-      await this.fetchUNTalentJobs();
-      await this.fetchUNGMTenders();
-      console.log("Job and tender fetch completed successfully");
+      console.log("Job fetch completed successfully");
     } catch (error) {
       console.error("Error in job fetch:", error);
     } finally {
@@ -1951,7 +1728,7 @@ function generateJobsListingSEOMetadata(totalCount, filters = {}) {
   if (!filters.country && !filters.location && !filters.sector && !filters.organization) {
     return {
       title: "East Africa NGO and Humanitarian Jobs | Somken Jobs",
-      description: `Browse ${totalCount}+ current NGO, UN, humanitarian, development, and public-service jobs across Somalia, Kenya, Ethiopia, Uganda, and Tanzania. Updated daily.`
+      description: `Browse ${totalCount}+ current NGO, UN, humanitarian, development, and public-service jobs across Somalia, Kenya, Ethiopia, and Djibouti. Updated daily.`
     };
   }
   let titleContext = "";
@@ -2151,7 +1928,7 @@ function applySanitychecks(htmlContent, pageName) {
 var HOMEPAGE_SECTIONS = Object.freeze({
   hero: {
     title: (stats) => `East Africa Jobs - ${stats.totalJobs}+ Humanitarian Career Opportunities`,
-    description: (stats) => `Find jobs across Kenya, Somalia, Ethiopia, Uganda, and Tanzania with leading NGOs, UN agencies, and humanitarian organizations. Browse ${stats.totalJobs} current opportunities updated daily from ReliefWeb.`
+    description: (stats) => `Find jobs across Kenya, Somalia, Ethiopia, and Djibouti with leading NGOs, UN agencies, and humanitarian organizations. Browse ${stats.totalJobs} current opportunities updated daily from ReliefWeb.`
   },
   latestJobs: {
     title: "Latest Job Opportunities",
@@ -2162,7 +1939,7 @@ var HOMEPAGE_SECTIONS = Object.freeze({
   leadingSector: {
     title: "Leading Job Board for East Africa's Humanitarian Sector",
     paragraphs: [
-      "Somken Jobs has established itself as the premier destination for humanitarian and development professionals seeking meaningful career opportunities across East Africa. Our platform specializes in connecting talented individuals with organizations that are making a tangible difference in communities throughout Kenya, Somalia, Ethiopia, Uganda, and Tanzania. We understand the unique challenges and rewards of humanitarian work, and our platform is designed specifically to serve the needs of this dedicated professional community."
+      "Somken Jobs has established itself as the premier destination for humanitarian and development professionals seeking meaningful career opportunities across East Africa. Our platform specializes in connecting talented individuals with organizations that are making a tangible difference in communities throughout Kenya, Somalia, Ethiopia, and Djibouti. We understand the unique challenges and rewards of humanitarian work, and our platform is designed specifically to serve the needs of this dedicated professional community."
     ],
     subsections: {
       coverage: {
@@ -2273,7 +2050,7 @@ function generateHomepageHTML(jobStats, recentJobs) {
     "@type": "WebSite",
     "name": "Somken Jobs",
     "url": "https://somkenjobs.com/",
-    "description": "Leading job board for humanitarian careers across East Africa. Find NGO jobs, UN positions, and development opportunities in Kenya, Somalia, Ethiopia, Uganda, and Tanzania.",
+    "description": "Leading job board for humanitarian careers across East Africa. Find NGO jobs, UN positions, and development opportunities in Kenya, Somalia, Ethiopia, and Djibouti.",
     "potentialAction": {
       "@type": "SearchAction",
       "target": "https://somkenjobs.com/jobs?search={search_term_string}",
@@ -2282,14 +2059,13 @@ function generateHomepageHTML(jobStats, recentJobs) {
     "publisher": {
       "@type": "Organization",
       "name": "Somken Jobs",
-      "description": "Connecting humanitarian professionals with career opportunities across Kenya, Somalia, Ethiopia, Uganda, and Tanzania"
+      "description": "Connecting humanitarian professionals with career opportunities across Kenya, Somalia, Ethiopia, and Djibouti"
     },
     "areaServed": [
       {"@type": "Country", "name": "Kenya"},
       {"@type": "Country", "name": "Somalia"},
       {"@type": "Country", "name": "Ethiopia"},
-      {"@type": "Country", "name": "Uganda"},
-      {"@type": "Country", "name": "Tanzania"}
+      {"@type": "Country", "name": "Djibouti"}
     ],
     "inLanguage": "en"
   }
@@ -2399,14 +2175,14 @@ function generateJobsPageHTML(jobs2, totalCount, filters = {}) {
   <header class="hero">
     <div class="container">
       <h1>East Africa Humanitarian Jobs - ${totalCount}+ Career Opportunities</h1>
-      <p>Discover comprehensive career opportunities across Somalia, Kenya, Ethiopia, Uganda, and Tanzania with leading humanitarian organizations. Browse ${totalCount} current positions from international NGOs, UN agencies, and development organizations operating throughout East Africa's dynamic humanitarian landscape.</p>
+      <p>Discover comprehensive career opportunities across Somalia, Kenya, Ethiopia, and Djibouti with leading humanitarian organizations. Browse ${totalCount} current positions from international NGOs, UN agencies, and development organizations operating throughout East Africa's dynamic humanitarian landscape.</p>
     </div>
   </header>
 
   <main class="container">
     <section>
       <h2>Comprehensive Job Listings Across East Africa</h2>
-      <p>Explore ${totalCount} current humanitarian and development career opportunities across Somalia, Kenya, Ethiopia, Uganda, and Tanzania. Our comprehensive job listings feature positions from leading international organizations, NGOs, and UN agencies operating throughout the region. Each listing is carefully curated and verified to ensure you have access to legitimate, high-quality career opportunities in the humanitarian sector. Our database includes positions ranging from entry-level field roles to senior management positions, covering all major humanitarian specializations and geographic locations across East Africa.</p>
+      <p>Explore ${totalCount} current humanitarian and development career opportunities across Somalia, Kenya, Ethiopia, and Djibouti. Our comprehensive job listings feature positions from leading international organizations, NGOs, and UN agencies operating throughout the region. Each listing is carefully curated and verified to ensure you have access to legitimate, high-quality career opportunities in the humanitarian sector. Our database includes positions ranging from entry-level field roles to senior management positions, covering all major humanitarian specializations and geographic locations across East Africa.</p>
       
       ${jobListings}
       
@@ -2415,7 +2191,7 @@ function generateJobsPageHTML(jobs2, totalCount, filters = {}) {
 
     <section style="margin-top: 40px;">
       <h2>Comprehensive Career Opportunities in Humanitarian Sector</h2>
-      <p>East Africa's humanitarian landscape offers unparalleled opportunities for professionals seeking meaningful careers that make a direct impact on communities and vulnerable populations. Whether you're interested in working in Somalia's dynamic post-conflict recovery environment, Kenya's established humanitarian hub in Nairobi, or the emerging opportunities in Ethiopia, Uganda, and Tanzania, our platform connects you with positions that match your skills and career aspirations. From emergency response roles that require rapid deployment to long-term development positions focused on sustainable change, we feature the complete spectrum of humanitarian careers available in the region.</p>
+      <p>East Africa's humanitarian landscape offers unparalleled opportunities for professionals seeking meaningful careers that make a direct impact on communities and vulnerable populations. Whether you're interested in working in Somalia's dynamic post-conflict recovery environment, Kenya's established humanitarian hub in Nairobi, or the emerging opportunities in Ethiopia and Djibouti, our platform connects you with positions that match your skills and career aspirations. From emergency response roles that require rapid deployment to long-term development positions focused on sustainable change, we feature the complete spectrum of humanitarian careers available in the region.</p>
 
       <h3>Major Humanitarian Sectors and Specializations</h3>
       <p><strong>Health and Medical Services:</strong> The region offers extensive opportunities for medical professionals, public health specialists, epidemiologists, and healthcare coordinators. Organizations like WHO, M\xE9decins Sans Fronti\xE8res (MSF), Partners in Health, and numerous local health NGOs are actively recruiting professionals to address ongoing health challenges including infectious disease control, maternal health, nutrition, and health system strengthening initiatives across East Africa.</p>
@@ -2801,15 +2577,6 @@ async function registerRoutes(app2) {
       console.error("Error uploading file:", error);
       res.status(500).json({ message: "Failed to upload file" });
     }
-  });
-  app2.get("/help-center", (req, res) => {
-    res.redirect(301, "/help");
-  });
-  app2.get("/privacy-policy", (req, res) => {
-    res.redirect(301, "/privacy");
-  });
-  app2.get("/terms-of-service", (req, res) => {
-    res.redirect(301, "/terms");
   });
   app2.get("/career-guide", (req, res) => {
     res.redirect(301, "/career-resources");
@@ -3353,12 +3120,6 @@ async function registerRoutes(app2) {
   });
   app2.post("/api/jobs/refresh", requireAdminOrCronSecret, async (req, res) => {
     try {
-      if (isProduction && !legacyFetchEnabled) {
-        return res.status(202).json({
-          message: "Legacy job fetchers are disabled in production",
-          hint: "Set ENABLE_LEGACY_JOB_FETCHERS=true only after the legacy sources are healthy."
-        });
-      }
       await jobFetcher.fetchAllJobs();
       res.json({
         message: "Job refresh completed",
@@ -3377,14 +3138,6 @@ async function registerRoutes(app2) {
       const cronSecret = process.env.CRON_SECRET;
       if (!cronSecret || req.headers.authorization !== `Bearer ${cronSecret}`) {
         return res.status(401).json({ message: "Unauthorized" });
-      }
-      if (isProduction && !legacyFetchEnabled) {
-        return res.status(202).json({
-          message: "Legacy job fetchers are disabled in production",
-          timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-          archivedExpiredJobs: 0,
-          hint: "Set ENABLE_LEGACY_JOB_FETCHERS=true only after the legacy sources are healthy."
-        });
       }
       console.log("Job fetch triggered via /api/trigger-fetch");
       await jobFetcher.fetchAllJobs();
@@ -3554,6 +3307,10 @@ async function registerRoutes(app2) {
       }
       delete jobData.attachmentUrls;
       const { createdAt: _omitCreatedAt, ...jobDataWithoutCreatedAt } = jobData;
+      if (!isAdmin) {
+        delete jobDataWithoutCreatedAt.status;
+        delete jobDataWithoutCreatedAt.source;
+      }
       const isNowPrivate = jobData.visibility === "private";
       const transformedData = {
         ...jobDataWithoutCreatedAt,
@@ -3595,6 +3352,7 @@ async function registerRoutes(app2) {
   app2.post("/api/jobs", authenticate, async (req, res) => {
     try {
       const userId = req.user.id;
+      const isPrivileged = req.user.isAdmin === true;
       const isPrivate = req.body.visibility === "private";
       let attachmentUrlValue = req.body.attachmentUrl || null;
       if (Array.isArray(req.body.attachmentUrls) && req.body.attachmentUrls.length > 0) {
@@ -3604,7 +3362,8 @@ async function registerRoutes(app2) {
         ...req.body,
         attachmentUrl: attachmentUrlValue,
         createdBy: userId,
-        source: req.body.source || "user",
+        source: isPrivileged ? req.body.source || "user" : "user",
+        status: isPrivileged ? req.body.status || "published" : "pending",
         externalId: req.body.externalId || `user-${userId}-${Date.now()}`,
         datePosted: req.body.datePosted || /* @__PURE__ */ new Date(),
         url: req.body.url || "",
@@ -3627,6 +3386,7 @@ async function registerRoutes(app2) {
   app2.post("/api/jobs/bulk-upload", authenticate, upload.single("file"), async (req, res) => {
     try {
       const userId = req.user.id;
+      const isPrivileged = req.user.isAdmin === true;
       let jobsArray = [];
       if (req.file) {
         const fileContent = req.file.buffer.toString("utf-8");
@@ -3733,7 +3493,7 @@ async function registerRoutes(app2) {
             datePosted: parseFuzzyDate(rawJob.datePosted),
             deadline: rawJob.deadline ? parseFuzzyDate(rawJob.deadline) : null,
             sector: rawJob.sector || null,
-            source: rawJob.source || "user",
+            source: isPrivileged ? rawJob.source || "user" : "user",
             externalId: rawJob.externalId || `user-${userId}-${Date.now()}-${i}`,
             howToApply: rawJob.howToApply || null,
             experience: rawJob.experience || null,
@@ -3741,7 +3501,7 @@ async function registerRoutes(app2) {
             responsibilities: rawJob.responsibilities || null,
             bodyHtml: rawJob.bodyHtml || null,
             createdBy: userId,
-            status: rawJob.status || "published",
+            status: isPrivileged ? rawJob.status || "published" : "pending",
             type: rawJob.type || "job",
             attachmentUrl: rawJob.attachmentUrl || null,
             jobNumber: rawJob.jobNumber || null
@@ -4028,22 +3788,18 @@ async function registerRoutes(app2) {
     }
     return `${phrase} ${job.title} position in ${job.location}, ${job.country} with ${job.organization}${deadline}`;
   }
-  const SUPPORTED_COUNTRIES = ["kenya", "somalia", "djibouti", "ethiopia", "uganda", "tanzania"];
+  const SUPPORTED_COUNTRIES = ["kenya", "somalia", "djibouti", "ethiopia"];
   const COUNTRY_DISPLAY_NAMES = {
     "kenya": "Kenya",
     "somalia": "Somalia",
     "djibouti": "Djibouti",
-    "ethiopia": "Ethiopia",
-    "uganda": "Uganda",
-    "tanzania": "Tanzania"
+    "ethiopia": "Ethiopia"
   };
   const COUNTRY_DESCRIPTIONS = {
     "kenya": "Kenya serves as East Africa's humanitarian hub, with Nairobi hosting regional headquarters for numerous international organizations.",
     "somalia": "Somalia offers unique opportunities for humanitarian professionals to contribute to post-conflict recovery and stabilization efforts.",
-    "djibouti": "Djibouti is a strategic Horn of Africa location for humanitarian, logistics, UN, NGO, and regional development work.",
-    "ethiopia": "Ethiopia presents vast opportunities for development and humanitarian professionals working across diverse contexts including refugee response.",
-    "uganda": "Uganda offers meaningful opportunities in refugee response, health programming, and development initiatives.",
-    "tanzania": "Tanzania provides opportunities in development programming, refugee support, and health initiatives."
+    "djibouti": "Djibouti is a strategic Horn of Africa location for humanitarian, logistics, and regional development work.",
+    "ethiopia": "Ethiopia presents vast opportunities for development and humanitarian professionals working across diverse contexts including refugee response."
   };
   const SUPPORTED_CITIES = {
     mogadishu: {
@@ -4175,8 +3931,8 @@ async function registerRoutes(app2) {
         (job) => job.country.toLowerCase() === countryParam && (!job.type || job.type === "job") && job.status === "published" && job.visibility !== "private" && (!job.deadline || new Date(job.deadline) >= now)
       );
       const pageUrl = `https://somkenjobs.com/jobs/country/${countryParam}`;
-      const pageTitle = `Humanitarian Jobs in ${countryName} | ${countryJobs.length}+ Current Openings | Somken Jobs`;
-      const pageDescription = `Find ${countryJobs.length}+ humanitarian and development jobs in ${countryName}. ${countryDescription} Browse NGO, UN, and international organization positions.`;
+      const pageTitle = `Jobs in ${countryName} | ${countryJobs.length}+ Current Vacancies & Openings | Somken Jobs`;
+      const pageDescription = `Browse ${countryJobs.length}+ current job vacancies in ${countryName}. ${countryDescription} Find openings across health, education, engineering, WASH, logistics, and professional roles with direct application links.`;
       const __dirname = path.dirname(fileURLToPath(import.meta.url));
       const htmlPath = path.join(__dirname, "../dist/public/index.html");
       let html = "";
@@ -4199,11 +3955,11 @@ async function registerRoutes(app2) {
       const structuredData = {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
-        "name": `Humanitarian Jobs in ${countryName}`,
+        "name": `Jobs in ${countryName}`,
         "description": pageDescription,
         "url": pageUrl,
         "isPartOf": { "@type": "WebSite", "name": "Somken Jobs", "url": "https://somkenjobs.com/" },
-        "about": [`jobs in ${countryName}`, `NGO jobs in ${countryName}`, `humanitarian jobs in ${countryName}`],
+        "about": [`jobs in ${countryName}`, `vacancies in ${countryName}`, `careers in ${countryName}`],
         "mainEntity": {
           "@type": "ItemList",
           "numberOfItems": countryJobs.length,
@@ -4232,7 +3988,7 @@ async function registerRoutes(app2) {
       html = injectServerLandingContent(html, renderServerLandingContent({
         h1: `Jobs in ${countryName}`,
         description: pageDescription,
-        intro: `${countryDescription} Somken Jobs lists current NGO, UN, humanitarian, development, and professional vacancies with direct links to job details and application instructions.`,
+        intro: `${countryDescription} Somken Jobs lists current vacancies in ${countryName} across health, education, engineering, WASH, logistics, finance, and professional roles with direct links to job details and application instructions. Use the related links to browse NGO- and UN-specific openings.`,
         jobs: countryJobs,
         relatedLinks: defaultRelatedKeywordLinks,
         faqItems: [
@@ -4285,7 +4041,7 @@ async function registerRoutes(app2) {
       });
       const pageUrl = `https://somkenjobs.com/jobs/sector/${sectorParam}`;
       const pageTitle = sectorParam === "engineering" ? `Engineering Jobs in Somalia & East Africa | ${sectorJobs.length}+ Openings | Somken Jobs` : `${sectorName} Jobs in East Africa | ${sectorJobs.length}+ Humanitarian Positions | Somken Jobs`;
-      const pageDescription = sectorParam === "engineering" ? `Find ${sectorJobs.length}+ engineering jobs in Somalia and East Africa, including civil, infrastructure, WASH, construction, and project engineering vacancies.` : `Find ${sectorJobs.length}+ ${sectorName.toLowerCase()} sector jobs across Kenya, Somalia, Ethiopia, Uganda, Tanzania. ${sectorDescription}`;
+      const pageDescription = sectorParam === "engineering" ? `Find ${sectorJobs.length}+ engineering jobs in Somalia and East Africa, including civil, infrastructure, WASH, construction, and project engineering vacancies.` : `Find ${sectorJobs.length}+ ${sectorName.toLowerCase()} sector jobs across Kenya, Somalia, Ethiopia, and Djibouti. ${sectorDescription}`;
       const __dirname = path.dirname(fileURLToPath(import.meta.url));
       const htmlPath = path.join(__dirname, "../dist/public/index.html");
       let html = "";
@@ -4637,7 +4393,7 @@ async function registerRoutes(app2) {
       const tenders = allJobs.filter((job) => job.type === "tender");
       const pageUrl = "https://somkenjobs.com/tenders";
       const pageTitle = `Humanitarian Tenders in East Africa | ${tenders.length}+ Active Opportunities | Somken Jobs`;
-      const pageDescription = `Browse ${tenders.length}+ humanitarian tenders across Kenya, Somalia, Ethiopia, Uganda, and Tanzania. Find procurement opportunities from UN agencies, NGOs, and international organizations.`;
+      const pageDescription = `Browse ${tenders.length}+ humanitarian tenders across Kenya, Somalia, Ethiopia, and Djibouti. Find procurement opportunities from UN agencies, NGOs, and international organizations.`;
       const __dirname = path.dirname(fileURLToPath(import.meta.url));
       const htmlPath = path.join(__dirname, "../dist/public/index.html");
       let html = "";
@@ -4962,10 +4718,12 @@ async function registerRoutes(app2) {
         ]
       };
       const shouldNoindex = job.visibility === "private" || !!ssrToken || !isIndexableJob;
-      const robotsContent = job.visibility === "private" || !!ssrToken ? "noindex, nofollow" : "noindex, follow";
+      const robotsContent = shouldNoindex ? job.visibility === "private" || !!ssrToken ? "noindex, nofollow" : "noindex, follow" : "index, follow";
+      html = html.replace(/<meta name="robots"[^>]*>\s*/i, "");
       const additionalMetaTags = `
     <!-- Job-specific meta tags for enhanced social media previews -->
-    ${shouldNoindex ? `<meta name="robots" content="${robotsContent}">` : ""}
+    <meta name="robots" content="${robotsContent}">
+
     <meta property="article:published_time" content="${new Date(job.datePosted).toISOString()}">
     <meta property="article:section" content="${escapeHtml4(job.sector || "Humanitarian")}">
     <meta property="article:tag" content="${escapeHtml4(job.sector || "Humanitarian")}">
@@ -5048,7 +4806,7 @@ ${jsonLd(breadcrumbData)}
       const jobs2 = await getPublicActiveJobPages();
       const newestJobDate = latestJobLastmod(jobs2);
       const latestDateFor = (subset) => subset.length ? getJobLastModified(subset[0]) : newestJobDate;
-      const countries2 = ["Kenya", "Somalia", "Djibouti", "Ethiopia", "Uganda", "Tanzania"];
+      const countries2 = ["Kenya", "Somalia", "Djibouti", "Ethiopia"];
       const sectors2 = ["Engineering", "Health", "Education", "Protection", "WASH", "Food Security", "Logistics", "Emergency Response"];
       const cityKeys = Object.keys(SUPPORTED_CITIES);
       const urls = [
@@ -5175,7 +4933,7 @@ ${jobUrls}
   <channel>
     <title>Somken Jobs - East Africa Humanitarian Jobs</title>
     <link>https://somkenjobs.com</link>
-    <description>Latest humanitarian job opportunities across Kenya, Somalia, Ethiopia, Uganda, and Tanzania from leading UN agencies, NGOs, and international organizations.</description>
+    <description>Latest humanitarian job opportunities across Kenya, Somalia, Ethiopia, and Djibouti from leading UN agencies, NGOs, and international organizations.</description>
     <language>en-us</language>
     <lastBuildDate>${(/* @__PURE__ */ new Date()).toUTCString()}</lastBuildDate>
     <pubDate>${latestJobs.length > 0 ? formatDate(latestJobs[0].datePosted) : (/* @__PURE__ */ new Date()).toUTCString()}</pubDate>
@@ -5233,6 +4991,9 @@ Disallow: /api
 Disallow: /internal
 Disallow: /dashboard
 Disallow: /preview
+
+# Block Cloudflare-injected utility paths (not real pages; cause soft 404s)
+Disallow: /cdn-cgi/
 
 # Reference to sitemap and RSS feed
 Sitemap: https://somkenjobs.com/sitemap.xml
