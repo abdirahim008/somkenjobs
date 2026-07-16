@@ -467,16 +467,8 @@ export default function JobDetails() {
 
   const renderHtmlContent = (html: string): string => {
     if (!html) return '';
-    // Attachments are shown only in the dedicated Attachments card. Older jobs
-    // had an "<h3>Attachments</h3><ul>…</ul>" block baked into their stored body
-    // (a duplicate of the card, with a link that could 404) — strip it on render
-    // so it no longer appears inside the Job Description & Requirements section.
-    const withoutEmbeddedAttachments = html.replace(
-      /<h3[^>]*>\s*Attachments\s*<\/h3>\s*<ul[\s\S]*?<\/ul>/gi,
-      '',
-    );
-    const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(withoutEmbeddedAttachments);
-    const source = hasHtmlTags ? withoutEmbeddedAttachments : legacyPlainTextToHtml(withoutEmbeddedAttachments);
+    const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(html);
+    const source = hasHtmlTags ? html : legacyPlainTextToHtml(html);
     const withMarkdownFormatting = source
       // Convert markdown bold/italic that may appear in plain-text fields
       .replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>')
@@ -686,7 +678,17 @@ export default function JobDetails() {
     if (!job) return null;
     
     // Use the full HTML description if available, otherwise use the regular description
-    const fullDescription = job.bodyHtml || job.description;
+    let fullDescription = job.bodyHtml || job.description;
+    // Older jobs baked an "<h3>Attachments</h3><ul>…</ul>" block into the body,
+    // duplicating the dedicated Attachments card. Strip that block ONLY when the
+    // card will actually render (job.attachmentUrl present) — otherwise the body
+    // copy is the only place the attachment appears, so it must stay visible.
+    if (job.attachmentUrl && fullDescription) {
+      fullDescription = fullDescription.replace(
+        /<h3[^>]*>\s*Attachments\s*<\/h3>\s*<ul[\s\S]*?<\/ul>/gi,
+        '',
+      );
+    }
     
     // Count visible (plain text) words only — not HTML tags — to decide if "Show More" is needed
     const plainText = fullDescription.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -1205,11 +1207,19 @@ export default function JobDetails() {
                         {items.map((item, idx) => {
                           const isLink = typeof item !== 'string';
                           const href = isLink ? item.url : item;
+                          // Derive a friendly filename from the last URL segment
+                          // for uploaded files — works for both /uploads/… paths
+                          // and absolute Vercel Blob URLs; falls back to the raw
+                          // value for plain links without a filename.
                           const displayName = isLink
                             ? item.label
-                            : (item.startsWith('/uploads/')
-                                ? decodeURIComponent(item.split('/').pop()?.replace(/^\d+-/, '') || 'Download')
-                                : item);
+                            : (() => {
+                                const seg = item.split('?')[0].split('/').pop() || '';
+                                if (seg && /\.[a-z0-9]{2,6}$/i.test(seg)) {
+                                  return decodeURIComponent(seg.replace(/^\d+-/, ''));
+                                }
+                                return item;
+                              })();
                           return (
                             <div key={idx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                               <div className="flex-shrink-0">

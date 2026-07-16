@@ -1615,9 +1615,12 @@ export default function Dashboard() {
                             return (
                               <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded-md">
                                 <span className="text-sm text-gray-700 truncate">
-                                  {fileUrl.startsWith('/uploads/')
-                                    ? decodeURIComponent(fileUrl.split('/').pop()?.replace(/^\d+-/, '') || fileUrl)
-                                    : fileUrl}
+                                  {(() => {
+                                    const seg = fileUrl.split('?')[0].split('/').pop() || '';
+                                    return seg && /\.[a-z0-9]{2,6}$/i.test(seg)
+                                      ? decodeURIComponent(seg.replace(/^\d+-/, ''))
+                                      : fileUrl;
+                                  })()}
                                 </span>
                                 <Button
                                   type="button"

@@ -15,6 +15,7 @@ import path from "path";
 import { randomBytes, createHash } from "crypto";
 import { fileURLToPath } from 'url';
 import multer from "multer";
+import { put as putBlob } from "@vercel/blob";
 import { parse as csvParse } from "csv-parse/sync";
 import { sanitizeJobContentFields, sanitizeRichHtml } from "./utils/sanitizeHtml";
 import { generateJobPostingJsonLd, getJobCanonicalUrl, getJobLastModified, isGoogleIndexableJob, stripHtml } from "./utils/googleJobs";
@@ -250,12 +251,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 </html>`);
   });
 
-  // File upload endpoint
+  // File upload endpoint.
+  //
+  // Vercel's serverless filesystem (including /tmp) is ephemeral and per-instance,
+  // so a file written to local disk vanishes before the next request can serve it.
+  // In production we therefore push uploads to Vercel Blob (durable, CDN-served,
+  // separate origin) and store the returned absolute URL. Local dev without a Blob
+  // token falls back to the on-disk /uploads directory so the flow still works.
   app.post('/api/upload', authenticate, upload.single('file'), async (req: AuthRequest, res) => {
     try {
       if (!req.file) return res.status(400).json({ message: 'No file provided' });
       const safeName = req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
       const filename = `${Date.now()}-${safeName}`;
+
+      if (process.env.BLOB_READ_WRITE_TOKEN) {
+        const blob = await putBlob(`uploads/${filename}`, req.file.buffer, {
+          access: 'public',
+          contentType: req.file.mimetype || 'application/octet-stream',
+          addRandomSuffix: false,
+        });
+        return res.json({ url: blob.url, originalName: req.file.originalname });
+      }
+
+      // Local development fallback (no Blob token): write to disk.
       const filepath = path.join(uploadsDir, filename);
       fs.writeFileSync(filepath, req.file.buffer);
       res.json({ url: `/uploads/${filename}`, originalName: req.file.originalname });

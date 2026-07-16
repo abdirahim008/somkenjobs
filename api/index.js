@@ -1502,6 +1502,7 @@ import path from "path";
 import { randomBytes, createHash } from "crypto";
 import { fileURLToPath } from "url";
 import multer from "multer";
+import { put as putBlob } from "@vercel/blob";
 import { parse as csvParse } from "csv-parse/sync";
 
 // server/services/email.ts
@@ -2570,6 +2571,14 @@ async function registerRoutes(app2) {
       if (!req.file) return res.status(400).json({ message: "No file provided" });
       const safeName = req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
       const filename = `${Date.now()}-${safeName}`;
+      if (process.env.BLOB_READ_WRITE_TOKEN) {
+        const blob = await putBlob(`uploads/${filename}`, req.file.buffer, {
+          access: "public",
+          contentType: req.file.mimetype || "application/octet-stream",
+          addRandomSuffix: false
+        });
+        return res.json({ url: blob.url, originalName: req.file.originalname });
+      }
       const filepath = path.join(uploadsDir, filename);
       fs.writeFileSync(filepath, req.file.buffer);
       res.json({ url: `/uploads/${filename}`, originalName: req.file.originalname });
