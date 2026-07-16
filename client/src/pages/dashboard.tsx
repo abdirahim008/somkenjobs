@@ -1156,9 +1156,12 @@ export default function Dashboard() {
           ${jobForm.qualifications && jobForm.qualifications.trim() ? `<h3>Qualifications & Requirements</h3><div>${jobForm.qualifications}</div>` : ''}
           ${jobForm.experience ? `<h3>Experience Level</h3><p>${jobForm.experience}</p>` : ''}
           ${jobForm.howToApply && jobForm.howToApply.trim() ? `<h3>How to Apply</h3><div>${jobForm.howToApply}</div>` : ''}
-          ${jobForm.attachmentUrls.length > 0 ? `<h3>Attachments</h3><ul>${jobForm.attachmentUrls.map(item => { if (typeof item === 'string') { const name = item.startsWith('/uploads/') ? decodeURIComponent(item.split('/').pop()?.replace(/^\d+-/, '') || item) : item; return `<li><a href="${item}" target="_blank" download>${name}</a></li>`; } else { return `<li><a href="${item.url}" target="_blank" rel="noopener noreferrer">${item.label || item.url}</a></li>`; } }).join('')}</ul>` : ''}
         </div>
       `.trim()
+      /* Attachments are intentionally NOT embedded in the body — they are shown
+         only in the dedicated Attachments card (rendered from attachmentUrls),
+         which avoids a duplicated (and previously broken) link inside the
+         Job Description & Requirements section. */
     };
 
     if (editingJob) {

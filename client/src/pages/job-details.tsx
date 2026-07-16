@@ -467,8 +467,16 @@ export default function JobDetails() {
 
   const renderHtmlContent = (html: string): string => {
     if (!html) return '';
-    const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(html);
-    const source = hasHtmlTags ? html : legacyPlainTextToHtml(html);
+    // Attachments are shown only in the dedicated Attachments card. Older jobs
+    // had an "<h3>Attachments</h3><ul>…</ul>" block baked into their stored body
+    // (a duplicate of the card, with a link that could 404) — strip it on render
+    // so it no longer appears inside the Job Description & Requirements section.
+    const withoutEmbeddedAttachments = html.replace(
+      /<h3[^>]*>\s*Attachments\s*<\/h3>\s*<ul[\s\S]*?<\/ul>/gi,
+      '',
+    );
+    const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(withoutEmbeddedAttachments);
+    const source = hasHtmlTags ? withoutEmbeddedAttachments : legacyPlainTextToHtml(withoutEmbeddedAttachments);
     const withMarkdownFormatting = source
       // Convert markdown bold/italic that may appear in plain-text fields
       .replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>')
