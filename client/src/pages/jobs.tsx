@@ -192,15 +192,15 @@ export default function Jobs() {
           {/* Sidebar */}
           <div className="hidden lg:block w-80 flex-shrink-0">
             <div className="sticky top-24">
+              {/* House advert */}
+              <SahanAd slot="mpu" className="mb-6" />
+
               <Sidebar 
                 filters={filters} 
                 onFilterChange={handleFilterChange}
                 availableFilters={jobsData?.filters}
                 isLoading={isLoading}
               />
-
-              {/* House advert */}
-              <SahanAd slot="mpu" className="mt-6" />
             </div>
           </div>
 

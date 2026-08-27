@@ -885,6 +885,9 @@ export default function JobDetails() {
           {/* Left Sidebar - Hidden on mobile */}
           <div className="hidden lg:block lg:w-80 lg:flex-shrink-0">
             <div className="sticky top-6 space-y-6">
+              {/* House advert */}
+              <SahanAd slot="mpu" />
+
               {/* Job Details Card */}
               <Card>
                 <CardHeader>
@@ -1025,8 +1028,6 @@ export default function JobDetails() {
 
 
               
-              {/* House advert */}
-              <SahanAd slot="mpu" />
             </div>
           </div>
 

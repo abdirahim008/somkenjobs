@@ -173,6 +173,9 @@ export default function Home() {
           
           {/* Left Sidebar - Desktop, Top on Mobile */}
           <div className="lg:w-80 xl:w-96 flex-shrink-0 order-1">
+            {/* House advert */}
+            <SahanAd slot="mpu" className="mb-6 hidden lg:block" />
+
             <div className="desktop-left-sidebar">
               <Sidebar 
                 filters={filters}
@@ -181,9 +184,6 @@ export default function Home() {
                 isLoading={isLoading}
               />
             </div>
-
-            {/* House advert */}
-            <SahanAd slot="mpu" className="mt-6 hidden lg:block" />
           </div>
 
           {/* Job Listings */}
