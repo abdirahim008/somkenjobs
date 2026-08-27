@@ -175,7 +175,12 @@ export default function SahanAd({
   }, []);
 
   useEffect(() => {
-    if (!rotate || fixed >= 0 || !ready) return;
+    // Deliberately not gated on `ready`. Every unit on a page mounts in the
+    // same commit, so leaving the timers in lockstep preserves the starting
+    // offset above — gating it let an off-screen unit fall behind and drift
+    // into showing the same creative as its neighbour. The interval only
+    // moves a state index; nothing is fetched until the unit is in view.
+    if (!rotate || fixed >= 0) return;
     const prefersReduced =
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -185,7 +190,7 @@ export default function SahanAd({
       if (!paused.current) setIndex((i) => (i + 1) % VARIANTS.length);
     }, ROTATE_MS);
     return () => window.clearInterval(id);
-  }, [rotate, fixed, ready]);
+  }, [rotate, fixed]);
 
   const active = VARIANTS[index];
 

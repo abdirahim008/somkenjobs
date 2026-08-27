@@ -99,7 +99,7 @@ export default function Home() {
           </div>
 
           {/* House advert */}
-          <SahanAd slot="hero" onDark className="mx-auto mt-6 max-w-3xl" />
+          <SahanAd slot="infeed" onDark className="mx-auto mt-6 max-w-3xl" />
 
           {/* Quick Navigation Links */}
           <div className="flex justify-center space-x-2 sm:space-x-6 mt-6 text-sm px-6 sm:px-0">
