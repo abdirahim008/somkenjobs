@@ -89,6 +89,15 @@ const SLOTS: Record<SahanAdSlot, SlotSpec> = {
 
 const ROTATE_MS = 8000;
 
+// Two units can share a viewport — the hero banner and the sidebar unit sit
+// above the fold together on the home page. Offset each slot's starting
+// variant so they never open on the same creative. Derived from the slot
+// name rather than randomised, so the choice is stable across renders.
+const SLOT_ORDER = Object.keys(SLOTS);
+function startIndex(slot: SahanAdSlot) {
+  return SLOT_ORDER.indexOf(slot) % VARIANTS.length;
+}
+
 export function sahanUrl(slot: string, variant: string) {
   return (
     `${TARGET}?utm_source=somkenjobs&utm_medium=display` +
@@ -120,6 +129,8 @@ interface SahanAdProps {
   variant?: Variant;
   /** Skip the frame chrome — the sticky bar draws its own. */
   bare?: boolean;
+  /** Light the label and dots for placement on a dark panel. */
+  onDark?: boolean;
 }
 
 export default function SahanAd({
@@ -129,10 +140,13 @@ export default function SahanAd({
   label = true,
   variant,
   bare = false,
+  onDark = false,
 }: SahanAdProps) {
   const spec = SLOTS[slot];
   const fixed = variant ? VARIANTS.indexOf(variant) : -1;
-  const [index, setIndex] = useState(fixed >= 0 ? fixed : 0);
+  const [index, setIndex] = useState(
+    fixed >= 0 ? fixed : startIndex(slot),
+  );
   const [ready, setReady] = useState(false);
   const frameRef = useRef<HTMLDivElement>(null);
   const paused = useRef(false);
@@ -188,10 +202,18 @@ export default function SahanAd({
     >
       {label && (
         <div className="mb-2 flex items-center gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+          <span
+            className={cn(
+              "text-[10px] font-semibold uppercase tracking-[0.14em]",
+              onDark ? "text-white/70" : "text-gray-400",
+            )}
+          >
             Sponsored
           </span>
-          <span className="h-px flex-1 bg-gray-200" aria-hidden="true" />
+          <span
+            className={cn("h-px flex-1", onDark ? "bg-white/30" : "bg-gray-200")}
+            aria-hidden="true"
+          />
         </div>
       )}
 
@@ -248,7 +270,9 @@ export default function SahanAd({
               aria-label={`Show advert ${i + 1}`}
               className={cn(
                 "h-1 rounded-full transition-all duration-300",
-                i === index ? "w-4 bg-gray-400" : "w-1 bg-gray-300",
+                i === index
+                  ? onDark ? "w-4 bg-white/80" : "w-4 bg-gray-400"
+                  : onDark ? "w-1 bg-white/40" : "w-1 bg-gray-300",
               )}
             />
           ))}

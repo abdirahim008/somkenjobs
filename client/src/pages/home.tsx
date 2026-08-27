@@ -7,8 +7,6 @@ import JobCard from "@/components/JobCard";
 import SahanAd from "@/components/SahanAd";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
-import RecruiterAdBanner from "@/components/RecruiterAdBanner";
-import AuthModal from "@/components/AuthModal";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Grid, List, RefreshCw } from "lucide-react";
@@ -47,7 +45,6 @@ export default function Home() {
   const [sortBy, setSortBy] = useState("mostRecent");
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [displayCount, setDisplayCount] = useState(15); // Show the first 15 jobs before requiring "Load More"
-  const [recruiterAuthOpen, setRecruiterAuthOpen] = useState(false);
 
   const { data, isLoading, refetch } = useQuery<JobsResponse>({
     queryKey: ['/api/jobs/list', filters],
@@ -101,8 +98,8 @@ export default function Home() {
             <SearchBar onSearch={handleSearch} />
           </div>
 
-          {/* Recruiter advert */}
-          <RecruiterAdBanner onRegister={() => setRecruiterAuthOpen(true)} />
+          {/* House advert */}
+          <SahanAd slot="hero" onDark className="mx-auto mt-6 max-w-3xl" />
 
           {/* Quick Navigation Links */}
           <div className="flex justify-center space-x-2 sm:space-x-6 mt-6 text-sm px-6 sm:px-0">
@@ -158,13 +155,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* Recruiter registration modal (opened from the hero advert) */}
-      <AuthModal
-        open={recruiterAuthOpen}
-        onOpenChange={setRecruiterAuthOpen}
-        defaultTab="register"
-      />
 
       {/* Main Content */}
       <main className="main-container max-w-full mx-auto px-2 sm:px-4 lg:px-6 xl:px-8">
