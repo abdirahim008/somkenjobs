@@ -1271,9 +1271,6 @@ export default function JobDetails() {
 
 
 
-              {/* House advert */}
-              <SahanAd slot="infeed" className="mb-6" />
-
               {/* Find Similar Jobs - Comprehensive Internal Linking Section */}
               <Card className="mb-6 border-blue-100 bg-blue-50/50">
                 <CardHeader>
