@@ -300,7 +300,7 @@ export default function Home() {
                 {displayedJobs.map((job, i) => (
                   <React.Fragment key={job.id}>
                     <JobCard job={job} />
-                    {i === 4 && <SahanAd slot="infeed" className="py-2" />}
+                    {i === 4 && <SahanAd slot="infeed" className="feed-width py-2" />}
                   </React.Fragment>
                 ))}
               </div>

@@ -553,21 +553,25 @@ a.job-card:hover h3 {
   }
 }
 
-/* Optimal job card width constraints */
-.job-card {
+/* Optimal job card width constraints. In-feed adverts take .feed-width so
+   they line up with the cards they sit between instead of overhanging. */
+.job-card,
+.feed-width {
   max-width: 100%;
 }
 
 /* Prevent over-stretching on large screens */
 @media (min-width: 1024px) {
-  .job-card {
+  .job-card,
+  .feed-width {
     max-width: 800px; /* Constraint job cards on large screens */
   }
 }
 
 /* More aggressive constraints on very wide screens */
 @media (min-width: 1280px) {
-  .job-card {
+  .job-card,
+  .feed-width {
     max-width: 850px;
   }
 }

@@ -368,7 +368,7 @@ export default function Jobs() {
                         </div>
                       </div>
                     </a>
-                    {index === 4 && <SahanAd slot="infeed" className="py-2" />}
+                    {index === 4 && <SahanAd slot="infeed" className="feed-width py-2" />}
                       </React.Fragment>
                     );
                   })
