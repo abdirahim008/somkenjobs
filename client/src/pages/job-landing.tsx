@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import JobCard from "@/components/JobCard";
 import SEOHead from "@/components/SEOHead";
+import SahanAd from "@/components/SahanAd";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -518,6 +519,13 @@ export default function JobLanding() {
           </section>
 
           <aside className="space-y-6">
+            {/* House advert. The tall creative was drawn for a 320px rail,
+                which is exactly this column. On mobile the rail stacks to
+                full width, where a 2:3 tower would swallow the screen, so
+                the square unit takes over. */}
+            <SahanAd slot="skyscraper" className="hidden lg:block" />
+            <SahanAd slot="mpu" className="lg:hidden" />
+
             <Card>
               <CardHeader>
                 <CardTitle>{config.contentTitle}</CardTitle>
