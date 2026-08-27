@@ -1123,6 +1123,9 @@ export default function JobDetails() {
                 </CardContent>
               </Card>
 
+              {/* House advert — mobile counterpart of the sidebar unit */}
+              <SahanAd slot="mpu" className="mb-6 lg:hidden" />
+
               {/* Job Description */}
               <Card className="mb-6">
                 <CardHeader>

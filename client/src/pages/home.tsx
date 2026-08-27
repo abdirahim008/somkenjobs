@@ -174,7 +174,7 @@ export default function Home() {
           {/* Left Sidebar - Desktop, Top on Mobile */}
           <div className="lg:w-80 xl:w-96 flex-shrink-0 order-1">
             {/* House advert */}
-            <SahanAd slot="mpu" className="mb-6 hidden lg:block" />
+            <SahanAd slot="mpu" className="mb-6" />
 
             <div className="desktop-left-sidebar">
               <Sidebar 

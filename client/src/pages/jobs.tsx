@@ -232,6 +232,9 @@ export default function Jobs() {
                 </div>
               </div>
 
+              {/* House advert — mobile counterpart of the sidebar unit */}
+              <SahanAd slot="mpu" className="mb-6 lg:hidden" />
+
               {/* Mobile Filters */}
               <div className="lg:hidden mb-6">
                 <Sidebar 
