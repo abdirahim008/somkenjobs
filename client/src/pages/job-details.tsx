@@ -11,6 +11,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import Breadcrumb, { generateJobBreadcrumbs } from "@/components/Breadcrumb";
+import SahanAd from "@/components/SahanAd";
+import SahanStickyAd from "@/components/SahanStickyAd";
 import { type Job } from "@shared/schema";
 import { generateJobOGTitle, generateJobOGDescription } from "@/utils/generateJobOGImage";
 import { generateJobSlug } from "@shared/utils";
@@ -1023,6 +1025,8 @@ export default function JobDetails() {
 
 
               
+              {/* House advert */}
+              <SahanAd slot="mpu" />
             </div>
           </div>
 
@@ -1263,6 +1267,9 @@ export default function JobDetails() {
 
 
 
+              {/* House advert */}
+              <SahanAd slot="infeed" className="mb-6" />
+
               {/* Find Similar Jobs - Comprehensive Internal Linking Section */}
               <Card className="mb-6 border-blue-100 bg-blue-50/50">
                 <CardHeader>
@@ -1445,7 +1452,13 @@ export default function JobDetails() {
         </div>
       </main>
 
+      <div className="mx-auto hidden max-w-7xl px-4 pb-10 sm:px-6 md:block lg:px-8">
+        <SahanAd slot="footer" />
+      </div>
+
       <Footer />
+
+      <SahanStickyAd />
     </div>
   );
 }
