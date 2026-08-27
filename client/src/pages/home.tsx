@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import SearchBar from "@/components/SearchBar";
 import Sidebar from "@/components/Sidebar";
 import JobCard from "@/components/JobCard";
+import SahanAd from "@/components/SahanAd";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import RecruiterAdBanner from "@/components/RecruiterAdBanner";
@@ -180,6 +181,9 @@ export default function Home() {
                 isLoading={isLoading}
               />
             </div>
+
+            {/* House advert */}
+            <SahanAd slot="mpu" className="mt-6 hidden lg:block" />
           </div>
 
           {/* Job Listings */}
@@ -303,8 +307,11 @@ export default function Home() {
               </div>
             ) : (
               <div className="space-y-4">
-                {displayedJobs.map((job) => (
-                  <JobCard key={job.id} job={job} />
+                {displayedJobs.map((job, i) => (
+                  <React.Fragment key={job.id}>
+                    <JobCard job={job} />
+                    {i === 4 && <SahanAd slot="infeed" className="py-2" />}
+                  </React.Fragment>
                 ))}
               </div>
             )}
@@ -436,6 +443,10 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <div className="mx-auto hidden max-w-7xl px-4 pb-10 sm:px-6 md:block lg:px-8">
+        <SahanAd slot="footer" />
+      </div>
 
       <Footer />
     </div>

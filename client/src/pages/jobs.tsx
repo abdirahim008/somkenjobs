@@ -11,6 +11,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SearchBar from "@/components/SearchBar";
 import Sidebar from "@/components/Sidebar";
+import SahanAd from "@/components/SahanAd";
 import SEOHead from "@/components/SEOHead";
 import { type Job } from "@shared/schema";
 import { generateJobSlug } from "@shared/utils";
@@ -181,6 +182,9 @@ export default function Jobs() {
           <div className="max-w-4xl mx-auto">
             <SearchBar onSearch={setSearchTerm} />
           </div>
+
+          {/* House advert */}
+          <SahanAd slot="hero" className="mx-auto mt-6 max-w-3xl" />
         </section>
 
         {/* Main Content */}
@@ -194,6 +198,9 @@ export default function Jobs() {
                 availableFilters={jobsData?.filters}
                 isLoading={isLoading}
               />
+
+              {/* House advert */}
+              <SahanAd slot="mpu" className="mt-6" />
             </div>
           </div>
 
@@ -247,13 +254,13 @@ export default function Jobs() {
                     <p className="text-muted-foreground">No jobs found matching your criteria.</p>
                   </div>
                 ) : (
-                  jobs.map((job: Job) => {
+                  jobs.map((job: Job, index: number) => {
                     const slug = generateJobSlug(job.title, job.id);
                     const jobUrl = `/jobs/${slug}`;
                     
                     return (
+                      <React.Fragment key={job.id}>
                       <a
-                        key={job.id}
                         href={jobUrl}
                         className="job-card cursor-pointer hover:shadow-md transition-shadow duration-200 block no-underline text-inherit"
                         onClick={(e) => handleCardClick(job, e)}
@@ -358,6 +365,8 @@ export default function Jobs() {
                         </div>
                       </div>
                     </a>
+                    {index === 4 && <SahanAd slot="infeed" className="py-2" />}
+                      </React.Fragment>
                     );
                   })
                 )}
@@ -366,6 +375,10 @@ export default function Jobs() {
           </div>
         </div>
       </main>
+
+      <div className="mx-auto hidden max-w-7xl px-4 pb-10 sm:px-6 md:block lg:px-8">
+        <SahanAd slot="footer" />
+      </div>
 
       <Footer />
     </div>
