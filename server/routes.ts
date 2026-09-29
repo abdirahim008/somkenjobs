@@ -15,7 +15,8 @@ import path from "path";
 import { randomBytes, createHash } from "crypto";
 import { fileURLToPath } from 'url';
 import multer from "multer";
-import { put as putBlob } from "@vercel/blob";
+import { put as putBlob, get as getBlob } from "@vercel/blob";
+import { Readable } from "stream";
 import { parse as csvParse } from "csv-parse/sync";
 import { sanitizeJobContentFields, sanitizeRichHtml } from "./utils/sanitizeHtml";
 import { generateJobPostingJsonLd, getJobCanonicalUrl, getJobLastModified, isGoogleIndexableJob, stripHtml } from "./utils/googleJobs";
@@ -197,6 +198,12 @@ const lightweightJobFiltersSchema = z.object({
   limit: z.string().optional().transform((val) => val ? parseInt(val) : undefined),
 });
 
+// A store connected through the Vercel dashboard authenticates via OIDC and
+// only exposes BLOB_STORE_ID — there is no read-write token — so accept either.
+function hasBlobCredentials() {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   const isProduction = process.env.NODE_ENV === "production";
   const legacyFetchEnabled = process.env.ENABLE_LEGACY_JOB_FETCHERS === "true";
@@ -229,6 +236,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('X-Content-Type-Options', 'nosniff');
     },
   }));
+  // Not on local disk: stream it from the private Blob store, where production
+  // uploads live. The store is private, so files can only be read through here.
+  app.use('/uploads', async (req, res, next) => {
+    if (!hasBlobCredentials()) return next();
+    const filename = decodeURIComponent(req.path.replace(/^\//, ''));
+    if (!/^[A-Za-z0-9._-]+$/.test(filename)) return next();
+    try {
+      const result = await getBlob(`uploads/${filename}`, { access: 'private' });
+      if (!result || result.statusCode !== 200) return next();
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Content-Length', String(result.blob.size));
+      res.setHeader('Cache-Control', 'private, max-age=86400');
+      Readable.fromWeb(result.stream as any).pipe(res);
+    } catch (error) {
+      console.error('Error serving upload from Blob:', error);
+      next();
+    }
+  });
   // A missing upload must 404 rather than fall through to the SPA, which would
   // hand back index.html and the browser would save the page under the .pdf name.
   app.use('/uploads', (_req, res) => {
@@ -271,13 +298,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // A store connected through the Vercel dashboard authenticates via OIDC and
       // only exposes BLOB_STORE_ID — there is no read-write token — so accept either.
-      if (process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) {
-        const blob = await putBlob(`uploads/${filename}`, req.file.buffer, {
-          access: 'public',
+      if (hasBlobCredentials()) {
+        // The store is private, so hand back our own /uploads URL, which the
+        // route above serves by streaming the blob.
+        await putBlob(`uploads/${filename}`, req.file.buffer, {
+          access: 'private',
           contentType: req.file.mimetype || 'application/octet-stream',
           addRandomSuffix: false,
         });
-        return res.json({ url: blob.url, originalName: req.file.originalname });
+        return res.json({ url: `/uploads/${filename}`, originalName: req.file.originalname });
       }
 
       // Local development fallback (no Blob token): write to disk.
