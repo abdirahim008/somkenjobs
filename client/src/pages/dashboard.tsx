@@ -1579,6 +1579,7 @@ export default function Dashboard() {
                         if (files.length === 0) return;
                         const token = localStorage.getItem('auth_token');
                         const uploaded: string[] = [];
+                        const failed: string[] = [];
                         for (const file of files) {
                           try {
                             const fd = new FormData();
@@ -1591,8 +1592,19 @@ export default function Dashboard() {
                             if (res.ok) {
                               const data = await res.json();
                               uploaded.push(data.url);
+                            } else {
+                              failed.push(file.name);
                             }
-                          } catch {}
+                          } catch {
+                            failed.push(file.name);
+                          }
+                        }
+                        if (failed.length > 0) {
+                          toast({
+                            title: "Upload failed",
+                            description: `Could not upload ${failed.join(', ')}. Please try again, or use a file under 4 MB.`,
+                            variant: "destructive",
+                          });
                         }
                         if (uploaded.length > 0) {
                           setJobForm(prev => ({
