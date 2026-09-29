@@ -229,6 +229,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('X-Content-Type-Options', 'nosniff');
     },
   }));
+  // A missing upload must 404 rather than fall through to the SPA, which would
+  // hand back index.html and the browser would save the page under the .pdf name.
+  app.use('/uploads', (_req, res) => {
+    res.status(404).type('text/plain').send('File not found');
+  });
 
   // Google found old spam-style /companies/... URLs. They are not real routes,
   // so return a hard 410 instead of letting the SPA fallback create soft 404s.
@@ -264,7 +269,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const safeName = req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
       const filename = `${Date.now()}-${safeName}`;
 
-      if (process.env.BLOB_READ_WRITE_TOKEN) {
+      // A store connected through the Vercel dashboard authenticates via OIDC and
+      // only exposes BLOB_STORE_ID — there is no read-write token — so accept either.
+      if (process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) {
         const blob = await putBlob(`uploads/${filename}`, req.file.buffer, {
           access: 'public',
           contentType: req.file.mimetype || 'application/octet-stream',
