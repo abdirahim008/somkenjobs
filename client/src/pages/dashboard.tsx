@@ -973,36 +973,39 @@ export default function Dashboard() {
         const subtotal = pricePerJob;
         totalAmount += subtotal;
         
+        // Wrap the job title onto as many lines as it needs within the column
+        pdf.setFont('helvetica', 'normal');
+        const lineHeight = 5;
+        const titleLines: string[] = pdf.splitTextToSize(job.title || '', col1Width - 10);
+        const itemRowHeight = rowHeight + Math.max(titleLines.length - 1, 0) * lineHeight;
+        
         // Alternating row background
         if (index % 2 === 0) {
           pdf.setFillColor(248, 248, 248);
-          pdf.rect(margin, currentY, tableWidth, rowHeight, 'F');
+          pdf.rect(margin, currentY, tableWidth, itemRowHeight, 'F');
         }
         
         // Row border (outer border)
         pdf.setDrawColor(150, 150, 150);
         pdf.setLineWidth(0.5);
-        pdf.rect(margin, currentY, tableWidth, rowHeight, 'S');
+        pdf.rect(margin, currentY, tableWidth, itemRowHeight, 'S');
         
         // Column separators (vertical lines for this row)
-        pdf.line(margin + col1Width, currentY, margin + col1Width, currentY + rowHeight);
-        pdf.line(margin + col1Width + col2Width, currentY, margin + col1Width + col2Width, currentY + rowHeight);
-        pdf.line(margin + col1Width + col2Width + col3Width, currentY, margin + col1Width + col2Width + col3Width, currentY + rowHeight);
+        pdf.line(margin + col1Width, currentY, margin + col1Width, currentY + itemRowHeight);
+        pdf.line(margin + col1Width + col2Width, currentY, margin + col1Width + col2Width, currentY + itemRowHeight);
+        pdf.line(margin + col1Width + col2Width + col3Width, currentY, margin + col1Width + col2Width + col3Width, currentY + itemRowHeight);
         
         // Row content using the same column positioning as headers
-        pdf.setFont('helvetica', 'normal');
         pdf.setTextColor(0, 0, 0);
         
-        // Truncate job title to fit in column
-        const maxTitleLength = Math.floor(col1Width / 3); // Approximate character width
-        const jobTitle = job.title.length > maxTitleLength ? job.title.substring(0, maxTitleLength) + '...' : job.title;
-        
-        pdf.text(jobTitle, margin + 5, currentY + 6);
+        titleLines.forEach((line, lineIndex) => {
+          pdf.text(line, margin + 5, currentY + 6 + lineIndex * lineHeight);
+        });
         pdf.text(pricePerJob.toFixed(2), margin + col1Width + 5, currentY + 6);
         pdf.text('1', margin + col1Width + col2Width + 5, currentY + 6);
         pdf.text(subtotal.toFixed(2), margin + col1Width + col2Width + col3Width + col4Width - 5, currentY + 6, { align: 'right' });
         
-        currentY += rowHeight;
+        currentY += itemRowHeight;
       });
       
       // Total row with emphasis like reference
