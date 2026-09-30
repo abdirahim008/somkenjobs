@@ -874,9 +874,15 @@ export default function Dashboard() {
       pdf.setLineWidth(0.5);
       pdf.line(margin, currentY, pageWidth - margin, currentY);
       
-      currentY += 20;
+      currentY += 16;
       
-      // Sender information (top right)
+      // Invoice title - large and bold like reference
+      pdf.setFontSize(32);
+      pdf.setTextColor(120, 120, 120);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('INVOICE', margin, currentY);
+      
+      // Sender information on the same row as the title (top right)
       pdf.setFontSize(10);
       pdf.setTextColor(0, 0, 0);
       pdf.setFont('helvetica', 'normal');
@@ -884,16 +890,9 @@ export default function Dashboard() {
       
       // Draw a line under sender
       pdf.setDrawColor(0, 0, 0);
-      pdf.line(pageWidth - 60, currentY + 3, pageWidth - 15, currentY + 3);
+      pdf.line(pageWidth - 60, currentY + 3, pageWidth - margin, currentY + 3);
       
-      currentY += 20;
-      
-      // Invoice title - large and bold like reference
-      pdf.setFontSize(32);
-      pdf.setTextColor(120, 120, 120);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('INVOICE', margin, currentY);
-      currentY += 25;
+      currentY += 14;
       
       // Invoice details section - two columns like reference
       pdf.setFontSize(10);
@@ -929,7 +928,7 @@ export default function Dashboard() {
 
       // Keep the table clear of the receiver block when the name wraps.
       const receiverBottom = currentY + 7 + receiverLines.length * 5;
-      currentY = Math.max(currentY + 35, receiverBottom + 10);
+      currentY = Math.max(currentY + 22, receiverBottom + 6);
       
       // Items table with clean design matching reference
       const tableStartY = currentY;
@@ -944,10 +943,10 @@ export default function Dashboard() {
       pdf.rect(margin, currentY, tableWidth, rowHeight, 'S');
       
       // Calculate column widths to fit within table
-      const col1Width = tableWidth * 0.5;  // 50% for Item Description
-      const col2Width = tableWidth * 0.2;  // 20% for Price
-      const col3Width = tableWidth * 0.15; // 15% for Quantity  
-      const col4Width = tableWidth * 0.15; // 15% for Subtotal
+      const col1Width = tableWidth * 0.56; // 56% for Item Description
+      const col2Width = tableWidth * 0.14; // 14% for Price
+      const col3Width = tableWidth * 0.13; // 13% for Quantity
+      const col4Width = tableWidth * 0.17; // 17% for Subtotal
       
       // Header column separators (vertical lines)
       pdf.line(margin + col1Width, currentY, margin + col1Width, currentY + rowHeight);
@@ -1025,7 +1024,7 @@ export default function Dashboard() {
       pdf.text('Total ($)', margin + col1Width + col2Width + 5, currentY + 6);
       pdf.text(totalAmount.toFixed(2), margin + col1Width + col2Width + col3Width + col4Width - 5, currentY + 6, { align: 'right' });
       
-      currentY += 30;
+      currentY += 16;
       
       // Payment information section matching reference style
       pdf.setFontSize(10);
@@ -1036,7 +1035,7 @@ export default function Dashboard() {
       pdf.text('+252 613320906', margin, currentY + 7);
       pdf.setFont('helvetica', 'normal');
       
-      currentY += 35;
+      currentY += 18;
       
       // Notes section like reference
       pdf.setFontSize(9);
@@ -1044,7 +1043,7 @@ export default function Dashboard() {
       pdf.setFont('helvetica', 'italic');
       pdf.text('Note: Please send a remittance advice by email to billing@somkenjobs.com', margin, currentY);
       
-      currentY += 15;
+      currentY += 10;
 
       // Company seal section
       const sealSize = 45;
