@@ -1046,7 +1046,7 @@ export default function Dashboard() {
       currentY += 10;
 
       // Company seal section
-      const sealSize = 45;
+      const sealSize = 55;
       const sealX = pageWidth - margin - sealSize;
       const sealY = currentY;
 
