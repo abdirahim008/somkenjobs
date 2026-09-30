@@ -1065,7 +1065,21 @@ export default function Dashboard() {
             reader.onerror = reject;
             reader.readAsDataURL(blob);
           });
-          pdf.addImage(sealDataUrl, 'PNG', sealX, sealY, sealSize, sealSize);
+          // Keep the seal's aspect ratio: fit it inside a sealSize square box.
+          const { width: imgW, height: imgH } = pdf.getImageProperties(sealDataUrl);
+          const scale = sealSize / Math.max(imgW, imgH);
+          const drawW = imgW * scale;
+          const drawH = imgH * scale;
+          pdf.addImage(
+            sealDataUrl,
+            'PNG',
+            sealX + (sealSize - drawW) / 2,
+            sealY + (sealSize - drawH) / 2,
+            drawW,
+            drawH,
+            undefined,
+            'FAST' // compress the seal so invoice PDFs stay small
+          );
         } else {
           throw new Error('Seal not found');
         }
