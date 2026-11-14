@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRoute, useLocation, Link, useSearch } from "wouter";
-import { ArrowLeft, Calendar, MapPin, Building2, ExternalLink, Clock, Users, ChevronDown, ChevronUp, Briefcase, FileText, Share2 } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Building2, ExternalLink, Clock, Users, ChevronDown, ChevronUp, Briefcase, FileText, Share2, Printer } from "lucide-react";
 import { FaFacebook, FaWhatsapp, FaTwitter, FaLinkedin } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -564,6 +564,27 @@ export default function JobDetails() {
     }
   };
 
+  // Opens the browser print dialog, where users can print or choose
+  // "Save as PDF". The document title becomes the suggested PDF file name.
+  const handlePrint = () => {
+    if (!job) return;
+    const originalTitle = document.title;
+    const printTitle = `${job.title} - ${job.organization}`
+      .replace(/[\\/:*?"<>|]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 120);
+    const restore = () => {
+      document.title = originalTitle;
+      window.removeEventListener("afterprint", restore);
+    };
+    window.addEventListener("afterprint", restore);
+    document.title = printTitle;
+    window.print();
+    // Some mobile browsers never fire afterprint; restore once the dialog returns.
+    setTimeout(restore, 1000);
+  };
+
   const handleShare = (platform: string) => {
     if (!job) return;
     
@@ -702,7 +723,7 @@ export default function JobDetails() {
       <div className="space-y-4">
         <div className="prose prose-gray max-w-none">
           <div 
-            className="space-y-4 break-words overflow-wrap-anywhere rich-text-content"
+            className="space-y-4 break-words overflow-wrap-anywhere rich-text-content print-expand"
             dangerouslySetInnerHTML={{
               __html: renderHtmlContent(fullDescription)
             }}
@@ -724,7 +745,7 @@ export default function JobDetails() {
             variant="outline"
             size="sm"
             onClick={() => setShowFullDescription(!showFullDescription)}
-            className="mt-4 flex items-center gap-2"
+            className="mt-4 flex items-center gap-2 print:hidden"
           >
             {showFullDescription ? (
               <>
@@ -833,8 +854,14 @@ export default function JobDetails() {
   const privateOrTokenJob = job.visibility === 'private' || !!token;
   const robotsContent = !privateOrTokenJob && !indexableJob ? 'noindex, follow' : undefined;
 
+  const isTender = (job as any).type === 'tender';
+  const canonicalJobUrl = `https://somkenjobs.com/jobs/${generateJobSlug(job.title, job.id)}`;
+  // Private postings are only reachable through their tokenized link, so print
+  // that link; public postings print the clean canonical URL.
+  const printUrl = privateOrTokenJob && typeof window !== 'undefined' ? window.location.href : canonicalJobUrl;
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background job-print-page">
       {job && (
         <SEOHead 
           title={job.title}
@@ -867,7 +894,7 @@ export default function JobDetails() {
             window.scrollTo({ top: 0, behavior: 'smooth' });
             setLocation("/jobs");
           }}
-          className="mb-6"
+          className="mb-6 print:hidden"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Jobs
@@ -883,7 +910,7 @@ export default function JobDetails() {
         {/* Desktop Layout with Sidebar */}
         <div className="lg:flex lg:gap-8">
           {/* Left Sidebar - Hidden on mobile */}
-          <div className="hidden lg:block lg:w-80 lg:flex-shrink-0">
+          <div className="hidden lg:block lg:w-80 lg:flex-shrink-0 print:hidden">
             <div className="sticky top-6 space-y-6">
               {/* House advert */}
               <SahanAd slot="mpu" />
@@ -1034,15 +1061,26 @@ export default function JobDetails() {
           {/* Main Content */}
           <div className="flex-1 lg:max-w-4xl">
             <div className="card-content-responsive">
+              {/* Print-only letterhead */}
+              <div className="hidden print:flex items-end justify-between border-b-2 border-[#0077B5] pb-2 mb-4">
+                <div>
+                  <div className="text-xl font-bold text-[#0077B5]">Somken Jobs</div>
+                  <div className="text-xs text-gray-600">East Africa's job & tender board · somkenjobs.com</div>
+                </div>
+                <div className="text-xs text-gray-600 text-right">
+                  {isTender ? 'Tender' : 'Job'} details · Printed {formatDate(new Date())}
+                </div>
+              </div>
+
               {/* Job Header */}
               <Card className="mb-6">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-2xl md:text-3xl font-bold mb-4">
+                      <CardTitle className="text-2xl md:text-3xl font-bold mb-4 print:text-xl print:mb-2">
                         {job.title}
                       </CardTitle>
-                      <div className="flex items-center flex-wrap gap-4 text-muted-foreground mb-4">
+                      <div className="flex items-center flex-wrap gap-4 text-muted-foreground mb-4 print:hidden">
                         <span className="flex items-center">
                           <Building2 className="mr-2 h-4 w-4" />
                           {job.organization}
@@ -1062,7 +1100,7 @@ export default function JobDetails() {
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 print:hidden">
                         {job.sector && (
                           <Badge className={`badge ${getSectorBadgeColor(job.sector)}`}>
                             {job.sector}
@@ -1073,8 +1111,27 @@ export default function JobDetails() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {/* Social Media Share Section */}
-                  <div className="border-t pt-4">
+                  {/* Print-only key facts (the sidebar with these is hidden when printing) */}
+                  <dl className="hidden print:grid grid-cols-2 gap-x-6 gap-y-1 border-t pt-3 text-sm">
+                    {job.jobNumber && (
+                      <div><dt className="inline font-semibold">Reference: </dt><dd className="inline">{job.jobNumber}</dd></div>
+                    )}
+                    <div><dt className="inline font-semibold">Type: </dt><dd className="inline">{isTender ? 'Tender' : 'Job'}</dd></div>
+                    <div><dt className="inline font-semibold">Organization: </dt><dd className="inline">{job.organization}</dd></div>
+                    <div><dt className="inline font-semibold">Location: </dt><dd className="inline">{job.location}, {job.country}</dd></div>
+                    {job.sector && (
+                      <div><dt className="inline font-semibold">Sector: </dt><dd className="inline">{job.sector}</dd></div>
+                    )}
+                    <div><dt className="inline font-semibold">Posted: </dt><dd className="inline">{formatDate(job.datePosted)}</dd></div>
+                    {job.deadline && (
+                      <div><dt className="inline font-semibold">Deadline: </dt><dd className="inline">{formatDate(job.deadline)}</dd></div>
+                    )}
+                    <div className="col-span-2 break-all"><dt className="inline font-semibold">Link: </dt><dd className="inline">{printUrl}</dd></div>
+                  </dl>
+
+                  {/* Social Media Share + Print */}
+                  <div className="border-t pt-4 print:hidden">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Share2 className="h-4 w-4" />
@@ -1119,12 +1176,24 @@ export default function JobDetails() {
                         </Button>
                       </div>
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePrint}
+                      className="h-8 gap-2"
+                      title={`Print or save this ${isTender ? 'tender' : 'job'} as a PDF`}
+                      data-testid="button-print-job"
+                    >
+                      <Printer className="h-4 w-4" />
+                      Print / Save as PDF
+                    </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
               {/* House advert — mobile counterpart of the sidebar unit */}
-              <SahanAd slot="mpu" className="mb-6 lg:hidden" />
+              <SahanAd slot="mpu" className="mb-6 lg:hidden print:hidden" />
 
               {/* Job Description */}
               <Card className="mb-6">
@@ -1230,7 +1299,7 @@ export default function JobDetails() {
                               })();
                           return (
                             <div key={idx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                              <div className="flex-shrink-0">
+                              <div className="flex-shrink-0 print:hidden">
                                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isLink ? 'bg-emerald-600' : 'bg-[#0077B5]'}`}>
                                   {isLink ? (
                                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -1246,15 +1315,18 @@ export default function JobDetails() {
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
                                 {isLink && (
-                                  <p className="text-xs text-gray-500 truncate">{href}</p>
+                                  <p className="text-xs text-gray-500 truncate print:hidden">{href}</p>
                                 )}
+                                <p className="hidden print:block text-xs text-gray-600 break-all">
+                                  {href.startsWith('http') ? href : `https://somkenjobs.com${href.startsWith('/') ? '' : '/'}${href}`}
+                                </p>
                               </div>
                               <a
                                 href={href}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 {...(!isLink ? { download: true } : {})}
-                                className="flex-shrink-0 inline-flex items-center px-3 py-1.5 text-sm font-medium text-[#0077B5] border border-[#0077B5] rounded-md hover:bg-[#0077B5] hover:text-white transition-colors"
+                                className="flex-shrink-0 inline-flex items-center px-3 py-1.5 text-sm font-medium text-[#0077B5] border border-[#0077B5] rounded-md print:hidden hover:bg-[#0077B5] hover:text-white transition-colors"
                               >
                                 {isLink ? 'Open' : 'Download'}
                               </a>
@@ -1272,7 +1344,7 @@ export default function JobDetails() {
 
 
               {/* Find Similar Jobs - Comprehensive Internal Linking Section */}
-              <Card className="mb-6 border-blue-100 bg-blue-50/50">
+              <Card className="mb-6 border-blue-100 bg-blue-50/50 print:hidden">
                 <CardHeader>
                   <CardTitle className="flex items-center text-blue-900">
                     <Briefcase className="mr-2 h-5 w-5" />
@@ -1404,7 +1476,7 @@ export default function JobDetails() {
               </Card>
 
               {/* Mobile Related Jobs - Show below main content on mobile */}
-              <div className="lg:hidden">
+              <div className="lg:hidden print:hidden">
                 {relatedJobs && relatedJobs.length > 0 && (
                   <Card className="mb-6">
                     <CardHeader>
@@ -1448,18 +1520,24 @@ export default function JobDetails() {
                   </Card>
                 )}
               </div>
+              {/* Print-only footer */}
+              <div className="hidden print:block border-t pt-2 mt-4 text-xs text-gray-600">
+                Printed from Somken Jobs (somkenjobs.com) on {formatDate(new Date())}. Always confirm details and deadlines with the {isTender ? 'issuing' : 'hiring'} organization.
+              </div>
             </div>
           </div>
         </div>
       </main>
 
-      <div className="mx-auto hidden max-w-7xl px-4 pb-10 sm:px-6 md:block lg:px-8">
+      <div className="mx-auto hidden max-w-7xl px-4 pb-10 sm:px-6 md:block lg:px-8 print:hidden">
         <SahanAd slot="footer" />
       </div>
 
       <Footer />
 
-      <SahanStickyAd />
+      <div className="print:hidden">
+        <SahanStickyAd />
+      </div>
     </div>
   );
 }

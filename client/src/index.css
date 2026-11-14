@@ -715,3 +715,70 @@ a.job-card:hover h3 {
     @apply text-sm px-3 py-2;
   }
 }
+
+/* Job / tender detail page: print and "Save as PDF" layout */
+@media print {
+  @page {
+    margin: 14mm 12mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  .job-print-page {
+    min-height: 0 !important;
+    background: #fff !important;
+    color: #111 !important;
+    font-size: 11pt;
+  }
+
+  .job-print-page > header,
+  .job-print-page > footer,
+  .job-print-page .breadcrumb-nav {
+    display: none !important;
+  }
+
+  .job-print-page main {
+    max-width: none !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Cards print as flat sections */
+  .job-print-page main .rounded-lg {
+    box-shadow: none !important;
+    border-color: #ddd !important;
+    background: #fff !important;
+    break-inside: auto;
+  }
+
+  .job-print-page h1,
+  .job-print-page h2,
+  .job-print-page h3,
+  .job-print-page h4 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .job-print-page img,
+  .job-print-page table,
+  .job-print-page tr {
+    break-inside: avoid;
+  }
+
+  .job-print-page a {
+    color: inherit !important;
+    text-decoration: underline;
+  }
+
+  /* The on-screen "Show More" collapse must not cut the printed text */
+  .print-expand {
+    max-height: none !important;
+    overflow: visible !important;
+    mask-image: none !important;
+    -webkit-mask-image: none !important;
+  }
+}
