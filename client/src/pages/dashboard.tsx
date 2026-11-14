@@ -566,36 +566,44 @@ export default function Dashboard() {
   const [adminOrganizationFilter, setAdminOrganizationFilter] = useState("");
   const [selectedAdminJobs, setSelectedAdminJobs] = useState<number[]>([]);
 
+  // Normalize text for searching: text pasted from Word/PDF often carries
+  // non-breaking or zero-width spaces, curly quotes and odd dashes that look
+  // identical on screen but break a plain substring match.
+  const normalizeSearchText = (value: unknown): string =>
+    String(value ?? "")
+      .normalize("NFKC")
+      .replace(/[​-‍﻿]/g, "")
+      .replace(/[‐-―−]/g, "-")
+      .replace(/[‘’]/g, "'")
+      .replace(/[“”]/g, '"')
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+
+  const jobMatchesSearch = (job: any, term: string): boolean => {
+    const needle = normalizeSearchText(term);
+    if (!needle) return true;
+    if (/^#?\d+$/.test(needle) && String(job.id) === needle.replace("#", "")) return true;
+    return [job.title, job.organization, job.location, job.description, job.jobNumber]
+      .some((field) => normalizeSearchText(field).includes(needle));
+  };
+
+  const jobMatchesOrganization = (job: any, org: string): boolean =>
+    !org || org === "all" ||
+    normalizeSearchText(job.organization).includes(normalizeSearchText(org));
+
   // Filter jobs based on search term and organization
-  const filteredJobs = (userJobs as any[])?.filter((job: any) => {
-    const matchesSearch = !searchTerm || 
-      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.organization.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.description.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesOrganization = !organizationFilter || organizationFilter === "all" || 
-      job.organization.toLowerCase().includes(organizationFilter.toLowerCase());
-    
-    return matchesSearch && matchesOrganization;
-  }) || [];
+  const filteredJobs = (userJobs as any[])?.filter((job: any) =>
+    jobMatchesSearch(job, searchTerm) && jobMatchesOrganization(job, organizationFilter)
+  ) || [];
 
   // Get unique organizations for filter dropdown
   const uniqueOrganizations = Array.from(new Set((userJobs as any[])?.map((job: any) => job.organization) || [])).sort();
 
   // Filter admin jobs based on search term and organization
-  const filteredAdminJobs = (allJobs as any[])?.filter((job: any) => {
-    const matchesSearch = !adminSearchTerm || 
-      job.title.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
-      job.organization.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
-      job.location.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
-      job.description.toLowerCase().includes(adminSearchTerm.toLowerCase());
-    
-    const matchesOrganization = !adminOrganizationFilter || adminOrganizationFilter === "all" || 
-      job.organization.toLowerCase().includes(adminOrganizationFilter.toLowerCase());
-    
-    return matchesSearch && matchesOrganization;
-  }) || [];
+  const filteredAdminJobs = (allJobs as any[])?.filter((job: any) =>
+    jobMatchesSearch(job, adminSearchTerm) && jobMatchesOrganization(job, adminOrganizationFilter)
+  ) || [];
 
   // Get unique organizations for admin filter dropdown
   const uniqueAdminOrganizations = Array.from(new Set((allJobs as any[])?.map((job: any) => job.organization) || [])).sort();
@@ -2030,7 +2038,7 @@ export default function Dashboard() {
                       {/* Search Input */}
                       <div className="flex-1">
                         <Input
-                          placeholder="Search jobs by title, organization, location, or description..."
+                          placeholder="Search by title, organization, location, job ID or tender number..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
                           className="w-full"
@@ -2769,7 +2777,7 @@ export default function Dashboard() {
                         {/* Search Input */}
                         <div className="flex-1">
                           <Input
-                            placeholder="Search jobs by title, organization, location, or description..."
+                            placeholder="Search by title, organization, location, job ID or tender number..."
                             value={adminSearchTerm}
                             onChange={(e) => setAdminSearchTerm(e.target.value)}
                             className="w-full"
