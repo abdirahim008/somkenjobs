@@ -23,6 +23,7 @@ import { CityAutocomplete } from "@/components/CityAutocomplete";
 import { SectorAutocomplete } from "@/components/SectorAutocomplete";
 import { SimpleRichTextEditor } from "@/components/SimpleRichTextEditor";
 import { generateJobSlug } from "@shared/utils";
+import { DatePostedFilter, EMPTY_DATE_POSTED_FILTER, isDatePostedFilterActive, matchesDatePosted, formatPostedDate, type DatePostedFilterValue } from "@/components/DatePostedFilter";
 
 export default function Dashboard() {
   const { user, isLoading } = useAuth();
@@ -560,42 +561,54 @@ export default function Dashboard() {
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState("");
   const [organizationFilter, setOrganizationFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState<DatePostedFilterValue>(EMPTY_DATE_POSTED_FILTER);
   
   // Admin search and filter state
   const [adminSearchTerm, setAdminSearchTerm] = useState("");
   const [adminOrganizationFilter, setAdminOrganizationFilter] = useState("");
+  const [adminDateFilter, setAdminDateFilter] = useState<DatePostedFilterValue>(EMPTY_DATE_POSTED_FILTER);
   const [selectedAdminJobs, setSelectedAdminJobs] = useState<number[]>([]);
 
+  // Normalize text for searching: text pasted from Word/PDF often carries
+  // non-breaking or zero-width spaces, curly quotes and odd dashes that look
+  // identical on screen but break a plain substring match.
+  const normalizeSearchText = (value: unknown): string =>
+    String(value ?? "")
+      .normalize("NFKC")
+      .replace(/[​-‍﻿]/g, "")
+      .replace(/[‐-―−]/g, "-")
+      .replace(/[‘’]/g, "'")
+      .replace(/[“”]/g, '"')
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+
+  const jobMatchesSearch = (job: any, term: string): boolean => {
+    const needle = normalizeSearchText(term);
+    if (!needle) return true;
+    if (/^#?\d+$/.test(needle) && String(job.id) === needle.replace("#", "")) return true;
+    return [job.title, job.organization, job.location, job.description, job.jobNumber]
+      .some((field) => normalizeSearchText(field).includes(needle));
+  };
+
+  const jobMatchesOrganization = (job: any, org: string): boolean =>
+    !org || org === "all" ||
+    normalizeSearchText(job.organization).includes(normalizeSearchText(org));
+
   // Filter jobs based on search term and organization
-  const filteredJobs = (userJobs as any[])?.filter((job: any) => {
-    const matchesSearch = !searchTerm || 
-      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.organization.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.description.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesOrganization = !organizationFilter || organizationFilter === "all" || 
-      job.organization.toLowerCase().includes(organizationFilter.toLowerCase());
-    
-    return matchesSearch && matchesOrganization;
-  }) || [];
+  const filteredJobs = (userJobs as any[])?.filter((job: any) =>
+    jobMatchesSearch(job, searchTerm) && jobMatchesOrganization(job, organizationFilter) &&
+    matchesDatePosted(job.datePosted, dateFilter)
+  ) || [];
 
   // Get unique organizations for filter dropdown
   const uniqueOrganizations = Array.from(new Set((userJobs as any[])?.map((job: any) => job.organization) || [])).sort();
 
   // Filter admin jobs based on search term and organization
-  const filteredAdminJobs = (allJobs as any[])?.filter((job: any) => {
-    const matchesSearch = !adminSearchTerm || 
-      job.title.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
-      job.organization.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
-      job.location.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
-      job.description.toLowerCase().includes(adminSearchTerm.toLowerCase());
-    
-    const matchesOrganization = !adminOrganizationFilter || adminOrganizationFilter === "all" || 
-      job.organization.toLowerCase().includes(adminOrganizationFilter.toLowerCase());
-    
-    return matchesSearch && matchesOrganization;
-  }) || [];
+  const filteredAdminJobs = (allJobs as any[])?.filter((job: any) =>
+    jobMatchesSearch(job, adminSearchTerm) && jobMatchesOrganization(job, adminOrganizationFilter) &&
+    matchesDatePosted(job.datePosted, adminDateFilter)
+  ) || [];
 
   // Get unique organizations for admin filter dropdown
   const uniqueAdminOrganizations = Array.from(new Set((allJobs as any[])?.map((job: any) => job.organization) || [])).sort();
@@ -2026,11 +2039,11 @@ export default function Dashboard() {
                 <>
                   {/* Search and Filter Section */}
                   <div className="p-4 bg-gray-50 border-b">
-                    <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex flex-col sm:flex-row sm:flex-wrap gap-4">
                       {/* Search Input */}
-                      <div className="flex-1">
+                      <div className="flex-1 sm:min-w-[260px]">
                         <Input
-                          placeholder="Search jobs by title, organization, location, or description..."
+                          placeholder="Search by title, organization, location, job ID or tender number..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
                           className="w-full"
@@ -2051,15 +2064,19 @@ export default function Dashboard() {
                           </SelectContent>
                         </Select>
                       </div>
+
+                      {/* Date Posted Filter */}
+                      <DatePostedFilter value={dateFilter} onChange={setDateFilter} />
                       
                       {/* Clear Filters Button */}
-                      {(searchTerm || (organizationFilter && organizationFilter !== "all")) && (
+                      {(searchTerm || (organizationFilter && organizationFilter !== "all") || isDatePostedFilterActive(dateFilter)) && (
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => {
                             setSearchTerm("");
                             setOrganizationFilter("all");
+                            setDateFilter(EMPTY_DATE_POSTED_FILTER);
                           }}
                           className="whitespace-nowrap"
                         >
@@ -2092,7 +2109,7 @@ export default function Dashboard() {
                   <div className="divide-y divide-gray-100">
                     {filteredJobs.length === 0 ? (
                       <div className="p-8 text-center text-gray-500">
-                        {searchTerm || (organizationFilter && organizationFilter !== "all") ? (
+                        {searchTerm || (organizationFilter && organizationFilter !== "all") || isDatePostedFilterActive(dateFilter) ? (
                           <div>
                             <p className="mb-2">No jobs found matching your search criteria.</p>
                             <Button
@@ -2101,6 +2118,7 @@ export default function Dashboard() {
                               onClick={() => {
                                 setSearchTerm("");
                                 setOrganizationFilter("all");
+                                setDateFilter(EMPTY_DATE_POSTED_FILTER);
                               }}
                             >
                               Clear Filters
@@ -2130,6 +2148,7 @@ export default function Dashboard() {
                         <div className="flex-1">
                           <h3 className="font-medium text-gray-900 mb-1">{job.title}</h3>
                           <p className="text-sm text-gray-600">{job.organization} • {job.location}</p>
+                          {job.datePosted && <p className="text-xs text-gray-400 mt-0.5">Posted {formatPostedDate(job.datePosted)}</p>}
                         </div>
                         
                         {/* Status column */}
@@ -2765,11 +2784,11 @@ export default function Dashboard() {
                   <>
                     {/* Search and Filter Section */}
                     <div className="p-4 bg-gray-50 border-b">
-                      <div className="flex flex-col sm:flex-row gap-4">
+                      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-4">
                         {/* Search Input */}
-                        <div className="flex-1">
+                        <div className="flex-1 sm:min-w-[260px]">
                           <Input
-                            placeholder="Search jobs by title, organization, location, or description..."
+                            placeholder="Search by title, organization, location, job ID or tender number..."
                             value={adminSearchTerm}
                             onChange={(e) => setAdminSearchTerm(e.target.value)}
                             className="w-full"
@@ -2790,15 +2809,19 @@ export default function Dashboard() {
                             </SelectContent>
                           </Select>
                         </div>
+
+                        {/* Date Posted Filter */}
+                        <DatePostedFilter value={adminDateFilter} onChange={setAdminDateFilter} />
                         
                         {/* Clear Filters Button */}
-                        {(adminSearchTerm || (adminOrganizationFilter && adminOrganizationFilter !== "all")) && (
+                        {(adminSearchTerm || (adminOrganizationFilter && adminOrganizationFilter !== "all") || isDatePostedFilterActive(adminDateFilter)) && (
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => {
                               setAdminSearchTerm("");
                               setAdminOrganizationFilter("all");
+                              setAdminDateFilter(EMPTY_DATE_POSTED_FILTER);
                             }}
                             className="whitespace-nowrap"
                           >
@@ -2831,7 +2854,7 @@ export default function Dashboard() {
                     <div className="divide-y divide-gray-100">
                       {filteredAdminJobs.length === 0 ? (
                         <div className="p-8 text-center text-gray-500">
-                          {adminSearchTerm || (adminOrganizationFilter && adminOrganizationFilter !== "all") ? (
+                          {adminSearchTerm || (adminOrganizationFilter && adminOrganizationFilter !== "all") || isDatePostedFilterActive(adminDateFilter) ? (
                             <div>
                               <p className="mb-2">No jobs found matching your search criteria.</p>
                               <Button
@@ -2840,6 +2863,7 @@ export default function Dashboard() {
                                 onClick={() => {
                                   setAdminSearchTerm("");
                                   setAdminOrganizationFilter("all");
+                                  setAdminDateFilter(EMPTY_DATE_POSTED_FILTER);
                                 }}
                               >
                                 Clear Filters
@@ -2862,6 +2886,7 @@ export default function Dashboard() {
                           <div className="flex-1">
                             <h3 className="font-medium text-gray-900">{job.title}</h3>
                             <p className="text-sm text-gray-600">{job.organization} • {job.location}</p>
+                            {job.datePosted && <p className="text-xs text-gray-400 mt-0.5">Posted {formatPostedDate(job.datePosted)}</p>}
                           </div>
                           <div className="w-24 flex flex-col gap-1">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
