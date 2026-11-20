@@ -6,7 +6,7 @@ import { jobFetcher } from "./services/jobFetcher";
 import { seedDatabase } from "./seed";
 import { z } from "zod";
 import { insertUserSchema, loginUserSchema, forgotPasswordSchema, resetPasswordSchema, insertJobSchema, type User, insertCountrySchema, insertCitySchema, insertSectorSchema } from "@shared/schema";
-import { extractJobIdFromSlug, generateJobSlug } from "@shared/utils";
+import { extractJobIdFromSlug, generateJobSlug, CONTENT_IMAGE_EXTENSIONS } from "@shared/utils";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
@@ -204,6 +204,26 @@ function hasBlobCredentials() {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
 }
 
+// Uploads are served as downloads so active content cannot run on our origin.
+// Raster images (never SVG) are the exception: they are served inline with
+// their real type so images placed in job descriptions display on the page.
+const INLINE_IMAGE_TYPES: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+};
+function setUploadHeaders(res: import("express").Response, filename: string) {
+  const safeName = filename.replace(/"/g, "");
+  const imageType = CONTENT_IMAGE_EXTENSIONS.test(safeName)
+    ? INLINE_IMAGE_TYPES[path.extname(safeName).toLowerCase()]
+    : undefined;
+  res.setHeader('Content-Type', imageType || 'application/octet-stream');
+  res.setHeader('Content-Disposition', `${imageType ? 'inline' : 'attachment'}; filename="${safeName}"`);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   const isProduction = process.env.NODE_ENV === "production";
   const legacyFetchEnabled = process.env.ENABLE_LEGACY_JOB_FETCHERS === "true";
@@ -230,10 +250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded files as downloads so active content cannot execute on the main origin.
   app.use('/uploads', express.static(uploadsDir, {
     setHeaders: (res, filePath) => {
-      const filename = path.basename(filePath).replace(/"/g, "");
-      res.setHeader('Content-Type', 'application/octet-stream');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.setHeader('X-Content-Type-Options', 'nosniff');
+      setUploadHeaders(res, path.basename(filePath));
     },
   }));
   // Not on local disk: stream it from the private Blob store, where production
@@ -245,9 +262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const result = await getBlob(`uploads/${filename}`, { access: 'private' });
       if (!result || result.statusCode !== 200) return next();
-      res.setHeader('Content-Type', 'application/octet-stream');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.setHeader('X-Content-Type-Options', 'nosniff');
+      setUploadHeaders(res, filename);
       res.setHeader('Content-Length', String(result.blob.size));
       res.setHeader('Cache-Control', 'private, max-age=86400');
       Readable.fromWeb(result.stream as any).pipe(res);

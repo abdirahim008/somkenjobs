@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Image, Table, Minus, Grid, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { isAllowedContentImageSrc } from '@shared/utils';
 
 interface SimpleRichTextEditorProps {
   value: string;
@@ -30,6 +31,7 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
   const [isResizing, setIsResizing] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const savedImageRangeRef = useRef<Range | null>(null);
   const isUpdatingRef = useRef(false);
   const lastContentRef = useRef<string>(value || '');
 
@@ -339,22 +341,7 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
     if (imageItem) {
       const blob = imageItem.getAsFile();
       if (blob) {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          const dataUrl = ev.target?.result as string;
-          const imgId = `img_${Date.now()}`;
-          const imgHTML = `<div class="image-container" style="position: relative; display: inline-block; margin: 10px 0; min-height: 50px;"><img id="${imgId}" src="${dataUrl}" alt="Pasted image" style="max-width: 100%; height: auto; border: 2px solid transparent; border-radius: 4px; cursor: pointer; display: block; user-select: none;" draggable="false" /></div>`;
-          insertHTMLAtCursor(imgHTML);
-          setTimeout(() => {
-            const img = document.getElementById(imgId);
-            if (img) {
-              img.dataset.interactive = 'true';
-              makeImageInteractive(img as HTMLImageElement);
-              fitImageToEditorWidth(img as HTMLImageElement);
-            }
-          }, 200);
-        };
-        reader.readAsDataURL(blob);
+        insertImageFile(blob, captureEditorRange());
         return;
       }
     }
@@ -423,11 +410,31 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
     }
   };
 
+  // Saved images come back without the editor's inline styles/handlers
+  const prepareLoadedImages = () => {
+    requestAnimationFrame(() => {
+      editorRef.current?.querySelectorAll('img').forEach(node => {
+        const img = node as HTMLImageElement;
+        if (img.dataset.interactive) return;
+        img.style.maxWidth = '100%';
+        img.style.height = 'auto';
+        img.style.display = 'block';
+        img.style.cursor = 'pointer';
+        img.style.border = '2px solid transparent';
+        const width = parseInt(img.getAttribute('width') || '', 10);
+        if (width > 0) img.style.width = width + 'px';
+        img.dataset.interactive = 'true';
+        makeImageInteractive(img);
+      });
+    });
+  };
+
   // Initialize editor content
   useEffect(() => {
     if (editorRef.current && !editorRef.current.innerHTML) {
       editorRef.current.innerHTML = value || '';
       lastContentRef.current = value || '';
+      prepareLoadedImages();
     }
   }, []);
 
@@ -443,6 +450,7 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
         isUpdatingRef.current = true;
         editorRef.current.innerHTML = value || '';
         lastContentRef.current = value || '';
+        prepareLoadedImages();
         
         if (wasFocused) {
           setTimeout(() => {
@@ -890,34 +898,130 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        const imgId = `img_${Date.now()}`;
-        const imgHTML = `
-          <div class="image-container" style="position: relative; display: inline-block; margin: 10px 0; min-height: 50px;">
-            <img id="${imgId}" src="${result}" alt="Uploaded image" 
-                 style="max-width: 100%; height: auto; border: 2px solid transparent; border-radius: 4px; cursor: pointer; display: block; user-select: none;" 
-                 draggable="false" />
-          </div>
-        `;
-        insertHTMLAtCursor(imgHTML);
-        
-        // Add event listeners after insertion with delay to ensure DOM is updated
-        setTimeout(() => {
-          const img = document.getElementById(imgId);
-          if (img) {
-            img.dataset.interactive = 'true';
-            makeImageInteractive(img as HTMLImageElement);
-            fitImageToEditorWidth(img as HTMLImageElement);
-          }
-        }, 200);
-      };
-      reader.readAsDataURL(file);
+      insertImageFile(file, savedImageRangeRef.current);
+      savedImageRangeRef.current = null;
     }
     // Reset input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  // Current cursor position, if it is inside the editor
+  const captureEditorRange = (): Range | null => {
+    const selection = window.getSelection();
+    if (!selection || !selection.rangeCount || !editorRef.current) return null;
+    const range = selection.getRangeAt(0);
+    return editorRef.current.contains(range.commonAncestorContainer) ? range.cloneRange() : null;
+  };
+
+  // Put the cursor back at a saved position (or at the end of the editor)
+  const restoreEditorRange = (range: Range | null) => {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection) return;
+    editor.focus();
+    let target = range && editor.contains(range.commonAncestorContainer) ? range : null;
+    if (!target) {
+      target = document.createRange();
+      target.selectNodeContents(editor);
+      target.collapse(false);
+    }
+    selection.removeAllRanges();
+    selection.addRange(target);
+  };
+
+  // Large photos are scaled down and re-encoded before upload: keeps pages
+  // fast and stays under the server's ~4 MB request limit.
+  const MAX_IMAGE_WIDTH = 1600;
+  const prepareImageForUpload = (file: Blob): Promise<{ blob: Blob; name: string }> => {
+    const originalName = (file as File).name || 'image.png';
+    const base = (originalName.replace(/\.[^.]+$/, '') || 'image').replace(/[^A-Za-z0-9._-]+/g, '_').slice(0, 60) || 'image';
+    const typeExt: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' };
+    const ext = typeExt[file.type];
+
+    return new Promise((resolve, reject) => {
+      // GIFs are uploaded as-is so animations survive
+      if (ext === 'gif') return resolve({ blob: file, name: `${base}.gif` });
+
+      const url = URL.createObjectURL(file);
+      const image = new window.Image();
+      image.onload = () => {
+        URL.revokeObjectURL(url);
+        const needsResize = image.naturalWidth > MAX_IMAGE_WIDTH;
+        const smallEnough = file.size <= 1.5 * 1024 * 1024;
+        if (ext && !needsResize && smallEnough) {
+          return resolve({ blob: file, name: `${base}.${ext}` });
+        }
+        const scale = Math.min(1, MAX_IMAGE_WIDTH / image.naturalWidth);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('Could not process image'));
+        ctx.fillStyle = '#ffffff'; // transparent areas become white, not black
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => (blob ? resolve({ blob, name: `${base}.jpg` }) : reject(new Error('Could not process image'))),
+          'image/jpeg',
+          0.85,
+        );
+      };
+      image.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('This image format is not supported. Please use PNG or JPG.'));
+      };
+      image.src = url;
+    });
+  };
+
+  const uploadImage = async (blob: Blob, name: string): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', blob, name);
+    const token = localStorage.getItem('auth_token');
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+      credentials: 'include',
+    });
+    if (!res.ok) throw new Error(res.status === 413 ? 'The image is too large.' : 'Upload failed.');
+    const data = await res.json();
+    if (!data?.url || !isAllowedContentImageSrc(data.url)) throw new Error('Upload failed.');
+    return data.url as string;
+  };
+
+  // Images are uploaded to file storage and referenced by URL; embedding the
+  // image data in the description would be stripped when the job is saved.
+  const insertImageFile = async (file: Blob, range: Range | null) => {
+    const uploadId = `upload_${Date.now()}`;
+    restoreEditorRange(range);
+    insertHTMLAtCursor(
+      `<span data-upload-id="${uploadId}" contenteditable="false" style="display: inline-block; padding: 4px 10px; margin: 6px 0; border-radius: 4px; background: #f0f4f8; color: #1e3a5f; font-size: 13px;">Uploading image…</span>`
+    );
+    const placeholder = () => editorRef.current?.querySelector(`[data-upload-id="${uploadId}"]`) as HTMLElement | null;
+
+    try {
+      const { blob, name } = await prepareImageForUpload(file);
+      const url = await uploadImage(blob, name);
+      const marker = placeholder();
+      if (!marker) return; // user deleted the placeholder while uploading
+      const imgId = `img_${Date.now()}`;
+      const container = document.createElement('div');
+      container.innerHTML = `<div class="image-container" style="position: relative; display: inline-block; margin: 10px 0; min-height: 50px;"><img id="${imgId}" src="${url}" alt="" style="max-width: 100%; height: auto; border: 2px solid transparent; border-radius: 4px; cursor: pointer; display: block; user-select: none;" draggable="false" /></div>`;
+      marker.replaceWith(container.firstChild as Node);
+      syncEditorContent();
+      const img = document.getElementById(imgId) as HTMLImageElement | null;
+      if (img) {
+        img.dataset.interactive = 'true';
+        makeImageInteractive(img);
+        fitImageToEditorWidth(img);
+      }
+    } catch (error) {
+      placeholder()?.remove();
+      syncEditorContent();
+      alert(`Could not add the image. ${(error as Error)?.message || ''} Please try again.`.trim());
     }
   };
 
@@ -937,12 +1041,25 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
 
   // New images fill the editor width by default; images smaller than that
   // keep their own size so they are not blown up and blurred.
+  // The width attribute is what is saved with the job (inline styles are
+  // stripped on save); the inline style drives the editor display.
+  const setImageWidth = (img: HTMLImageElement, width: number | null) => {
+    if (width === null) {
+      img.style.width = 'auto';
+      img.removeAttribute('width');
+    } else {
+      const px = Math.round(width);
+      img.style.width = px + 'px';
+      img.setAttribute('width', String(px));
+    }
+    img.style.maxWidth = '100%';
+    img.style.height = 'auto';
+  };
+
   const fitImageToEditorWidth = (img: HTMLImageElement) => {
     const apply = () => {
       const natural = img.naturalWidth || getEditorContentWidth();
-      img.style.width = Math.min(natural, getEditorContentWidth()) + 'px';
-      img.style.maxWidth = '100%';
-      img.style.height = 'auto';
+      setImageWidth(img, Math.min(natural, getEditorContentWidth()));
       syncEditorContent();
     };
     if (img.complete && img.naturalWidth) apply();
@@ -1031,8 +1148,7 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
             else if (pos.includes('w')) newWidth = startWidth - deltaX;
             
             newWidth = Math.max(50, Math.min(getEditorContentWidth(), newWidth));
-            img.style.width = newWidth + 'px';
-            img.style.height = 'auto';
+            setImageWidth(img, newWidth);
           };
 
           const handleMouseUp = () => {
@@ -1182,16 +1298,11 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
               img.parentElement?.remove();
             }
           } else if (option.width) {
-            img.style.width = option.width + 'px';
-            img.style.height = 'auto';
+            setImageWidth(img, Math.min(option.width, getEditorContentWidth()));
           } else if (option.action === 'full') {
-            img.style.width = getEditorContentWidth() + 'px';
-            img.style.height = 'auto';
-            img.style.maxWidth = '100%';
+            setImageWidth(img, getEditorContentWidth());
           } else {
-            img.style.width = 'auto';
-            img.style.height = 'auto';
-            img.style.maxWidth = '100%';
+            setImageWidth(img, null);
           }
           syncEditorContent();
           menu.remove();
@@ -1369,7 +1480,10 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
           type="button"
           variant="ghost"
           size="sm"
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => {
+            savedImageRangeRef.current = captureEditorRange();
+            fileInputRef.current?.click();
+          }}
           title="Insert Image"
         >
           <Image className="h-4 w-4" />
