@@ -181,30 +181,119 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
     return root.innerHTML;
   };
 
-  // Clean and sanitize pasted HTML content to plain text (for non-table content)
-  const cleanPastedContent = (html: string): string => {
+  // Convert pasted HTML (Word, web pages) to plain text with ONE line per
+  // paragraph/list item. Word's clipboard HTML hard-wraps its source at ~80
+  // characters; those newlines are whitespace inside a paragraph, not breaks,
+  // so they are collapsed while real paragraph boundaries are kept.
+  const htmlToParagraphText = (html: string): string => {
     const preprocessed = html
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
       .replace(/<\?xml[^>]*>/gi, '')
-      .replace(/xmlns[^=]*="[^"]*"/gi, '')
-      .replace(/<o:[^>]*>[\s\S]*?<\/o:[^>]*>/gi, '')
-      .replace(/<w:[^>]*>[\s\S]*?<\/w:[^>]*>/gi, '')
-      .replace(/<m:[^>]*>[\s\S]*?<\/m:[^>]*>/gi, '')
       .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '')
       .replace(/<!--[\s\S]*?-->/gi, '')
-      .replace(/<meta[^>]*>/gi, '')
-      .replace(/<link[^>]*>/gi, '');
+      .replace(/<o:[^>]*>[\s\S]*?<\/o:[^>]*>/gi, '')
+      .replace(/<w:[^>]*>[\s\S]*?<\/w:[^>]*>/gi, '')
+      .replace(/<m:[^>]*>[\s\S]*?<\/m:[^>]*>/gi, '');
 
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = preprocessed;
-    let textContent = tempDiv.textContent || tempDiv.innerText || '';
 
-    return textContent
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      .replace(/mso-[^;\s]*[;\s]*/gi, '')
-      .replace(/\s+/g, ' ')
-      .replace(/\n\s*\n\s*\n/g, '\n\n')
-      .trim();
+    const BLOCK_TAGS = new Set(['P', 'DIV', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'TR', 'BLOCKQUOTE', 'PRE', 'UL', 'OL', 'TABLE', 'SECTION', 'ARTICLE', 'HEADER', 'FOOTER']);
+    const lines: string[] = [];
+    let current = '';
+    const flush = () => {
+      if (current.trim() !== '') lines.push(current);
+      current = '';
+    };
+    const walk = (node: Node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        current += node.textContent || '';
+        return;
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+      const tag = (node as Element).tagName;
+      if (tag === 'BR') {
+        lines.push(current);
+        current = '';
+        return;
+      }
+      if (!BLOCK_TAGS.has(tag)) {
+        node.childNodes.forEach(walk);
+        return;
+      }
+      flush();
+      const linesBefore = lines.length;
+      if (tag === 'LI') current = '• ';
+      node.childNodes.forEach(walk);
+      // An empty paragraph is deliberate spacing in Word: keep it as a blank line.
+      if ((tag === 'P' || tag === 'DIV') && lines.length === linesBefore && current.trim() === '') {
+        lines.push('');
+        current = '';
+      } else {
+        flush();
+      }
+    };
+    tempDiv.childNodes.forEach(walk);
+    flush();
+
+    const result: string[] = [];
+    lines
+      .map(line =>
+        line
+          .replace(/\s+/g, ' ') // collapses Word's source wrapping, tabs and nbsp
+          .trim()
+          // Word list bullets arrive as a Symbol-font "·" / "§" plus padding
+          .replace(/^[·§▪◦]\s+/, '• ')
+      )
+      .forEach(line => {
+        // keep at most one blank line in a row, none at the start
+        if (line === '' && (result.length === 0 || result[result.length - 1] === '')) return;
+        result.push(line);
+      });
+    while (result.length && result[result.length - 1] === '') result.pop();
+    return result.join('\n');
+  };
+
+  // Text copied from PDFs (and some viewers) has a hard line break at the end
+  // of every visual line, which pastes as short ragged lines. Re-join such
+  // lines into full-width paragraphs. Only applied when the text clearly looks
+  // hard-wrapped, so normal one-line-per-paragraph text is left untouched.
+  const reflowHardWrappedText = (text: string): string => {
+    const lines = text.replace(/\r\n?/g, '\n').split('\n').map(l => l.replace(/\s+$/, ''));
+    const content = lines.map(l => l.trim()).filter(Boolean);
+    if (content.length < 3) return text;
+
+    const sorted = content.map(l => l.length).sort((a, b) => a - b);
+    const typicalWidth = sorted[Math.floor(sorted.length * 0.8)];
+    if (typicalWidth < 40) return text;
+
+    const fullWidth = (l: string) => l.length >= typicalWidth * 0.75;
+    const endsSentence = (l: string) => /[.!?:]["'”’)\]]?$/.test(l);
+    const startsListItem = (l: string) => /^([•·▪◦‣\-–*]|\(?\d{1,3}[.)]|\(?[a-zA-Z][.)])\s+/.test(l);
+
+    const wrappedLooking = content.filter(l => fullWidth(l) && !endsSentence(l)).length;
+    if (wrappedLooking < Math.max(2, content.length * 0.3)) return text;
+
+    const out: string[] = [];
+    let prevRaw = '';
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!line) {
+        out.push('');
+        prevRaw = '';
+        continue;
+      }
+      const join = prevRaw !== '' && fullWidth(prevRaw) && !endsSentence(prevRaw) && !startsListItem(line);
+      if (join) {
+        const last = out[out.length - 1];
+        // "non-" + "governmental" -> "non-governmental"
+        out[out.length - 1] = /[A-Za-z]-$/.test(last) ? last + line : `${last} ${line}`;
+      } else {
+        out.push(line);
+      }
+      prevRaw = line;
+    }
+    return out.join('\n');
   };
 
   // Insert an HTML string at the current cursor position using Range API (more reliable than execCommand)
@@ -254,13 +343,14 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
         reader.onload = (ev) => {
           const dataUrl = ev.target?.result as string;
           const imgId = `img_${Date.now()}`;
-          const imgHTML = `<div class="image-container" style="position: relative; display: inline-block; margin: 10px 0; min-height: 50px;"><img id="${imgId}" src="${dataUrl}" alt="Pasted image" style="max-width: 300px; width: 300px; height: auto; border: 2px solid transparent; border-radius: 4px; cursor: pointer; display: block; user-select: none;" draggable="false" /></div>`;
+          const imgHTML = `<div class="image-container" style="position: relative; display: inline-block; margin: 10px 0; min-height: 50px;"><img id="${imgId}" src="${dataUrl}" alt="Pasted image" style="max-width: 100%; height: auto; border: 2px solid transparent; border-radius: 4px; cursor: pointer; display: block; user-select: none;" draggable="false" /></div>`;
           insertHTMLAtCursor(imgHTML);
           setTimeout(() => {
             const img = document.getElementById(imgId);
             if (img) {
               img.dataset.interactive = 'true';
               makeImageInteractive(img as HTMLImageElement);
+              fitImageToEditorWidth(img as HTMLImageElement);
             }
           }, 200);
         };
@@ -287,11 +377,11 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
       return;
     }
 
-    // 3. Other HTML — strip to clean text
-    if (htmlData) {
-      document.execCommand('insertText', false, cleanPastedContent(htmlData));
-    } else if (textData) {
-      document.execCommand('insertText', false, textData);
+    // 3. Other HTML (e.g. Word) — clean text, one line per paragraph, each
+    //    paragraph flowing to the full width. Falls back to plain text.
+    const pastedText = htmlData ? htmlToParagraphText(htmlData) || textData : textData;
+    if (pastedText) {
+      document.execCommand('insertText', false, reflowHardWrappedText(pastedText));
     }
   };
 
@@ -807,7 +897,7 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
         const imgHTML = `
           <div class="image-container" style="position: relative; display: inline-block; margin: 10px 0; min-height: 50px;">
             <img id="${imgId}" src="${result}" alt="Uploaded image" 
-                 style="max-width: 300px; width: 300px; height: auto; border: 2px solid transparent; border-radius: 4px; cursor: pointer; display: block; user-select: none;" 
+                 style="max-width: 100%; height: auto; border: 2px solid transparent; border-radius: 4px; cursor: pointer; display: block; user-select: none;" 
                  draggable="false" />
           </div>
         `;
@@ -819,6 +909,7 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
           if (img) {
             img.dataset.interactive = 'true';
             makeImageInteractive(img as HTMLImageElement);
+            fitImageToEditorWidth(img as HTMLImageElement);
           }
         }, 200);
       };
@@ -830,6 +921,34 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
     }
   };
 
+  // Width available for content inside the editor (excludes its 12px padding)
+  const getEditorContentWidth = (): number => {
+    const el = editorRef.current;
+    return el ? Math.max(100, el.clientWidth - 24) : 600;
+  };
+
+  // Push DOM-only changes (e.g. image resizing) back to the parent form
+  const syncEditorContent = () => {
+    if (editorRef.current && editorRef.current.innerHTML !== lastContentRef.current) {
+      lastContentRef.current = editorRef.current.innerHTML;
+      onChange(editorRef.current.innerHTML);
+    }
+  };
+
+  // New images fill the editor width by default; images smaller than that
+  // keep their own size so they are not blown up and blurred.
+  const fitImageToEditorWidth = (img: HTMLImageElement) => {
+    const apply = () => {
+      const natural = img.naturalWidth || getEditorContentWidth();
+      img.style.width = Math.min(natural, getEditorContentWidth()) + 'px';
+      img.style.maxWidth = '100%';
+      img.style.height = 'auto';
+      syncEditorContent();
+    };
+    if (img.complete && img.naturalWidth) apply();
+    else img.addEventListener('load', apply, { once: true });
+  };
+
   const makeImageInteractive = (img: HTMLImageElement) => {
     let isResizing = false;
     let isSelected = false;
@@ -838,6 +957,9 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
     let startWidth = 0;
     let isDragging = false;
     
+    // Older images were saved with a hard 300px cap that blocked enlarging
+    if (img.style.maxWidth === '300px') img.style.maxWidth = '100%';
+
     // Ensure the container has proper positioning
     const container = img.parentElement;
     if (container && container.style.position !== 'relative') {
@@ -908,7 +1030,7 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
             if (pos.includes('e')) newWidth = startWidth + deltaX;
             else if (pos.includes('w')) newWidth = startWidth - deltaX;
             
-            newWidth = Math.max(50, Math.min(800, newWidth));
+            newWidth = Math.max(50, Math.min(getEditorContentWidth(), newWidth));
             img.style.width = newWidth + 'px';
             img.style.height = 'auto';
           };
@@ -917,6 +1039,7 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
             isResizing = false;
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
+            syncEditorContent();
           };
 
           document.addEventListener('mousemove', handleMouseMove);
@@ -1029,6 +1152,7 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
         { label: 'Small (150px)', width: 150 },
         { label: 'Medium (300px)', width: 300 },
         { label: 'Large (500px)', width: 500 },
+        { label: 'Full width', action: 'full' },
         { label: 'Original Size', width: null },
         { label: 'Delete Image', action: 'delete' }
       ];
@@ -1060,11 +1184,16 @@ export const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({
           } else if (option.width) {
             img.style.width = option.width + 'px';
             img.style.height = 'auto';
+          } else if (option.action === 'full') {
+            img.style.width = getEditorContentWidth() + 'px';
+            img.style.height = 'auto';
+            img.style.maxWidth = '100%';
           } else {
             img.style.width = 'auto';
             img.style.height = 'auto';
             img.style.maxWidth = '100%';
           }
+          syncEditorContent();
           menu.remove();
         });
         
