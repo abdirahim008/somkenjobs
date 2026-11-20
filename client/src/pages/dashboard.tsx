@@ -224,6 +224,12 @@ export default function Dashboard() {
   });
 
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
+  const [invoiceOrgFilter, setInvoiceOrgFilter] = useState("");
+
+  // Start each invoice with an unfiltered job list
+  useEffect(() => {
+    if (showInvoiceForm) setInvoiceOrgFilter("");
+  }, [showInvoiceForm]);
   const [editingInvoice, setEditingInvoice] = useState<any>(null);
 
   // Get jobs available for billing (excludes already billed jobs)
@@ -772,6 +778,30 @@ export default function Dashboard() {
       selectedJobIds: prev.selectedJobIds.includes(jobId)
         ? prev.selectedJobIds.filter(id => id !== jobId)
         : [...prev.selectedJobIds, jobId]
+    }));
+  };
+
+  // Invoice job picker: newest posting first, optionally narrowed to one organization
+  const jobTime = (value: unknown) => {
+    const t = value ? new Date(value as string).getTime() : NaN;
+    return isNaN(t) ? 0 : t;
+  };
+  const billableJobsSorted = [...(availableJobsForBilling as any[])].sort((a, b) =>
+    jobTime(b.datePosted) - jobTime(a.datePosted) || jobTime(b.createdAt) - jobTime(a.createdAt) || b.id - a.id
+  );
+  const billableOrganizations = Array.from(
+    new Set(billableJobsSorted.map((job: any) => job.organization).filter(Boolean))
+  ).sort() as string[];
+  const billableJobsShown = billableJobsSorted.filter((job: any) => jobMatchesOrganization(job, invoiceOrgFilter.trim()));
+  const allShownSelected = billableJobsShown.length > 0 &&
+    billableJobsShown.every((job: any) => invoiceForm.selectedJobIds.includes(job.id));
+  const toggleSelectAllShown = () => {
+    const shownIds = billableJobsShown.map((job: any) => job.id as number);
+    setInvoiceForm(prev => ({
+      ...prev,
+      selectedJobIds: allShownSelected
+        ? prev.selectedJobIds.filter(id => !shownIds.includes(id))
+        : Array.from(new Set([...prev.selectedJobIds, ...shownIds])),
     }));
   };
 
@@ -2513,6 +2543,44 @@ export default function Dashboard() {
 
                       <div>
                         <Label>Select Jobs to Include *</Label>
+                        {(availableJobsForBilling as any[]).length > 0 && (
+                          <div className="mt-2 space-y-2">
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <Input
+                                list="invoice-org-options"
+                                value={invoiceOrgFilter}
+                                onChange={(e) => setInvoiceOrgFilter(e.target.value)}
+                                placeholder="Filter by organization..."
+                                aria-label="Filter jobs by organization"
+                                className="flex-1"
+                              />
+                              <datalist id="invoice-org-options">
+                                {billableOrganizations.map((org) => (
+                                  <option key={org} value={org} />
+                                ))}
+                              </datalist>
+                              {invoiceOrgFilter && (
+                                <Button type="button" variant="outline" size="sm" className="h-10" onClick={() => setInvoiceOrgFilter("")}>
+                                  Clear
+                                </Button>
+                              )}
+                            </div>
+                            <div className="flex items-center justify-between text-xs text-gray-500">
+                              <span>
+                                Showing {billableJobsShown.length} of {billableJobsSorted.length} jobs · newest first
+                              </span>
+                              {billableJobsShown.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={toggleSelectAllShown}
+                                  className="text-[#0077B5] hover:underline font-medium"
+                                >
+                                  {allShownSelected ? "Unselect all shown" : `Select all shown (${billableJobsShown.length})`}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
                         <div className="mt-2 space-y-2 max-h-60 overflow-y-auto border rounded-md p-4">
                           {availableJobsLoading ? (
                             <p className="text-center text-gray-500">Loading available jobs...</p>
@@ -2521,8 +2589,10 @@ export default function Dashboard() {
                               <p>No jobs available to invoice</p>
                               <p className="text-xs mt-1">All your published jobs may have already been billed</p>
                             </div>
+                          ) : billableJobsShown.length === 0 ? (
+                            <p className="text-center text-sm text-gray-500">No jobs match this organization</p>
                           ) : (
-                            (availableJobsForBilling as any[]).map((job: any) => (
+                            billableJobsShown.map((job: any) => (
                               <div key={job.id} className="flex items-center space-x-3">
                                 <input
                                   type="checkbox"
@@ -2534,6 +2604,11 @@ export default function Dashboard() {
                                 <label htmlFor={`job-${job.id}`} className="flex-1 text-sm">
                                   <div className="font-medium">{job.title}</div>
                                   <div className="text-gray-500">{job.organization} • {job.location}</div>
+                                  {job.datePosted && (
+                                    <div className="text-xs text-gray-400">
+                                      {(job.type === 'tender' ? 'Tender' : 'Job')} · Posted {formatPostedDate(job.datePosted)}
+                                    </div>
+                                  )}
                                 </label>
                               </div>
                             ))
