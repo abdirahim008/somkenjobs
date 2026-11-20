@@ -1,4 +1,5 @@
 import sanitizeHtml from "sanitize-html";
+import { isAllowedContentImageSrc, normalizeContentImageWidth } from "@shared/utils";
 
 const allowedTags = [
   "a",
@@ -11,6 +12,7 @@ const allowedTags = [
   "h2",
   "h3",
   "h4",
+  "img",
   "li",
   "ol",
   "p",
@@ -29,6 +31,7 @@ const allowedTags = [
 
 const allowedAttributes: sanitizeHtml.IOptions["allowedAttributes"] = {
   a: ["href", "name", "target", "rel"],
+  img: ["src", "alt", "width"],
   td: ["colspan", "rowspan"],
   th: ["colspan", "rowspan"],
 };
@@ -45,7 +48,21 @@ export function sanitizeRichHtml(html: string | null | undefined): string {
     allowedSchemesByTag: {
       a: allowedSchemes,
     },
+    // Only images uploaded to our own /uploads store survive; the display width
+    // is kept as a plain numeric attribute (inline styles are not allowed).
+    exclusiveFilter: (frame) => frame.tag === "img" && !isAllowedContentImageSrc(frame.attribs.src),
     transformTags: {
+      img: (_tagName, attribs) => {
+        const width = normalizeContentImageWidth(attribs.width);
+        return {
+          tagName: "img",
+          attribs: {
+            src: (attribs.src || "").trim(),
+            alt: (attribs.alt || "").slice(0, 200),
+            ...(width ? { width } : {}),
+          },
+        };
+      },
       a: (_tagName, attribs) => ({
         tagName: "a",
         attribs: {

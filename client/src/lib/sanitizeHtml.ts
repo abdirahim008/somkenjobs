@@ -1,4 +1,19 @@
 import DOMPurify from "dompurify";
+import { isAllowedContentImageSrc, normalizeContentImageWidth } from "@shared/utils";
+
+// Only images uploaded to our own /uploads store may appear in job content,
+// with a plain numeric width. Mirrors server/utils/sanitizeHtml.ts.
+DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+  if (node.nodeName !== "IMG") return;
+  const img = node as Element;
+  if (!isAllowedContentImageSrc(img.getAttribute("src"))) {
+    img.remove();
+    return;
+  }
+  const width = normalizeContentImageWidth(img.getAttribute("width"));
+  if (width) img.setAttribute("width", width);
+  else img.removeAttribute("width");
+});
 
 const allowedTags = [
   "a",
@@ -11,6 +26,7 @@ const allowedTags = [
   "h2",
   "h3",
   "h4",
+  "img",
   "li",
   "ol",
   "p",
@@ -27,7 +43,7 @@ const allowedTags = [
   "ul",
 ];
 
-const allowedAttributes = ["href", "name", "target", "rel", "colspan", "rowspan"];
+const allowedAttributes = ["href", "name", "target", "rel", "colspan", "rowspan", "src", "alt", "width"];
 
 export function sanitizeRichHtml(html: string): string {
   if (!html) return "";
